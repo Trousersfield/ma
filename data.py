@@ -51,12 +51,23 @@ def make_numpy_dataset(df):
     return data, features_float32, features_uint16, meta_df
 
 
-def generate_sequences(series, sequence_len):
-    sequences = []
+def generate_sequences(data, sequence_len):
+    input_seqs, labels = [], []
 
-    x = np.arange(sequence_len)
+    # create sequences where, starting from sequence_len'th index, each data-point represents one output
+    for i in range(len(data)):
 
-    return np.array()
+        end_index = i + sequence_len
+
+        # abort if sequence exceeds data
+        if end_index > len(data)-1:
+            break
+
+        input_seqs.append(data[i:end_index])
+        labels.append(data[end_index])
+
+    # expand labels to behave as a matrix -> vector of outputs as column
+    return np.array(input_seqs), np.expand_dims(np.array(labels), axis=-1)
 
 
 # normalize numeric data on interval [-1,1]
@@ -85,10 +96,7 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
 
     print("Generating dataset from {} ...".format(input_dir))
 
-    # df = pd.read_csv(raw_data_path, ",", None)
-    # load raw AIS data from .csv
     df = pd.read_csv(input_dir, ",", None)
-    print("Csv read. Number of lines: {}".format(len(df.index)))
 
     # drop undesired columns
     df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing device', 'ETA',
@@ -110,18 +118,23 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
 
         """Group by ship to extract continuous time series data-points
         One ship on its way to a destination port represents a single time-series
-        All of those series are generally parallel = at the same time (multiple parallel series)
+        All of those series per ship can be synchronous = data-points at the same time
         """
         ships = df["MMSI"].unique()
-        data = []
-        scalers = []
+        dest_df.assign(timestamp_formatted=pd.to_datetime(dest_df.pop("Timestamp"), format='%d/%m/%Y %H:%M:%S')
+                       .map(datetime.datetime.timestamp))
+
+        normalized_dest_df, scaler = normalize(dest_df)
+
+        input_series = []
+        output = []
 
         for ship in ships:
-            ship_df = dest_df.loc[dest_df["MMSI"] == ship]
+            # TODO: Handle ships that head to the same port more than once within the dataset
+            ship_df = normalized_dest_df.loc[dest_df["MMSI"] == ship]
 
             # numerical
-            timestamp = pd.to_datetime(dest_df.pop("Timestamp"), format='%d/%m/%Y %H:%M:%S')\
-                .map(datetime.datetime.timestamp)
+            timestamp = ship_df.pop("timestamp_formatted")
             latitude = ship_df.pop("Latitude")
             longitude = ship_df.pop("Longitude")
             sog = ship_df.pop("SOG")
@@ -137,21 +150,18 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
             # ship_type_one_hot_encoded, ship_type_encoder = one_hot_encode(ship_df.pop["Ship type"])
             # nav_status_one_hot_encoded, nav_status_encoder = one_hot_encode(ship_df.pop["Navigational status"])
 
-            features = np.array([timestamp, latitude, longitude, sog, cog, heading, width, length, draught])
+            data = np.array([timestamp, latitude, longitude, sog, cog, heading, width, length, draught])
+            input_data, output_data = generate_sequences(data, sequence_len)
 
-            features_normalized, scaler = normalize(features)
-
-            series = generate_sequences(features_normalized)
-
-            data.append(series)
-            scalers.append(scaler)
+            input_series.append(input_data)
+            output.append(output_data)
 
         dest_name = get_destination_file_name(dest)
-        # np.save(os.path.join(output_dir, "{}.npy".format(file_name)), dest_df)
-        np.save(os.path.join(output_dir, dest_name, "data.npy"), data)
 
-        joblib.dump(timestamp_scaler, os.path.join(output_dir, dest_name, "timestamp_scaler.pkl"))
-    # np.save(os.path.join(output_dir, "destination_mapping.npy"), file_names)
+        np.save(os.path.join(output_dir, dest_name, "input_series.npy"), input_series)
+        np.save(os.path.join(output_dir, dest_name, "output.npy"), output)
+
+        joblib.dump(scaler, os.path.join(output_dir, dest_name, "scaler.pkl"))
 
     print("Done.")
 
@@ -161,30 +171,11 @@ def load_dataset(destination_name):
 
     dest_dir = get_destination_file_name(destination_name)
 
-    timestamp_normalized = np.load(os.path.join(script_dir, "data", "{}", "timestamp.npy".format(dest_dir)))
-    latitude_normalized = np.load(os.path.join(script_dir, "data", "{}", "latitude.npy".format(dest_dir)))
-    longitude_normalized = np.load(os.path.join(script_dir, "data", "{}", "longitude.npy".format(dest_dir)))
-    sog_normalized = np.load(os.path.join(script_dir, "data", "{}", "sog.npy".format(dest_dir)))
-    cog_normalized = np.load(os.path.join(script_dir, "data", "{}", "cog.npy".format(dest_dir)))
-    heading_normalized = np.load(os.path.join(script_dir, "data", "{}", "heading.npy".format(dest_dir)))
-    width_normalized = np.load(os.path.join(script_dir, "data", "{}", "width.npy".format(dest_dir)))
-    length_normalized = np.load(os.path.join(script_dir, "data", "{}", "length.npy".format(dest_dir)))
-    draught_normalized = np.load(os.path.join(script_dir, "data", "{}", "draught.npy".format(dest_dir)))
+    data = np.load(os.path.join(script_dir, "data", "{}", "data.npy".format(dest_dir)))
 
-    timestamp_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "timestamp_scaler.pkl"))
-    latitude_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "latitude_scaler.pkl"))
-    longitude_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "longitude_scaler.pkl"))
-    sog_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "sog_scaler.pkl"))
-    cog_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "cog_scaler.pkl"))
-    heading_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "heading_scaler.pkl"))
-    width_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "width_scaler.pkl"))
-    length_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "length_scaler.pkl"))
-    draught_scaler = joblib.load(os.path.join(script_dir, "data", "{]", "draught_scaler.pkl"))
+    scaler = joblib.load(os.path.join(script_dir, "data", "{]", "scalers.pkl"))
 
-    return timestamp_normalized, latitude_normalized, longitude_normalized, sog_normalized, cog_normalized,\
-        heading_normalized, width_normalized, length_normalized, draught_normalized, timestamp_scaler,\
-        latitude_scaler, longitude_scaler, sog_scaler, cog_scaler, heading_scaler, width_scaler, length_scaler,\
-        draught_scaler
+    return data, scaler
 
 
 def main(args):

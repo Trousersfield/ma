@@ -37,7 +37,7 @@ class MyModel(nn.Module):
 
         # Inception Time blocks as first layers
         self.model = nn.Sequential(
-            InceptionBlock(in_channels, out_channels)
+            InceptionBlock(in_channels, out_channels, num_inception_blocks)
         )
 
         self.linear = nn.Sequential(
@@ -46,7 +46,7 @@ class MyModel(nn.Module):
 
 
 class InceptionBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, use_resudual: bool, stride: int = 1,
+    def __init__(self, in_channels: int, out_channels: int, num_blocks: int, use_resudual: bool, stride: int = 1,
                  bottleneck_channels: int = 32) -> None:
         super().__init__()
 
