@@ -52,7 +52,7 @@ def make_numpy_dataset(df):
 
 
 def generate_sequences(data, sequence_len):
-    input_seqs, labels = [], []
+    input_seqs, output = [], []
 
     # create sequences where, starting from sequence_len'th index, each data-point represents one output
     for i in range(len(data)):
@@ -64,10 +64,10 @@ def generate_sequences(data, sequence_len):
             break
 
         input_seqs.append(data[i:end_index])
-        labels.append(data[end_index])
+        output.append(data[end_index][0])
 
-    # expand labels to behave as a matrix -> vector of outputs as column
-    return np.array(input_seqs), np.expand_dims(np.array(labels), axis=-1)
+    # expand output to behave as a matrix -> one-dim vector as each entry of a column
+    return np.array(input_seqs), np.expand_dims(np.array(output), axis=-1)
 
 
 # normalize numeric data on interval [-1,1]
@@ -150,7 +150,7 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
             # ship_type_one_hot_encoded, ship_type_encoder = one_hot_encode(ship_df.pop["Ship type"])
             # nav_status_one_hot_encoded, nav_status_encoder = one_hot_encode(ship_df.pop["Navigational status"])
 
-            data = np.array([timestamp, latitude, longitude, sog, cog, heading, width, length, draught])
+            data = [timestamp, latitude, longitude, sog, cog, heading, width, length, draught]
             input_data, output_data = generate_sequences(data, sequence_len)
 
             input_series.append(input_data)

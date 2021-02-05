@@ -1,10 +1,8 @@
 import argparse
 import os
 
-
-def train():
-    print("I am supposed to train")
-
+def train(dataset_path, batch_size, num_epochs, learning_rate):
+    return
 
 def main(args):
     batch_size = 64
