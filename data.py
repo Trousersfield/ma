@@ -9,8 +9,9 @@ import joblib
 # import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
+from typing import List, Tuple
 
-from util import get_destination_file_name, write_to_console
+from util import get_destination_file_name, write_to_console, generate_label
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -51,7 +52,7 @@ def make_numpy_dataset(df):
     return data, features_float32, features_uint16, meta_df
 
 
-def generate_sequences(data, sequence_len):
+def generate_training_examples(df: pd.DataFrame, sequence_len: int):
     input_seqs, output = [], []
 
     # create sequences where, starting from sequence_len'th index, each data-point represents one output
@@ -71,7 +72,7 @@ def generate_sequences(data, sequence_len):
 
 
 # normalize numeric data on interval [-1,1]
-def normalize(data):
+def normalize(data: pd.DataFrame) -> Tuple[pd.DataFrame, MinMaxScaler]:
     scaler = MinMaxScaler(feature_range=(-1, 1))
     scaler.fit(data)
     normalized_data = scaler.transform(data)
@@ -79,19 +80,19 @@ def normalize(data):
 
 
 # create one-hot encoded vector for arbitrary categorical data
-def one_hot_encode(data):
+def one_hot_encode(data: pd.Series) -> Tuple[List[List[int]], OneHotEncoder]:
     encoder = OneHotEncoder()
     encoder.fit(data)
     encoded_data = encoder.transform(data)
     return encoded_data, encoder
 
 
-def denormalize(data, scaler):
+def denormalize(data, scaler: MinMaxScaler):
     denormalized_data = scaler.inverse_transform(data)
     return denormalized_data
 
 
-def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
+def generate_dataset(input_dir: str, sequence_len: int, output_dir: str, ship_type: str) -> None:
     min_number_of_rows = 10000
 
     print("Generating dataset from {} ...".format(input_dir))
@@ -147,11 +148,12 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
             # Destination
 
             # categorical
-            # ship_type_one_hot_encoded, ship_type_encoder = one_hot_encode(ship_df.pop["Ship type"])
-            # nav_status_one_hot_encoded, nav_status_encoder = one_hot_encode(ship_df.pop["Navigational status"])
+            ship_type_one_hot_encoded, ship_type_encoder = one_hot_encode(ship_df.pop["Ship type"])
+            nav_status_one_hot_encoded, nav_status_encoder = one_hot_encode(ship_df.pop["Navigational status"])
 
             data = [timestamp, latitude, longitude, sog, cog, heading, width, length, draught]
-            input_data, output_data = generate_sequences(data, sequence_len)
+            # input_data, output_data = generate_sequences(data, sequence_len)
+            training_examples = generate_training_examples(data)
 
             input_series.append(input_data)
             output.append(output_data)
@@ -166,8 +168,9 @@ def generate_dataset(input_dir, sequence_len, output_dir, ship_type):
     print("Done.")
 
 
-def load_dataset(destination_name):
-    write_to_console("Loading data for {}".format(destination_name))
+def load_dataset(destination_name, window_length):
+    write_to_console("Loading data for {} with windows of {}"
+                     .format(destination_name, window_length))
 
     dest_dir = get_destination_file_name(destination_name)
 
@@ -182,7 +185,7 @@ def main(args):
     write_to_console("Pro-processing data")
 
     if args.command == "load":
-        load_dataset("COPENHAGEN")
+        load_dataset("COPENHAGEN", args.window_length)
     elif args.command == "generate":
         generate_dataset(args.input_dir, args.output_dir)
     else:
@@ -191,7 +194,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["load", "generate", "cc"])
+    parser.add_argument("command", choices=["generate", "load", "cc"])
     parser.add_argument("--n", type=int, default=5)
     parser.add_argument("--seq_len", type=int, default=100)
     parser.add_argument("--ship_type", type=str, default="Cargo",
@@ -199,4 +202,5 @@ if __name__ == "__main__":
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "csv", "small.csv"))
     # parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "csv" "aisdk_20181101.csv"))
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data", "destination"))
+    parser.add_argument("--window_length", type=int, default=20)
     main(parser.parse_args())
