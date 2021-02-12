@@ -72,9 +72,10 @@ def generate_training_examples(df: pd.DataFrame, sequence_len: int):
 
 
 # normalize numeric data on interval [-1,1]
-def normalize(data: pd.DataFrame) -> Tuple[pd.DataFrame, MinMaxScaler]:
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-    scaler.fit(data)
+def normalize(data: List[List[List[int]]], scaler: MinMaxScaler = None) -> Tuple[List[List[List[int]]], MinMaxScaler]:
+    if scaler is None:
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        scaler.fit(data)
     normalized_data = scaler.transform(data)
     return normalized_data, scaler
 
@@ -92,11 +93,17 @@ def denormalize(data, scaler: MinMaxScaler):
     return denormalized_data
 
 
-def generate_dataset(input_dir: str, sequence_len: int, output_dir: str, ship_type: str) -> None:
-    min_number_of_rows = 10000
+def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
+    df.assign(time=pd.to_datetime(df.pop("Timestamp"), format='%d/%m/%Y %H:%M:%S')
+              .map(datetime.datetime.timestamp))
+    return df
 
+
+def generate_dataset(input_dir: str, output_dir: str) -> None:
     print("Generating dataset from {} ...".format(input_dir))
-
+    min_number_of_rows = 10000
+    numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
+    categorical_features = ["Ship type", "Navigational status"]
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
@@ -108,62 +115,61 @@ def generate_dataset(input_dir: str, sequence_len: int, output_dir: str, ship_ty
 
     # assert if enough data remains
     if len(df) < min_number_of_rows:
-        raise ValueError("Required {} rows of data, got {} for ship of type {}."
-                         .format(str(min_number_of_rows), str(len(df)), ship_type))
+        raise ValueError("Required {} rows of data, got {}.".format(str(min_number_of_rows), len(df)))
 
-    # group by destination
+    """
+    Find unique routes of a ship to a destination from data pool
+    1) Group by destination
+    2) Group by ship (MMSI)
+    """
     destinations = df["Destination"].unique()
 
     for dest in destinations:
         dest_df = df.loc[df["Destination"] == dest]
 
-        """Group by ship to extract continuous time series data-points
-        One ship on its way to a destination port represents a single time-series
-        All of those series per ship can be synchronous = data-points at the same time
-        """
-        ships = df["MMSI"].unique()
-        dest_df.assign(timestamp_formatted=pd.to_datetime(dest_df.pop("Timestamp"), format='%d/%m/%Y %H:%M:%S')
-                       .map(datetime.datetime.timestamp))
+        # filter data-points that are sent while sitting in port and compute label
+        x_df, y_df = generate_label(dest, dest_df)
 
-        normalized_dest_df, scaler = normalize(dest_df)
+        x_df = format_timestamp_col(x_df)
 
-        input_series = []
-        output = []
+        # handle categorical data
+        x_categorical_df = pd.DataFrame()
+        x_categorical_df["MMSI"] = x_df["MMSI"]
+        x_categorical_df["Ship type"], ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
+        x_categorical_df["Navigational status"], nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
+        ships = x_df["MMSI"].unique()
+        x_data = []
+        labels = []
 
         for ship in ships:
             # TODO: Handle ships that head to the same port more than once within the dataset
-            ship_df = normalized_dest_df.loc[dest_df["MMSI"] == ship]
+            ship_df = x_df.loc[x_df["MMSI"] == ship]
+            ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == ship]
 
-            # numerical
-            timestamp = ship_df.pop("timestamp_formatted")
-            latitude = ship_df.pop("Latitude")
-            longitude = ship_df.pop("Longitude")
-            sog = ship_df.pop("SOG")
-            cog = ship_df.pop("COG")
-            heading = ship_df.pop("Heading")
-            # IMO, Callsign, Name, Ship type, Cargo type
-            width = ship_df.pop("Width")
-            length = ship_df.pop("Length")
-            draught = ship_df.pop("Draught")
-            # Destination
+            data = []
+            label = []
+            for num_feat in numerical_features:
+                np.append(data, ship_df.pop(num_feat), axis=1)
 
-            # categorical
-            ship_type_one_hot_encoded, ship_type_encoder = one_hot_encode(ship_df.pop["Ship type"])
-            nav_status_one_hot_encoded, nav_status_encoder = one_hot_encode(ship_df.pop["Navigational status"])
+            for cat_feat in categorical_features:
+                np.append(data, ship_categorical_df.pop(cat_feat), axis=1)
 
-            data = [timestamp, latitude, longitude, sog, cog, heading, width, length, draught]
-            # input_data, output_data = generate_sequences(data, sequence_len)
-            training_examples = generate_training_examples(data)
+            x_data.append(data)
+            np.append(label, y_df.pop("time"), axis=1)
+            labels.append(label)
 
-            input_series.append(input_data)
-            output.append(output_data)
+        # TODO: Take care if label is allowed to be in normalized data set (currently it is the last row)
+        x_normalized, scaler = normalize(x_data)
+        labels_normalized = normalize(labels, scaler)
 
         dest_name = get_destination_file_name(dest)
 
-        np.save(os.path.join(output_dir, dest_name, "input_series.npy"), input_series)
-        np.save(os.path.join(output_dir, dest_name, "output.npy"), output)
+        np.save(os.path.join(output_dir, dest_name, "data.npy"), x_normalized)
+        np.save(os.path.join(output_dir, dest_name, "labels.npy"), labels_normalized)
 
         joblib.dump(scaler, os.path.join(output_dir, dest_name, "scaler.pkl"))
+        joblib.dump(ship_type_encoder, os.path.join(output_dir, dest_name, "ship_type_encoder.pkl"))
+        joblib.dump(nav_status_encoder, os.path.join(output_dir, dest_name, "nav_status_encoder.pkl"))
 
     print("Done.")
 
@@ -182,7 +188,7 @@ def load_dataset(destination_name, window_length):
 
 
 def main(args):
-    write_to_console("Pro-processing data")
+    write_to_console("Pre-processing data")
 
     if args.command == "load":
         load_dataset("COPENHAGEN", args.window_length)

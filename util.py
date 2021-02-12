@@ -34,8 +34,15 @@ def write_to_console(message):
     print("\t********** {} ***********".format(filler))
 
 
+def is_empty(df: pd.DataFrame) -> bool:
+    return len(df.index) == 0
+
+
 def get_minimum_row(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-    return df[df[column_name] == df[column_name].min()]
+    result_df = pd.DataFrame()
+    if not is_empty(df):
+        result_df = df[df[column_name] == df[column_name].min()]
+    return result_df
 
 
 def port_radius_filter(row, port: Port) -> bool:
@@ -77,19 +84,26 @@ def generate_label(port_name: str, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
     df_outside_square: pd.DataFrame = df[inner_square_mask]
     df_inside_square: pd.DataFrame = df[~inner_square_mask]
 
-    # accurate separation outside inner square but within port's radius
+    # accurate separation outside of inner square but within port's radius
     radius_mask = df_outside_square.apply(port_radius_filter, args=(port,), axis=1)
 
     df_outside_circle: pd.DataFrame = df_outside_square[radius_mask]  # training data series
     df_inside_circle: pd.DataFrame = df_outside_square[~radius_mask]
 
     # minimum timestamp of inside port area data-points is output label
-    min_square: pd.DataFrame = get_minimum_row(df_inside_square, "Timestamp")
-    min_circle: pd.DataFrame = get_minimum_row(df_inside_circle, "Timestamp")
+    min_square: pd.DataFrame = get_minimum_row(df_inside_square, "time")
+    min_circle: pd.DataFrame = get_minimum_row(df_inside_circle, "time")
 
-    port_label: pd.DataFrame = min_square if min_square["Timestamp"] < min_circle["Timestamp"] else min_circle
+    port_label = pd.DataFrame()
+    if not is_empty(min_square):
+        if not is_empty(min_circle):
+            port_label = min_square if min_square["time"] < min_circle["time"] else min_circle
+        else:
+            port_label = min_square
 
-    return df_outside_circle, port_label
+    df_train = df_outside_circle.append(port_label)
+
+    return df_train, port_label
 
 
 def load_ports() -> Dict[str, Port]:
