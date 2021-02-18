@@ -3,17 +3,19 @@ import os
 import datetime
 import pandas as pd
 import numpy as np
-import tensorflow as tf
 import joblib
+import re
 # import random
 # import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from typing import List, Tuple
 
-from util import get_destination_file_name, write_to_console, generate_label
+from port import generate as generate_ports, load as load_ports, identify_label
+from util import make_valid_file_name, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
+data_folders = ("encode", "test", "train")
 
 
 def correlate(raw_data_frame):
@@ -23,33 +25,6 @@ def correlate(raw_data_frame):
     print(correlations)
 
     np.save(os.path.join(script_dir, "data", "correlations.npy"), correlations)
-
-
-def compute_missing_entries(df):
-    # find entry where vessel information is not empty
-    unique_mmsi_df = df['MMSI'].unique()
-
-    for mmsi in unique_mmsi_df:
-        df_single_mmsi = df['MMSI'] == mmsi
-
-
-def make_numpy_dataset(df):
-    features_float32 = ['Latitude', 'Longitude', 'SOG', 'COG', 'Draught']
-    features_uint16 = ['Heading', 'Width', 'Length']
-    print("features_float34: {}".format(features_float32))
-    print("features_uint16: {}".format(features_uint16))
-
-    data = tf.data.Dataset.from_tensor_slices(
-        (
-            tf.cast(df[features_float32].values, tf.float32),
-            tf.cast(df[features_uint16].values, tf.uint16)
-        )
-    )
-
-    features = features_float32.extend(features_uint16)
-    meta_df = df.drop(columns=features, inplace=True)
-
-    return data, features_float32, features_uint16, meta_df
 
 
 def generate_training_examples(df: pd.DataFrame, sequence_len: int):
@@ -72,7 +47,8 @@ def generate_training_examples(df: pd.DataFrame, sequence_len: int):
 
 
 # normalize numeric data on interval [-1,1]
-def normalize(data: List[List[List[int]]], scaler: MinMaxScaler = None) -> Tuple[List[List[List[int]]], MinMaxScaler]:
+def normalize(data: List[List[List[float]]], scaler: MinMaxScaler = None) -> Tuple[List[List[List[float]]],
+                                                                                   MinMaxScaler]:
     if scaler is None:
         scaler = MinMaxScaler(feature_range=(-1, 1))
         scaler.fit(data)
@@ -88,7 +64,7 @@ def one_hot_encode(data: pd.Series) -> Tuple[List[List[int]], OneHotEncoder]:
     return encoded_data, encoder
 
 
-def denormalize(data, scaler: MinMaxScaler):
+def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[List[List[float]]]:
     denormalized_data = scaler.inverse_transform(data)
     return denormalized_data
 
@@ -104,10 +80,16 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     min_number_of_rows = 10000
     numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
     categorical_features = ["Ship type", "Navigational status"]
+
+    # load destination port data for separating training data and labels
+    port_data = load_ports()
+    if len(port_data.values()) < 1:
+        raise ValueError("No port data available")
+
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
-    df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing device', 'ETA',
+    df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing deice', 'ETA',
                      'Data source type', 'A', 'B', 'C', 'D'], inplace=True)
 
     # group rows by ship type
@@ -117,6 +99,13 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     if len(df) < min_number_of_rows:
         raise ValueError("Required {} rows of data, got {}.".format(str(min_number_of_rows), len(df)))
 
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for folder in data_folders:
+        if not os.path.exists(os.path.join(output_dir, folder)):
+            os.makedirs(os.path.join(output_dir, folder))
+
     """
     Find unique routes of a ship to a destination from data pool
     1) Group by destination
@@ -125,10 +114,19 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     destinations = df["Destination"].unique()
 
     for dest in destinations:
+        if pd.isnull(dest):
+            continue
+
+        dest_name = make_valid_file_name(dest)
+
+        for folder in data_folders:
+            if not os.path.exists(os.path.join(output_dir, folder, dest_name)):
+                os.makedirs(os.path.join(output_dir, folder))
+
         dest_df = df.loc[df["Destination"] == dest]
 
         # filter data-points that are sent while sitting in port and compute label
-        x_df, y_df = generate_label(dest, dest_df)
+        x_df, y_df = identify_label(dest, dest_df)
 
         x_df = format_timestamp_col(x_df)
 
@@ -144,12 +142,13 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         for ship in ships:
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == ship]
+            ship_df_typed = ship_df.astype("float64")
             ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == ship]
 
             data = []
             label = []
             for num_feat in numerical_features:
-                np.append(data, ship_df.pop(num_feat), axis=1)
+                np.append(data, ship_df_typed.pop(num_feat), axis=1)
 
             for cat_feat in categorical_features:
                 np.append(data, ship_categorical_df.pop(cat_feat), axis=1)
@@ -160,53 +159,61 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
         # TODO: Take care if label is allowed to be in normalized data set (currently it is the last row)
         x_normalized, scaler = normalize(x_data)
-        labels_normalized = normalize(labels, scaler)
+        labels_normalized, _ = normalize(labels, scaler)
 
-        dest_name = get_destination_file_name(dest)
+        # create train and test data while keeping data-points in order
+        x_train, x_test = np.split(x_normalized, [int(.80*len(x_normalized))])
+        labels_train, labels_test = np.split(labels_normalized, [int(.80*len(labels_normalized))])
 
-        np.save(os.path.join(output_dir, dest_name, "data.npy"), x_normalized)
-        np.save(os.path.join(output_dir, dest_name, "labels.npy"), labels_normalized)
+        np.save(os.path.join(output_dir, "train", dest_name, "data.npy"), x_train)
+        np.save(os.path.join(output_dir, "train", dest_name, "labels.npy"), labels_train)
 
-        joblib.dump(scaler, os.path.join(output_dir, dest_name, "scaler.pkl"))
-        joblib.dump(ship_type_encoder, os.path.join(output_dir, dest_name, "ship_type_encoder.pkl"))
-        joblib.dump(nav_status_encoder, os.path.join(output_dir, dest_name, "nav_status_encoder.pkl"))
+        np.save(os.path.join(output_dir, "test", dest_name, "data.npy"), x_test)
+        np.save(os.path.join(output_dir, "test", dest_name, "labels.npy"), labels_test)
+
+        joblib.dump(scaler, os.path.join(output_dir, "encode", dest_name, "scaler.pkl"))
+        joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", dest_name, "ship_type_encoder.pkl"))
+        joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", dest_name, "nav_status_encoder.pkl"))
 
     print("Done.")
 
 
-def load_dataset(destination_name, window_length):
+def load_dataset(output_dir: str, destination_name: str, window_length: int):
     write_to_console("Loading data for {} with windows of {}"
                      .format(destination_name, window_length))
 
-    dest_dir = get_destination_file_name(destination_name)
+    file_name = make_valid_file_name(destination_name)
 
-    data = np.load(os.path.join(script_dir, "data", "{}", "data.npy".format(dest_dir)))
+    data = np.load(os.path.join(output_dir, "{}", "data.npy".format(file_name)))
 
-    scaler = joblib.load(os.path.join(script_dir, "data", "{]", "scalers.pkl"))
+    scaler = joblib.load(os.path.join(output_dir, "{}", "scalers.pkl".format(file_name)))
 
     return data, scaler
 
 
-def main(args):
+def main(args) -> None:
     write_to_console("Pre-processing data")
 
     if args.command == "load":
-        load_dataset("COPENHAGEN", args.window_length)
+        port = args.port.upper()
+        load_dataset(args.output_dir, port, args.window_width)
     elif args.command == "generate":
+        generate_ports()
         generate_dataset(args.input_dir, args.output_dir)
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Preprocess data.")
     parser.add_argument("command", choices=["generate", "load", "cc"])
-    parser.add_argument("--n", type=int, default=5)
-    parser.add_argument("--seq_len", type=int, default=100)
-    parser.add_argument("--ship_type", type=str, default="Cargo",
-                        choices=["Cargo", "Fishing", "Passenger", "Military", "Tanker"])
-    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "csv", "small.csv"))
-    # parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "csv" "aisdk_20181101.csv"))
-    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data", "destination"))
-    parser.add_argument("--window_length", type=int, default=20)
+    parser.add_argument("--port", type=str, default="COPENGAHEN", help="Name of port to load dataset")
+    parser.add_argument("--window_width", type=int, default=20, help="Sliding window width of training examples")
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "small.csv"),
+                        help="Path to AIS .csv file")
+    # parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw" "aisdk_20181101.csv"))
+    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
+                        help="Output directory path")
+    parser.add_argument("--ship_type", type=str, default="Cargo", choices=["Cargo", "Fishing", "Passenger", "Military",
+                                                                           "Tanker"])
     main(parser.parse_args())
