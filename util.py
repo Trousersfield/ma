@@ -9,8 +9,8 @@ def is_empty(df: pd.DataFrame) -> bool:
     return len(df.index) == 0
 
 
-def make_valid_file_name(destination_name: any) -> str:
-    dest = str(destination_name)
+def get_destination_file_name(name: any) -> str:
+    dest = str(name)
     return re.sub(r'\W', '', dest).upper()
 
 
