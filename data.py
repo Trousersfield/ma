@@ -11,12 +11,12 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from typing import List, Tuple
 
-# from port import generate as generate_ports, load as load_ports, identify_label, find_match as find_port_match
 from port import PortManager
 from util import get_destination_file_name, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 data_folders = ("encode", "test", "train")
+
 
 def initialize(output_dir:  str) -> None:
     if not os.path.exists(output_dir):
@@ -81,8 +81,8 @@ def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[Lis
 
 
 def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
-    df.assign(time=pd.to_datetime(df.pop("Timestamp"), format='%d/%m/%Y %H:%M:%S')
-              .map(datetime.datetime.timestamp))
+    df["time"] = pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S').values.astype(np.int64) // 10 ** 9
+    df.drop(columns=["# Timestamp"])
     return df
 
 
@@ -102,7 +102,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
-    df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing deice', 'ETA',
+    df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing device', 'ETA',
                      'Data source type', 'A', 'B', 'C', 'D'], inplace=True)
 
     # group rows by ship type
@@ -119,72 +119,68 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     1) Group by destination
     2) Group by ship (MMSI)
     """
-    destinations = df["Destination"].unique()
+    destinations: List[str] = df["Destination"].unique()
 
     for dest_column_header in destinations:
         if pd.isnull(dest_column_header):
             continue
 
-        dest_name = get_destination_file_name(dest_column_header)
+        dest_name: str = get_destination_file_name(dest_column_header)
         port = pm.find_port(dest_name)
-        print("Port match: {}".format(port.name))
 
         # skip if no port data is set
         if port is None:
             continue
+        print("Port match: {}".format(port.name))
 
         for folder in data_folders:
             if not os.path.exists(os.path.join(output_dir, folder, port.name)):
                 os.makedirs(os.path.join(output_dir, folder, port.name))
 
         dest_df = df.loc[df["Destination"] == dest_column_header]
+        print("df columns {}".format(df.columns))
+        dest_df = format_timestamp_col(dest_df)
 
-        # filter data-points that are sent while sitting in port and compute label
-        x_df, y_df = pm.identify_label(dest_column_header, dest_df)
-
-        x_df = format_timestamp_col(x_df)
+        # extract data-points that are sent while sitting in port to compute label
+        x_df, y_df = pm.identify_label(port, dest_df)
 
         # handle categorical data
         x_categorical_df = pd.DataFrame()
         x_categorical_df["MMSI"] = x_df["MMSI"]
         x_categorical_df["Ship type"], ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
         x_categorical_df["Navigational status"], nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
-        ships = x_df["MMSI"].unique()
+        mmsis: List[str] = x_df["MMSI"].unique()
         x_data = np.array([])
         labels = np.array([])
 
-        for ship in ships:
+        for mmsi in mmsis:
             # TODO: Handle ships that head to the same port more than once within the dataset
-            ship_df = x_df.loc[x_df["MMSI"] == ship]
+            ship_df = x_df.loc[x_df["MMSI"] == mmsi]
             ship_df.drop(columns=["MMSI"], inplace=True)
-            ship_df_typed = ship_df.astype("float64")
-            ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == ship]
+            # ship_df_typed = ship_df.astype("float64")
+            ship_df = ship_df.apply(ship_df.to_numeric, errors="coerce")    # second option: errors="ignore"
+            ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
             ship_categorical_df.drop(columns=["MMSI"], inplace=True)
 
-            # data = []
-            # label = []
-            # for num_feat in numerical_features:
-            #    np.append(data, ship_df_typed.pop(num_feat), axis=1)
+            label_df = y_df.loc[y_df["MMSI"] == mmsi]
+            label_df.drop(columns=["MMSI"], inplace=True)
+            label_df = label_df.apply(label_df.to_numeric, errors="coerce")     # handle errors like above
 
-            # for cat_feat in categorical_features:
-            #    np.append(data, ship_categorical_df.pop(cat_feat), axis=1)
-
-            # np.append(label, y_df.pop("time"), axis=1)
-
-            data = ship_df_typed.to_numpy()
-            label = ship_categorical_df.to_numpy()
-
-            # x_data.append(data)
-            # labels.append(label)
+            data = ship_df.to_numpy()
+            print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
+            # label = ship_categorical_df.to_numpy()
+            label = label_df.to_numpy()
+            print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, label.shape, label.dtype))
 
             np.append(x_data, data, axis=0)
             np.append(labels, label, axis=0)
 
+        break
         # TODO: Take care if label is allowed to be in normalized data set (currently it is the last row)
         x_normalized, scaler = normalize(x_data)
         labels_normalized, _ = normalize(labels, scaler)
 
-        shape = x_normalized.shape()
+        shape = x_normalized.shape
 
         # create train and test data
         x_train, x_test = np.split(x_normalized, [int(.80*len(x_normalized))])
@@ -231,16 +227,21 @@ def main(args) -> None:
     elif args.command == "check_ports":
         pm = PortManager()
         pm.generate_from_source(load=True)
-    elif args.command == "add_port":
-        # add(args.name, args.latitude, args.longitude, args.radius)
-        print("add_port command: TODO")
+    elif args.command == "add_alias":
+        pm = PortManager()
+        pm.load()
+        pm.add_alias("PETERSBURG", "ST.PETERSBURG")
+        pm.add_alias("THYBORON", "THYBOROEN")
+        pm.add_alias("ANTWERPEN", "ANTWERP")
+        pm.add_alias("GRENAA", "GRENA")
+        pm.add_alias("GOTEBORG", "GOTHENBURG")
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["init", "generate", "load", "cc", "add_port", "check_ports"])
+    parser.add_argument("command", choices=["init", "generate", "load", "cc", "add_alias", "check_ports"])
     parser.add_argument("--port", type=str, default="COPENGAHEN", help="Name of port to load dataset")
     parser.add_argument("--window_width", type=int, default=20, help="Sliding window width of training examples")
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "small.csv"),

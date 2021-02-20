@@ -27,7 +27,7 @@ class PortManager:
     def __init__(self, port_dir: str = "", alias_dir: str = "") -> None:
         self.ports: Dict[str, Port] = dict()
         self.alias: Dict[str, str] = dict()
-        if (port_dir != "") & os.path.exists(port_dir):
+        if (port_dir != "") and os.path.exists(port_dir):
             self.port_dir = port_dir
         else:
             self.port_dir = os.path.join(script_dir, "port.pkl")
@@ -41,7 +41,7 @@ class PortManager:
             source_dir = os.path.join(script_dir, "port.json")
         if os.path.exists(source_dir):
             with open(source_dir) as json_file:
-                ports: Dict[str, Port]
+                ports: Dict[str, Port] = dict()
                 data = json.load(json_file)
 
                 for port_row in data["rows"]:
@@ -77,9 +77,10 @@ class PortManager:
     def add_alias(self, port_name: str, alias: str, overwrite: bool = False) -> None:
         alias = alias.upper()
         if port_name in self.ports.keys():
-            if overwrite | (alias not in self.alias.keys()):
+            if overwrite or (alias not in self.alias.keys()):
                 self.alias[alias] = port_name
                 joblib.dump(self.alias, self.alias_dir)
+                print("Alias {} added. Associated port: {}".format(alias, self.alias[alias]))
             else:
                 print("Alias {} already contained! Associated port: {}".format(alias, self.alias[alias]))
         else:
@@ -92,8 +93,9 @@ class PortManager:
         if name_upper in self.ports:
             return self.ports[name]
 
-        if (name_upper in self.alias) & (self.alias[name_upper] in self.ports):
+        if (name_upper in self.alias) and (self.alias[name_upper] in self.ports):
             return self.ports[self.alias[name_upper]]
+        print("No match found!")
 
     @staticmethod
     def identify_label(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
