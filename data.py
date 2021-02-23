@@ -16,6 +16,8 @@ from util import get_destination_file_name, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 data_folders = ("encode", "test", "train")
+LAT = {"min": -90, "max": 90}
+LONG = {"min": -180, "max": 180}
 
 
 def initialize(output_dir:  str) -> None:
@@ -67,12 +69,15 @@ def normalize(data: np.ndarray, scaler: MinMaxScaler = None) -> Tuple[np.ndarray
     return normalized_data, scaler
 
 
-# create one-hot encoded vector for arbitrary categorical data
-def one_hot_encode(data: pd.Series) -> Tuple[List[List[int]], OneHotEncoder]:
-    encoder = OneHotEncoder()
+# create one-hot encoded DataFrame: one column for each category
+def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
+    categories = data.unique()
+    data = data.values.reshape(-1, 1)   # shape as column
+    encoder = OneHotEncoder(sparse=False)
     encoder.fit(data)
-    encoded_data = encoder.transform(data)
-    return encoded_data, encoder
+    data_ohe = encoder.transform(data)
+    df_ohe = pd.DataFrame(data_ohe, columns=[categories[i] for i in range(len(categories))])
+    return df_ohe, encoder
 
 
 def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[List[List[float]]]:
@@ -82,7 +87,7 @@ def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[Lis
 
 def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     df["time"] = pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S').values.astype(np.int64) // 10 ** 9
-    df.drop(columns=["# Timestamp"])
+    df.drop(columns=["# Timestamp"], inplace=True)
     return df
 
 
@@ -102,15 +107,16 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
-    df.drop(columns=['Type of mobile', 'ROT', 'Type of position fixing device', 'ETA',
-                     'Data source type', 'A', 'B', 'C', 'D'], inplace=True)
+    df.drop(columns=["Type of mobile", "ROT", "Type of position fixing device", "ETA", "Name", "Callsign", "IMO",
+                     "Data source type", "A", "B", "C", "D"], inplace=True)
 
-    # group rows by ship type
-    # df = df.loc[df["Ship type"] == ship_type]
+    # filter out of range values
+    df = df.loc[(df["Latitude"] >= LAT["min"]) & (df["Latitude"] <= LAT["max"])]
+    df = df.loc[(df["Longitude"] >= LONG["min"]) & (df["Longitude"] <= LONG["max"])]
 
     # assert if enough data remains
-    if len(df) < min_number_of_rows:
-        raise ValueError("Required {} rows of data, got {}.".format(str(min_number_of_rows), len(df)))
+    if len(df.index) < min_number_of_rows:
+        raise ValueError("Required {} rows of data, got {}.".format(str(min_number_of_rows), len(df.index)))
 
     initialize(output_dir)
 
@@ -138,17 +144,19 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 os.makedirs(os.path.join(output_dir, folder, port.name))
 
         dest_df = df.loc[df["Destination"] == dest_column_header]
-        print("df columns {}".format(df.columns))
+        dest_df.drop(columns=["Destination"], inplace=True)
         dest_df = format_timestamp_col(dest_df)
 
         # extract data-points that are sent while sitting in port to compute label
         x_df, y_df = pm.identify_label(port, dest_df)
 
         # handle categorical data
-        x_categorical_df = pd.DataFrame()
-        x_categorical_df["MMSI"] = x_df["MMSI"]
-        x_categorical_df["Ship type"], ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
-        x_categorical_df["Navigational status"], nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
+        x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
+        x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
+        x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
+        mmsi_col = x_df["MMSI"]
+        x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
+
         mmsis: List[str] = x_df["MMSI"].unique()
         x_data = np.array([])
         labels = np.array([])
@@ -157,14 +165,13 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
             ship_df.drop(columns=["MMSI"], inplace=True)
-            # ship_df_typed = ship_df.astype("float64")
-            ship_df = ship_df.apply(ship_df.to_numeric, errors="coerce")    # second option: errors="ignore"
-            ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
-            ship_categorical_df.drop(columns=["MMSI"], inplace=True)
+            print("data: \n", ship_df)
+            # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
+            # ship_categorical_df.drop(columns=["MMSI"], inplace=True)
 
             label_df = y_df.loc[y_df["MMSI"] == mmsi]
             label_df.drop(columns=["MMSI"], inplace=True)
-            label_df = label_df.apply(label_df.to_numeric, errors="coerce")     # handle errors like above
+            print("label: \n", label_df)
 
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))

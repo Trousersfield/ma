@@ -4,7 +4,7 @@ import json
 import os
 import pandas as pd
 
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, degrees
 from typing import Dict, List, Tuple
 
 from util import is_empty
@@ -13,14 +13,26 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Port:
+    KM_TO_LAT_FACTOR = 110.574
+    KM_TO_LONG_FACTOR = 111.230
+
     def __init__(self, name: str, latitude: float, longitude: float, radius: float) -> None:
         self.name = name
-        self.latitude = latitude
-        self.longitude = longitude
-        self.radius = radius
-        # approximate maximum inner square
-        max_corner_dist = haversine(latitude, longitude, latitude+radius, longitude+radius)
-        self.inner_square_distance = sqrt((max_corner_dist-radius)**2 / 2)
+        self.latitude = latitude    # degrees
+        self.longitude = longitude  # degrees
+        self.radius = radius        # km
+        # approximate maximum lat and long distances from center point of the maximum square within radius r
+        self.r_lat = self.km_to_lat(radius)   # r in degrees for lat
+        self.r_long = self.km_to_long(radius, self.latitude)  # r in degrees for long
+        hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
+        self.inner_square_lat_radius = self.km_to_lat(hypotenuse/2)
+        self.inner_square_long_radius = self.km_to_long(hypotenuse/2, self.latitude)
+
+    def km_to_lat(self, km: float) -> float:
+        return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
+
+    def km_to_long(self, km: float, latitude: float) -> float:
+        return 1/(self.KM_TO_LONG_FACTOR*km*cos(radians(latitude))) if km > 0 else 0
 
 
 class PortManager:
@@ -100,13 +112,29 @@ class PortManager:
     @staticmethod
     def identify_label(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         # separation by inner square of port area
-        inner_square_mask = (((df["Latitude"] > (port.latitude - port.inner_square_distance)) &
-                              (df["Latitude"] < (port.latitude + port.inner_square_distance))) &
-                             ((df["Longitude"] > (port.longitude - port.inner_square_distance)) &
-                              (df["Longitude"] < (port.longitude + port.inner_square_distance))))
+        print("Port lat/long: ", port.latitude, port.longitude)
+        print("r_lat / r_long: ", port.r_lat, port.r_long)
+        print("df: \n", df)
+        lat_mask = ((df["Latitude"] > (port.latitude - port.inner_square_lat_radius)) &
+                    (df["Latitude"] < (port.latitude + port.inner_square_lat_radius)))
 
-        df_outside_square: pd.DataFrame = df[inner_square_mask]
-        df_inside_square: pd.DataFrame = df[~inner_square_mask]
+        df_outside_square: pd.DataFrame = df.loc[~lat_mask]
+        df_inside_square: pd.DataFrame = df.loc[lat_mask]
+
+        long_mask = ((df_inside_square["Longitude"] > (port.longitude - port.inner_square_long_radius)) &
+                     (df_inside_square["Longitude"] < (port.longitude + port.inner_square_long_radius)))
+
+        # df_outside_square = df_outside_square.loc[long_mask]
+        # df_inside_square = df_inside_square[~long_mask]
+        df_outside_square.append(df_inside_square.loc[~long_mask])
+        df_inside_square = df_inside_square.loc[long_mask]
+
+        print("lat interval [{}; {}] ".format(str(port.latitude - port.inner_square_lat_radius),
+                                              str(port.latitude + port.inner_square_lat_radius)))
+        print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
+                                               str(port.longitude + port.inner_square_long_radius)))
+        print("df outside square: \n", df_outside_square)
+        print("df inside square: \n", df_inside_square)
 
         # accurate separation outside of inner square but within port's radius
         radius_mask = df_outside_square.apply(radius_filter, args=(port,), axis=1)
@@ -118,10 +146,13 @@ class PortManager:
         min_square: pd.DataFrame = get_minimum_row(df_inside_square, "time")
         min_circle: pd.DataFrame = get_minimum_row(df_inside_circle, "time")
 
+        print("min square: ", min_square["time"])
+        print("min circle: ", min_circle["time"])
+
         port_label = pd.DataFrame()
         if not is_empty(min_square):
             if not is_empty(min_circle):
-                port_label = min_square if min_square["time"] < min_circle["time"] else min_circle
+                port_label = min_square if min_square["time"].iloc[0] < min_circle["time"].iloc[0] else min_circle
             else:
                 port_label = min_square
 
@@ -147,7 +178,7 @@ def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
 
 
 def radius_filter(row, port: Port) -> bool:
-    if haversine(row["Latitude"], row["Longitude"], port.latitude, port.longitude) < port.radius:
+    if haversine(row["Latitude"], row["Longitude"], port.latitude, port.longitude) <= port.radius:
         return False
     else:
         return True
