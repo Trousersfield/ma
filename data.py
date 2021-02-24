@@ -148,7 +148,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         dest_df = format_timestamp_col(dest_df)
 
         # extract data-points that are sent while sitting in port to compute label
-        x_df, y_df = pm.identify_label(port, dest_df)
+        x_df, label_df = pm.identify_label(port, dest_df)
+        print("label: \n", label_df)
 
         # handle categorical data
         x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
@@ -158,8 +159,9 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
 
         mmsis: List[str] = x_df["MMSI"].unique()
-        x_data = np.array([])
-        labels = np.array([])
+        x_data = []
+        print("prepared array {}".format(x_data))
+        labels = []
 
         for mmsi in mmsis:
             # TODO: Handle ships that head to the same port more than once within the dataset
@@ -169,21 +171,19 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
             # ship_categorical_df.drop(columns=["MMSI"], inplace=True)
 
-            label_df = y_df.loc[y_df["MMSI"] == mmsi]
-            label_df.drop(columns=["MMSI"], inplace=True)
-            print("label: \n", label_df)
+            label_ship_df = x_df.loc[x_df["MMSI"] == mmsi]
+            label_ship_df.drop(columns=["MMSI"], inplace=True)
 
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # label = ship_categorical_df.to_numpy()
-            label = label_df.to_numpy()
+            label = label_ship_df.to_numpy()
             print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, label.shape, label.dtype))
 
             np.append(x_data, data, axis=0)
             np.append(labels, label, axis=0)
 
         break
-        # TODO: Take care if label is allowed to be in normalized data set (currently it is the last row)
         x_normalized, scaler = normalize(x_data)
         labels_normalized, _ = normalize(labels, scaler)
 

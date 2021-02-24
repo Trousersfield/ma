@@ -112,9 +112,6 @@ class PortManager:
     @staticmethod
     def identify_label(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         # separation by inner square of port area
-        print("Port lat/long: ", port.latitude, port.longitude)
-        print("r_lat / r_long: ", port.r_lat, port.r_long)
-        print("df: \n", df)
         lat_mask = ((df["Latitude"] > (port.latitude - port.inner_square_lat_radius)) &
                     (df["Latitude"] < (port.latitude + port.inner_square_lat_radius)))
 
@@ -124,8 +121,6 @@ class PortManager:
         long_mask = ((df_inside_square["Longitude"] > (port.longitude - port.inner_square_long_radius)) &
                      (df_inside_square["Longitude"] < (port.longitude + port.inner_square_long_radius)))
 
-        # df_outside_square = df_outside_square.loc[long_mask]
-        # df_inside_square = df_inside_square[~long_mask]
         df_outside_square.append(df_inside_square.loc[~long_mask])
         df_inside_square = df_inside_square.loc[long_mask]
 
@@ -133,8 +128,8 @@ class PortManager:
                                               str(port.latitude + port.inner_square_lat_radius)))
         print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
                                                str(port.longitude + port.inner_square_long_radius)))
-        print("df outside square: \n", df_outside_square)
-        print("df inside square: \n", df_inside_square)
+        # print("df outside square: \n", df_outside_square)
+        # print("df inside square: \n", df_inside_square)
 
         # accurate separation outside of inner square but within port's radius
         radius_mask = df_outside_square.apply(radius_filter, args=(port,), axis=1)
@@ -142,12 +137,17 @@ class PortManager:
         df_outside_circle: pd.DataFrame = df_outside_square[radius_mask]  # training data series
         df_inside_circle: pd.DataFrame = df_outside_square[~radius_mask]
 
-        # minimum timestamp of inside port area data-points is output label
-        min_square: pd.DataFrame = get_minimum_row(df_inside_square, "time")
-        min_circle: pd.DataFrame = get_minimum_row(df_inside_circle, "time")
+        # print("df_outside_circle: \n", df_outside_circle)
+        # print("df_inside_circle \n", df_inside_circle)
 
-        print("min square: ", min_square["time"])
-        print("min circle: ", min_circle["time"])
+        # minimum timestamp of inside port area data-points is output label
+        min_square: pd.DataFrame = get_minimum_times(df_inside_square)
+        min_circle: pd.DataFrame = get_minimum_times(df_inside_circle)
+
+        if not is_empty(min_square):
+            print("min square: ", min_square["time"])
+        if not is_empty(min_circle):
+            print("min circle: ", min_circle["time"])
 
         port_label = pd.DataFrame()
         if not is_empty(min_square):
@@ -156,9 +156,10 @@ class PortManager:
             else:
                 port_label = min_square
 
-        df_train = df_outside_circle.append(port_label)
+        # TODO check if label needs to be within training dataset or not
+        # df_train = df_outside_circle.append(port_label)
 
-        return df_train, port_label
+        return df_outside_circle, port_label
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -184,11 +185,22 @@ def radius_filter(row, port: Port) -> bool:
         return True
 
 
-def get_minimum_row(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+def get_minimum_times(df: pd.DataFrame) -> pd.DataFrame:
     result_df = pd.DataFrame()
-    if not is_empty(df):
-        if column_name not in df:
-            raise ValueError("Column {} not contained in dataframe. Got {}.".format(column_name, str(df.columns)))
-        result_df = df[df[column_name] == df[column_name].min()]
+    if is_empty(df):
+        return result_df
+
+    mmsis = df["MMSI"].unique()
+
+    for mmsi in mmsis:
+        mmsi_df = df[df["MMSI"] == mmsi]
+        min_df = mmsi_df[mmsi_df["time"] == mmsi_df["time"].min()]
+
+        # make sure no duplicate labels occur in case of identical min timestamps
+        df_len = len(min_df.index)
+        if df_len > 1:
+            min_df.drop(min_df.index[[1, df_len - 1]], inplace=True)
+        result_df.append(min_df)
+
     return result_df
 
