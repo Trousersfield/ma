@@ -86,8 +86,8 @@ def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[Lis
 
 
 def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
-    df["time"] = pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S').values.astype(np.int64) // 10 ** 9
-    df.drop(columns=["# Timestamp"], inplace=True)
+    df = df.assign(time=pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S').values.astype(np.int64) // 10**9)
+    df = df.drop(columns=["# Timestamp"])
     return df
 
 
@@ -107,8 +107,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
-    df.drop(columns=["Type of mobile", "ROT", "Type of position fixing device", "ETA", "Name", "Callsign", "IMO",
-                     "Data source type", "A", "B", "C", "D"], inplace=True)
+    df = df.drop(columns=["Type of mobile", "ROT", "Type of position fixing device", "ETA", "Name", "Callsign", "IMO",
+                          "Data source type", "A", "B", "C", "D"])
 
     # filter out of range values
     df = df.loc[(df["Latitude"] >= LAT["min"]) & (df["Latitude"] <= LAT["max"])]
@@ -144,44 +144,57 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 os.makedirs(os.path.join(output_dir, folder, port.name))
 
         dest_df = df.loc[df["Destination"] == dest_column_header]
-        dest_df.drop(columns=["Destination"], inplace=True)
+        dest_df = dest_df.drop(columns=["Destination"])
         dest_df = format_timestamp_col(dest_df)
 
         # extract data-points that are sent while sitting in port to compute label
         x_df, label_df = pm.identify_label(port, dest_df)
-        print("label: \n", label_df)
 
         # handle categorical data
         x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
         x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
         x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
+
+        label_df = label_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
+
         mmsi_col = x_df["MMSI"]
+        # Add MMSI identification to categorical features
         x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
 
-        mmsis: List[str] = x_df["MMSI"].unique()
-        x_data = []
-        print("prepared array {}".format(x_data))
-        labels = []
+        mmsis = x_df["MMSI"].unique()
+        # print("data: \n" , x_df)
+        # print("label: \n", label_df)
+        # print("data__mmsis: ", mmsis)
+        # print("label_mmsis: ", label_df["MMSI"].unique())
+        x_data = np.array([])
+        # print("Prepared data array: {} shape: {}".format(x_data, x_data.shape))
+        labels = np.array([])
 
         for mmsi in mmsis:
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
-            ship_df.drop(columns=["MMSI"], inplace=True)
-            print("data: \n", ship_df)
-            # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
-            # ship_categorical_df.drop(columns=["MMSI"], inplace=True)
+            label_ship_df = label_df.loc[label_df["MMSI"] == mmsi]
 
-            label_ship_df = x_df.loc[x_df["MMSI"] == mmsi]
-            label_ship_df.drop(columns=["MMSI"], inplace=True)
+            # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order but is float
+            ship_df = ship_df.drop(columns=["MMSI"])
+            label_ship_df = label_ship_df.drop(columns=["MMSI"])
+            # print("data: \n", ship_df)
+
+            # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
+            # ship_categorcal_df = ship_categorical_df.drop(columns=["MMSI"])
 
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # label = ship_categorical_df.to_numpy()
             label = label_ship_df.to_numpy()
             print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, label.shape, label.dtype))
+            if len(label) > 0:
+                print("----------------")
+                print("LABEL EXISTS!!!!")
+                print("----------------")
 
-            np.append(x_data, data, axis=0)
-            np.append(labels, label, axis=0)
+            np.append(x_data, data)
+            np.append(labels, label)
 
         break
         x_normalized, scaler = normalize(x_data)

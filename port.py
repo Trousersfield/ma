@@ -1,6 +1,7 @@
 import argparse
 import joblib
 import json
+import numpy as np
 import os
 import pandas as pd
 
@@ -141,25 +142,9 @@ class PortManager:
         # print("df_inside_circle \n", df_inside_circle)
 
         # minimum timestamp of inside port area data-points is output label
-        min_square: pd.DataFrame = get_minimum_times(df_inside_square)
-        min_circle: pd.DataFrame = get_minimum_times(df_inside_circle)
+        port_labels: pd.DataFrame = get_minimum_time(df_inside_square, df_inside_circle)
 
-        if not is_empty(min_square):
-            print("min square: ", min_square["time"])
-        if not is_empty(min_circle):
-            print("min circle: ", min_circle["time"])
-
-        port_label = pd.DataFrame()
-        if not is_empty(min_square):
-            if not is_empty(min_circle):
-                port_label = min_square if min_square["time"].iloc[0] < min_circle["time"].iloc[0] else min_circle
-            else:
-                port_label = min_square
-
-        # TODO check if label needs to be within training dataset or not
-        # df_train = df_outside_circle.append(port_label)
-
-        return df_outside_circle, port_label
+        return df_outside_circle, port_labels
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -185,22 +170,40 @@ def radius_filter(row, port: Port) -> bool:
         return True
 
 
-def get_minimum_times(df: pd.DataFrame) -> pd.DataFrame:
-    result_df = pd.DataFrame()
-    if is_empty(df):
-        return result_df
+def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
+    if is_empty(df_1) and is_empty(df_2):
+        return pd.DataFrame()
 
-    mmsis = df["MMSI"].unique()
+    mmsis_1 = df_1["MMSI"].unique().tolist()
+    mmsis_2 = df_2["MMSI"].unique().tolist()
+    mmsis = list(set(mmsis_1) | set(mmsis_2))
+    # preallocate result
+    result_df = pd.DataFrame(index=np.arange(0, len(mmsis)), columns=df_1.columns)
 
-    for mmsi in mmsis:
-        mmsi_df = df[df["MMSI"] == mmsi]
-        min_df = mmsi_df[mmsi_df["time"] == mmsi_df["time"].min()]
+    for idx, mmsi in enumerate(mmsis):
+        mmsi_df_1 = df_1.loc[df_1["MMSI"] == mmsi]
+        mmsi_df_2 = df_2.loc[df_2["MMSI"] == mmsi]
+        min_df_1 = mmsi_df_1.loc[mmsi_df_1["time"] == mmsi_df_1["time"].min()]
+        min_df_2 = mmsi_df_2.loc[mmsi_df_2["time"] == mmsi_df_2["time"].min()]
 
         # make sure no duplicate labels occur in case of identical min timestamps
-        df_len = len(min_df.index)
-        if df_len > 1:
-            min_df.drop(min_df.index[[1, df_len - 1]], inplace=True)
-        result_df.append(min_df)
+        len_df_1 = len(min_df_1.index)
+        len_df_2 = len(min_df_2.index)
+        if len_df_1 > 1:
+            min_df_1 = min_df_1.drop(min_df_1.index[[1, len_df_1-1]])
+        if len_df_2 > 1:
+            min_df_1 = min_df_2.drop(min_df_2.index[[1, len_df_2-1]])
+
+        # assign minimum of both DataFrames to result
+        if len_df_1 > 0:
+            if len_df_2 > 0:
+                min_time_1 = min_df_1["time"].iloc[0]
+                min_time_2 = min_df_2["time"].iloc[0]
+                result_df.loc[idx] = min_df_1.iloc[0] if min_time_1 < min_time_2 else min_df_2.iloc[0]
+            else:
+                result_df.loc[idx] = min_df_1.iloc[0]
+        elif len_df_2 > 0:
+            result_df.loc[idx] = min_df_2.iloc[0]
 
     return result_df
 
