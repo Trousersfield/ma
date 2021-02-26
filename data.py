@@ -173,7 +173,6 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             logger.write("No Data for port {} outside of port area. {} data, {} labels".format(port.name,
                                                                                                len(x_df.index),
                                                                                                len(label_df.index)))
-            print("label_df: ", label_df)
             continue
 
         # handle categorical data
@@ -221,9 +220,9 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             data_normalized, scaler = normalize(data)
             labels_normalized, _ = normalize(labels, scaler) if len(labels) == 1 else [np.array([]), None]
 
-            # print("normalized data: \n", data_normalized)
+            print("normalized data: \n", data_normalized)
 
-            # separate train and test data keeping the order of entries
+            separate train and test data keeping the order of entries
             split_arg = [int(.80*data_normalized.shape[0])]
             train, test = np.split(data_normalized, split_arg)
             labels_train, labels_test = np.split(labels_normalized, split_arg)
