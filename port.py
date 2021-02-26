@@ -101,14 +101,14 @@ class PortManager:
                   .format(port_name))
 
     def find_port(self, name: str) -> Port:
-        print("Searching match for name {}".format(name))
+        # print("Searching match for name {}".format(name))
         name_upper = name.upper()
         if name_upper in self.ports:
             return self.ports[name]
 
         if (name_upper in self.alias) and (self.alias[name_upper] in self.ports):
             return self.ports[self.alias[name_upper]]
-        print("No match found!")
+        # print("No match found!")
 
     @staticmethod
     def identify_label(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -129,8 +129,10 @@ class PortManager:
                                               str(port.latitude + port.inner_square_lat_radius)))
         print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
                                                str(port.longitude + port.inner_square_long_radius)))
-        # print("df outside square: \n", df_outside_square)
-        # print("df inside square: \n", df_inside_square)
+
+        # if port.name == "RANDERS":
+        #    print("df outside square: \n", df_outside_square)
+        #    print("df inside square: \n", df_inside_square)
 
         # accurate separation outside of inner square but within port's radius
         radius_mask = df_outside_square.apply(radius_filter, args=(port,), axis=1)
@@ -138,11 +140,15 @@ class PortManager:
         df_outside_circle: pd.DataFrame = df_outside_square[radius_mask]  # training data series
         df_inside_circle: pd.DataFrame = df_outside_square[~radius_mask]
 
-        # print("df_outside_circle: \n", df_outside_circle)
-        # print("df_inside_circle \n", df_inside_circle)
+        # if port.name == "RANDERS":
+        #    print("df_outside_circle: \n", df_outside_circle)
+        #    print("df_inside_circle \n", df_inside_circle)
 
         # minimum timestamp of inside port area data-points is output label
         port_labels: pd.DataFrame = get_minimum_time(df_inside_square, df_inside_circle)
+
+        if is_empty(port_labels):
+            port_labels = pd.DataFrame(columns=df_outside_circle.columns)
 
         return df_outside_circle, port_labels
 
