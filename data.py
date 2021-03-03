@@ -13,6 +13,7 @@ from typing import List, Tuple
 
 from logger import Logger
 from port import PortManager
+from scaler import YearScaler
 from util import get_destination_file_name, is_empty, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -61,6 +62,16 @@ def generate_training_examples(df: pd.DataFrame, sequence_len: int):
     return np.array(input_seqs), np.expand_dims(np.array(output), axis=-1)
 
 
+def scale_timestamp(df: pd.DataFrame) -> Tuple[pd.DataFrame, YearScaler]:
+    scaler = YearScaler()
+    scaled_df = scaler.fit_transform(df)
+    return scaled_df, scaler
+
+
+def descale_timestamp(df: pd.DataFrame, scaler: YearScaler) -> pd.DataFrame:
+    return scaler.inverse_transform(df)
+
+
 def normalize(data: np.ndarray, scaler: MinMaxScaler = None) -> Tuple[np.ndarray, MinMaxScaler]:
     if scaler is None:
         # copy = False, if input already is numpy array
@@ -68,6 +79,10 @@ def normalize(data: np.ndarray, scaler: MinMaxScaler = None) -> Tuple[np.ndarray
         scaler.fit(data)
     normalized_data = scaler.transform(data)
     return normalized_data, scaler
+
+
+def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
+    return scaler.inverse_transform(data)
 
 
 # create one-hot encoded DataFrame: one column for each category
@@ -90,11 +105,6 @@ def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
     df_ohe = pd.DataFrame(data_ohe, columns=[categories[i] for i in range(len(categories))])
 
     return df_ohe, encoder
-
-
-def denormalize(data: List[List[List[float]]], scaler: MinMaxScaler) -> List[List[List[float]]]:
-    denormalized_data = scaler.inverse_transform(data)
-    return denormalized_data
 
 
 def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
@@ -189,7 +199,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
 
         mmsis = x_df["MMSI"].unique()
-        # print("data: \n" , x_df)
+        # print("data: \n", x_df)
         # print("label: \n", label_df)
         # print("data__mmsis: ", mmsis)
         # print("label_mmsis: ", label_df["MMSI"].unique())
@@ -205,8 +215,10 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # print("data: \n", ship_df)
 
             # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
-            # ship_categorcal_df = ship_categorical_df.drop(columns=["MMSI"])
+            # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
+            ship_df, year_scaler = scale_year(ship_df)
+            # rint("df with scaled timestamps: \n", ship_df)
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # label = ship_categorical_df.to_numpy()
@@ -217,18 +229,20 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 print("!!!LABEL FOUND!!!")
                 print("-----------------")
 
-            data_normalized, scaler = normalize(data)
+            data_normalized, normalize_scaler = normalize(data)
             labels_normalized, _ = normalize(labels, scaler) if len(labels) == 1 else [np.array([]), None]
 
-            print("normalized data: \n", data_normalized)
+            # print("normalized data: \n", data_normalized)
 
-            separate train and test data keeping the order of entries
+            # separate train and test data keeping the order of entries
             split_arg = [int(.80*data_normalized.shape[0])]
             train, test = np.split(data_normalized, split_arg)
             labels_train, labels_test = np.split(labels_normalized, split_arg)
 
             print("train shape: ", train.shape)
             print("test shape: ", test.shape)
+            print("train labels: ", labels_train)
+            print("test labels: ", labels_test)
             break
 
             np.save(os.path.join(output_dir, "train", dest_name, "data.npy"), train)
@@ -237,7 +251,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             np.save(os.path.join(output_dir, "test", dest_name, "data.npy"), test)
             np.save(os.path.join(output_dir, "test", dest_name, "labels.npy"), labels_test)
 
-            joblib.dump(scaler, os.path.join(output_dir, "encode", dest_name, "scaler.pkl"))
+            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", dest_name, "normalize_scaler.pkl"))
+            joblib.dump(year_scaler, os.path.join(output_dir, "encode", dest_name, "year_scaler.pkl"))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", dest_name, "ship_type_encoder.pkl"))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", dest_name, "nav_status_encoder.pkl"))
             break
