@@ -14,7 +14,7 @@ from typing import List, Tuple
 from logger import Logger
 from port import PortManager
 from scaler import YearScaler
-from util import get_destination_file_name, is_empty, write_to_console
+from util import data_f, get_destination_file_name, is_empty, label_f, scaler_f, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 data_folders = ("encode", "test", "train")
@@ -62,13 +62,13 @@ def generate_training_examples(df: pd.DataFrame, sequence_len: int):
     return np.array(input_seqs), np.expand_dims(np.array(output), axis=-1)
 
 
-def scale_timestamp(df: pd.DataFrame) -> Tuple[pd.DataFrame, YearScaler]:
+def scale_year(df: pd.DataFrame) -> Tuple[pd.DataFrame, YearScaler]:
     scaler = YearScaler()
     scaled_df = scaler.fit_transform(df)
     return scaled_df, scaler
 
 
-def descale_timestamp(df: pd.DataFrame, scaler: YearScaler) -> pd.DataFrame:
+def descale_year(df: pd.DataFrame, scaler: YearScaler) -> pd.DataFrame:
     return scaler.inverse_transform(df)
 
 
@@ -204,7 +204,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         # print("data__mmsis: ", mmsis)
         # print("label_mmsis: ", label_df["MMSI"].unique())
 
-        for mmsi in mmsis:
+        for idx, mmsi in enumerate(mmsis):
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
             label_ship_df = label_df.loc[label_df["MMSI"] == mmsi]
@@ -222,51 +222,60 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # label = ship_categorical_df.to_numpy()
-            labels = label_ship_df.to_numpy()
-            print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, labels.shape, labels.dtype))
-            if len(labels) > 0:
+            label = label_ship_df.to_numpy()
+            print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, label.shape, label.dtype))
+            if len(label) > 0:
                 print("-----------------")
                 print("!!!LABEL FOUND!!!")
                 print("-----------------")
 
             data_normalized, normalize_scaler = normalize(data)
-            labels_normalized, _ = normalize(labels, scaler) if len(labels) == 1 else [np.array([]), None]
+            label_normalized, _ = normalize(label, normalize_scaler) if len(label) == 1 else [np.array([]), None]
 
             # print("normalized data: \n", data_normalized)
 
             # separate train and test data keeping the order of entries
             split_arg = [int(.80*data_normalized.shape[0])]
             train, test = np.split(data_normalized, split_arg)
-            labels_train, labels_test = np.split(labels_normalized, split_arg)
 
             print("train shape: ", train.shape)
             print("test shape: ", test.shape)
-            print("train labels: ", labels_train)
-            print("test labels: ", labels_test)
-            break
+            print("label: ", label_normalized)
 
-            np.save(os.path.join(output_dir, "train", dest_name, "data.npy"), train)
-            np.save(os.path.join(output_dir, "train", dest_name, "labels.npy"), labels_train)
+            np.save(os.path.join(output_dir, "train", port.name, data_f(mmsi)), train)
+            np.save(os.path.join(output_dir, "train", port.name, label_f(mmsi)), label_normalized)
 
-            np.save(os.path.join(output_dir, "test", dest_name, "data.npy"), test)
-            np.save(os.path.join(output_dir, "test", dest_name, "labels.npy"), labels_test)
+            np.save(os.path.join(output_dir, "test", port.name, data_f(mmsi)), test)
+            np.save(os.path.join(output_dir, "test", port.name, label_f(mmsi)), label_normalized)
 
-            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", dest_name, "normalize_scaler.pkl"))
-            joblib.dump(year_scaler, os.path.join(output_dir, "encode", dest_name, "year_scaler.pkl"))
-            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", dest_name, "ship_type_encoder.pkl"))
-            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", dest_name, "nav_status_encoder.pkl"))
-            break
+            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", port.name, scaler_f("normalize", mmsi)))
+            joblib.dump(year_scaler, os.path.join(output_dir, "encode", port.name, scaler_f("year", mmsi)))
+            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("ship_type", mmsi)))
+            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("nav_status", mmsi)))
+
+            if idx == 3:
+                break
 
     print("Done.")
 
 
-def load_dataset(output_dir: str, destination_name: str, window_length: int):
-    write_to_console("Loading data for {} with windows of {}"
-                     .format(destination_name, window_length))
+def load_dataset(output_dir: str, dest_name: str, window_width: int):
+    # initialize port manager
+    pm = PortManager()
+    pm.load()
+    port = pm.find_port(dest_name)
 
-    file_name = get_destination_file_name(destination_name)
+    write_to_console("Loading data for port {} with window size of {}"
+                     .format(port.name, window_width))
 
+    file_name = get_destination_file_name(dest_name)
     data = np.load(os.path.join(output_dir, "{}", "data.npy".format(file_name)))
+
+    # create index matrix to directly select sliding windows from training data series
+    index_matrix = (np.expand_dims(np.arange(window_width), 0) +
+                    np.expand_dims(np.arange(data.shape[0]), 0).T)
+
+    # apply index matrix on data
 
     scaler = joblib.load(os.path.join(output_dir, "{}", "scalers.pkl".format(file_name)))
 
@@ -306,7 +315,7 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["init", "generate", "load", "cc", "add_alias", "check_ports"])
     parser.add_argument("--port", type=str, default="COPENGAHEN", help="Name of port to load dataset")
     parser.add_argument("--window_width", type=int, default=20, help="Sliding window width of training examples")
-    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", small),
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", big),
                         help="Path to AIS .csv file")
     # parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw" "aisdk_20181101.csv"))
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
