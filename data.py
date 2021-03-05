@@ -1,6 +1,5 @@
 import argparse
 import os
-import datetime
 import pandas as pd
 import numpy as np
 import joblib
@@ -13,7 +12,7 @@ from typing import List, Tuple
 
 from logger import Logger
 from port import PortManager
-from scaler import YearScaler
+from year_scaler import YearScaler
 from util import data_f, get_destination_file_name, is_empty, label_f, scaler_f, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -41,25 +40,6 @@ def correlate(raw_data_frame):
     print(correlations)
 
     np.save(os.path.join(script_dir, "data", "correlations.npy"), correlations)
-
-
-def generate_training_examples(df: pd.DataFrame, sequence_len: int):
-    input_seqs, output = [], []
-
-    # create sequences where, starting from sequence_len'th index, each data-point represents one output
-    for i in range(len(data)):
-
-        end_index = i + sequence_len
-
-        # abort if sequence exceeds data
-        if end_index > len(data)-1:
-            break
-
-        input_seqs.append(data[i:end_index])
-        output.append(data[end_index][0])
-
-    # expand output to behave as a matrix -> one-dim vector as each entry of a column
-    return np.array(input_seqs), np.expand_dims(np.array(output), axis=-1)
 
 
 def scale_year(df: pd.DataFrame) -> Tuple[pd.DataFrame, YearScaler]:
@@ -259,7 +239,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     print("Done.")
 
 
-def load_dataset(output_dir: str, dest_name: str, window_width: int):
+def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.Dataset:
     # initialize port manager
     pm = PortManager()
     pm.load()
@@ -270,6 +250,11 @@ def load_dataset(output_dir: str, dest_name: str, window_width: int):
 
     file_name = get_destination_file_name(dest_name)
     data = np.load(os.path.join(output_dir, "{}", "data.npy".format(file_name)))
+
+    if window_width > data.shape[0]:
+        raise ValueError("Sparse data detected! Can not apply sliding window of width {} on {} data entries"
+                         .format(window_width, data.shape[0]))
+        continue
 
     # create index matrix to directly select sliding windows from training data series
     index_matrix = (np.expand_dims(np.arange(window_width), 0) +
