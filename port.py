@@ -1,5 +1,3 @@
-import argparse
-import bisect
 import joblib
 import json
 import numpy as np
@@ -8,67 +6,9 @@ import pandas as pd
 
 from math import radians, cos, sin, asin, sqrt, degrees
 from typing import Dict, List, Tuple
-
 from util import is_empty
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-
-
-class MmsiDataFile:
-    def __init__(self, path: str, length: int):
-        self.path = path
-        self.length = length
-
-    def __len__(self):
-        return self.length
-
-
-class MmsiDataFileLoader:
-    def __init__(self, mmsi_loader_dir: str, window_width: int = 10) -> None:
-        self.data_files: List[MmsiDataFile] = []
-        self.window_width = window_width
-        # self.num_of_train_examples = 0
-        self.file_idx_by_data_idx: np.ndarray = np.array()
-
-        if (mmsi_loader_dir != "") and os.path.exists(mmsi_loader_dir):
-            self.mmsi_loader_dir = mmsi_loader_dir
-        else:
-            self.mmsi_loader_dir = os.path.join(script_dir, "mmsi_data_file_loader.pkl")
-
-    def load(self):
-        if os.path.exists(self.mmsi_loader_dir):
-            self.data_files = joblib.load(self.mmsi_loader_dir)
-        else:
-            print("No MMSI loader found at {}. Initialize first.".format(self.mmsi_loader_dir))
-
-    def fit(self) -> None:
-        sum_of_train_examples = 0
-
-        for idx, data_file in enumerate(self.data_files):
-            num_train_examples = len(data_file) - self.window_width + 1
-            if num_train_examples < 1:  # skip data file if no train example can be extracted
-                continue
-
-            file_indices = np.empty(num_train_examples, dtype=int)
-            file_indices.fill(idx)
-
-            self.num_of_train_examples += num_train_examples
-            if sum_of_train_examples > idx:
-                return data_file.path
-
-    def num_train_examples(self):
-        return
-
-    def set_data_file(self, path: str, data_len: int) -> None:
-        if path == "" or not os.path.exists(path):
-            raise ValueError("Unable to set data file path {}!".format(path))
-        file = MmsiDataFile(path, data_len)
-        bisect.insort(self.data_files, file)
-
-    def file_by_data_index(self, idx: int, window_width: int) -> Tuple[str, int]:
-        if window_width == 0:
-            raise ValueError("MMSI Data File loader not fit to data! Run fit() first!")
-        return "", 0
 
 
 class Port:

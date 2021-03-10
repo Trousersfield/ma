@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import pandas as pd
 import re
@@ -37,6 +38,10 @@ def scaler_f(scaler_type: str, mmsi: float) -> str:
     else:
         raise ValueError("Unknown scaler type '{}'".format(scaler_type))
 
+
+def npy_file_len(file_path: str) -> int:
+    file = np.load(file_path, mmap_mode="r")
+    return file.shape[0]
 
 
 def write_to_console(message):
