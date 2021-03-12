@@ -27,8 +27,8 @@ def label_f(mmsi: float) -> str:
 
 def scaler_f(scaler_type: str, mmsi: float) -> str:
     mmsi_str = str(mmsi)
-    if scaler_type == "year":
-        return "year_scaler_{}.pkl".format(mmsi_str)
+    if scaler_type == "labeler":
+        return "labeler_{}.pkl".format(mmsi_str)
     elif scaler_type == "normalize":
         return "normalize_scaler_{}.pkl".format(mmsi_str)
     elif scaler_type == "ship_type":

@@ -109,7 +109,7 @@ class PortManager:
         # print("No match found!")
 
     @staticmethod
-    def identify_label(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def identify_arrival_times(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         # separation by inner square of port area
         lat_mask = ((df["Latitude"] > (port.latitude - port.inner_square_lat_radius)) &
                     (df["Latitude"] < (port.latitude + port.inner_square_lat_radius)))
@@ -142,13 +142,13 @@ class PortManager:
         #    print("df_outside_circle: \n", df_outside_circle)
         #    print("df_inside_circle \n", df_inside_circle)
 
-        # minimum timestamp of inside port area data-points is output label
-        port_labels: pd.DataFrame = get_minimum_time(df_inside_square, df_inside_circle)
+        # minimum timestamp of inside port area data-points is arrival time
+        arrival_times: pd.DataFrame = get_minimum_time(df_inside_square, df_inside_circle)
 
-        if is_empty(port_labels):
-            port_labels = pd.DataFrame(columns=df_outside_circle.columns)
+        if is_empty(arrival_times):
+            arrival_times = pd.DataFrame(columns=df_outside_circle.columns)
 
-        return df_outside_circle, port_labels
+        return df_outside_circle, arrival_times
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -190,7 +190,7 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
         min_df_1 = mmsi_df_1.loc[mmsi_df_1["time"] == mmsi_df_1["time"].min()]
         min_df_2 = mmsi_df_2.loc[mmsi_df_2["time"] == mmsi_df_2["time"].min()]
 
-        # make sure no duplicate labels occur in case of identical min timestamps
+        # make sure no duplicate arrival times occur in case of identical min timestamps
         len_df_1 = len(min_df_1.index)
         len_df_2 = len(min_df_2.index)
         if len_df_1 > 1:

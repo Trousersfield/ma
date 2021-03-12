@@ -19,7 +19,7 @@ class MmsiDataFile:
         return self.length
 
 
-class MmsiDataFileLoader:
+class TrainingExampleLoader:
     def __init__(self, data_dir: str = "", window_width: int = 10) -> None:
         if data_dir == "":
             self.data_dir = os.path.join(script_dir, "data", "train", "COPENHAGEN")
@@ -28,12 +28,33 @@ class MmsiDataFileLoader:
         self.loader_dir = os.path.join(self.data_dir, "data_loader.pkl")
         self.window_width = window_width
         self.data_files: List[MmsiDataFile] = []
-        self.num_training_examples: int = 0
-        # self.access_matrix: np.ndarray = np.array([[1, 1]])
         self.access_matrix: np.ndarray = np.array([[-1, -1]])
 
     def __len__(self):
-        return self.num_training_examples
+        if self.access_matrix[0][0] == -1:
+            return 0
+        return self.access_matrix.shape[0]
+
+    def __getitem__(self, idx: int):
+        self.check_initialized()
+        if len(self) < idx:
+            raise ValueError("Training example with index {} out of range [0, {}]!".format(idx, len(self)))
+
+        file_vec = self.access_matrix[idx]
+        data_file = self.data_files[file_vec[0]]
+        local_file_idx = file_vec[1]
+
+        data = np.load(os.path.join(data_file.path))
+        print("data shape: ", data.shape)
+
+        # generate index-matrix to extract window from data
+        index_vector = np.expand_dims(np.arange(self.window_width)) + local_file_idx
+        print("index-vector: ", index_vector)
+
+        training_example = data[index_vector]
+        print("training_example {}".format(training_example))
+
+        return training_example
 
     def check_initialized(self) -> None:
         if len(self.data_files) == 0:
@@ -41,11 +62,10 @@ class MmsiDataFileLoader:
 
     def load(self) -> None:
         if os.path.exists(self.loader_dir):
-            loader: MmsiDataFileLoader = joblib.load(self.loader_dir)
+            loader: TrainingExampleLoader = joblib.load(self.loader_dir)
             self.data_dir = loader.data_dir
             self.window_width = loader.window_width
             self.data_files = loader.data_files
-            self.num_training_examples = loader.num_training_examples
             self.access_matrix = loader.access_matrix
         else:
             print("No loader definition found at {}. Run fit() first.".format(self.loader_dir))
@@ -60,7 +80,6 @@ class MmsiDataFileLoader:
                 continue
 
             self.data_files.append(data_file)
-            self.num_training_examples += num_train_examples
             file_idx = np.empty(shape=(num_train_examples, 1), dtype=int)   # array of index of file in folder
             file_idx.fill(idx)
             local_file_indices = np.arange(num_train_examples).reshape(-1, 1)   # indices within the current file
@@ -73,36 +92,18 @@ class MmsiDataFileLoader:
             # print("concatenated: \n", self.access_matrix)
         joblib.dump(self, self.loader_dir)
 
-    def set_data_file(self, path: str, data_len: int) -> None:
-        if path == "" or not os.path.exists(path):
-            raise ValueError("Unable to set data file path {}!".format(path))
-        file = MmsiDataFile(path, data_len)
-        bisect.insort(self.data_files, file)
-
-    def file_local_index(self, idx: int) -> Tuple[MmsiDataFile, int]:
-        self.check_initialized()
-        num_indices = len(self.data_file_indices)
-        if num_indices < idx:
-            raise ValueError("Training example with index {} out of range [0, {}]!".format(idx, num_indices))
-        if self.window_width < 1:
-            raise ValueError("Window width of {} out of range!".format(self.window_width))
-
-        data_file = self.data_files[self.data_file_indices[idx]]
-        local_index = data_file.length
-        return data_file, 0
-
 
 def main(args) -> None:
     if args.command == "init":
         print("Initializing Data Loader!")
-        MmsiDataFileLoader()
+        TrainingExampleLoader()
     elif args.command == "load":
         print("Loading Data Loader!")
-        loader = MmsiDataFileLoader()
+        loader = TrainingExampleLoader()
         loader.load()
     elif args.command == "fit":
         print("Fitting Data Loader")
-        loader = MmsiDataFileLoader()
+        loader = TrainingExampleLoader()
         loader.fit()
     else:
         raise ValueError("Unknown command: {}".format(args.command))

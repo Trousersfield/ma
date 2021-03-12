@@ -4,6 +4,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from typing import List
+
 # InceptionTime model
 # inspired by Inception-v4 architecture
 # https://arxiv.org/abs/1909.04939
@@ -60,7 +62,7 @@ class InceptionTimeModel(nn.Module):
     @staticmethod
     # value: Union[int, bool, List[int], List[bool]]
     # Irgendeiner der Werte in Union[...] muss als Input gegeben werden
-    def _block_channels(channels: int, num_of_blocks: int) -> list[int]:
+    def _block_channels(channels: int, num_of_blocks: int) -> List[int]:
         result = [channels] * num_of_blocks
         return result
 

@@ -12,7 +12,7 @@ from typing import List, Tuple
 
 from logger import Logger
 from port import PortManager
-from year_scaler import YearScaler
+from labeler import DurationLabeler
 from util import data_f, get_destination_file_name, is_empty, label_f, scaler_f, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -42,13 +42,13 @@ def correlate(raw_data_frame):
     np.save(os.path.join(script_dir, "data", "correlations.npy"), correlations)
 
 
-def scale_year(df: pd.DataFrame) -> Tuple[pd.DataFrame, YearScaler]:
-    scaler = YearScaler()
-    scaled_df = scaler.fit_transform(df)
-    return scaled_df, scaler
+def generate_label(df: pd.DataFrame, arrival_time: int) -> Tuple[pd.DataFrame, DurationLabeler]:
+    labeler = DurationLabeler()
+    labeled_df = labeler.fit_transform(df, arrival_time)
+    return labeled_df, labeler
 
 
-def descale_year(df: pd.DataFrame, scaler: YearScaler) -> pd.DataFrame:
+def descale_from_label(df: pd.DataFrame, scaler: DurationLabeler) -> pd.DataFrame:
     return scaler.inverse_transform(df)
 
 
@@ -154,15 +154,15 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         dest_df = format_timestamp_col(dest_df)
 
         # extract data-points that are sent while sitting in port to compute label
-        x_df, label_df = pm.identify_label(port, dest_df)
+        x_df, arrival_times_df = pm.identify_arrival_times(port, dest_df)
 
         # skip port if ship is hanging out in port area only
         if is_empty(x_df):
             print("Data for port {} only within port area. {} data, {} labels".format(port.name, len(x_df.index),
-                                                                                      len(label_df.index)))
+                                                                                      len(arrival_times_df.index)))
             logger.write("No Data for port {} outside of port area. {} data, {} labels".format(port.name,
                                                                                                len(x_df.index),
-                                                                                               len(label_df.index)))
+                                                                                               len(arrival_times_df.index)))
             continue
 
         # handle categorical data
@@ -172,7 +172,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
         x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
 
-        label_df = label_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
+        arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
 
         mmsi_col = x_df["MMSI"]
         # Add MMSI identification to categorical features
@@ -187,27 +187,24 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         for idx, mmsi in enumerate(mmsis):
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
-            label_ship_df = label_df.loc[label_df["MMSI"] == mmsi]
+            arrival_time = arrival_times_df.loc[arrival_times_df["MMSI"] == mmsi]["time"]
+            if arrival_time > 0:
+                print("-----------------")
+                print("!!!LABEL FOUND!!!")
+                print("-----------------")
 
             # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order but is float
             ship_df = ship_df.drop(columns=["MMSI"])
-            label_ship_df = label_ship_df.drop(columns=["MMSI"])
             # print("data: \n", ship_df)
 
             # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
             # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
-            ship_df, year_scaler = scale_year(ship_df)
-            # rint("df with scaled timestamps: \n", ship_df)
+            ship_df, labeler = generate_label(ship_df, arrival_time)
+            # print("df with scaled timestamps: \n", ship_df)
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # label = ship_categorical_df.to_numpy()
-            label = label_ship_df.to_numpy()
-            print("Shape of label for MMSI {}: {} Type: {}".format(mmsi, label.shape, label.dtype))
-            if len(label) > 0:
-                print("-----------------")
-                print("!!!LABEL FOUND!!!")
-                print("-----------------")
 
             data_normalized, normalize_scaler = normalize(data)
             label_normalized, _ = normalize(label, normalize_scaler) if len(label) == 1 else [np.array([]), None]
@@ -229,7 +226,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             np.save(os.path.join(output_dir, "test", port.name, label_f(mmsi)), label_normalized)
 
             joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", port.name, scaler_f("normalize", mmsi)))
-            joblib.dump(year_scaler, os.path.join(output_dir, "encode", port.name, scaler_f("year", mmsi)))
+            joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, scaler_f("year", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("nav_status", mmsi)))
 
@@ -261,6 +258,7 @@ def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.Datase
                     np.expand_dims(np.arange(data.shape[0]), 0).T)
 
     # apply index matrix on data
+    window_data = data[index_matrix]
 
     scaler = joblib.load(os.path.join(output_dir, "{}", "scalers.pkl".format(file_name)))
 
