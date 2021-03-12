@@ -13,7 +13,7 @@ from typing import List, Tuple
 from logger import Logger
 from port import PortManager
 from labeler import DurationLabeler
-from util import data_f, get_destination_file_name, is_empty, label_f, scaler_f, write_to_console
+from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 data_folders = ("encode", "test", "train")
@@ -67,7 +67,7 @@ def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
 
 # create one-hot encoded DataFrame: one column for each category
 def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
-    print("one hot encoding. number of data-points: ", len(data))
+    # print("one hot encoding. number of data-points: ", len(data))
     categories = data.unique()
     nan_idx = -1
     # prevent typing error by replacing NaN with custom decorator "nan_type"
@@ -173,6 +173,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
 
         arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
+        # print("all arrival times: \n", arrival_times_df)
 
         mmsi_col = x_df["MMSI"]
         # Add MMSI identification to categorical features
@@ -187,11 +188,15 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         for idx, mmsi in enumerate(mmsis):
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
-            arrival_time = arrival_times_df.loc[arrival_times_df["MMSI"] == mmsi]["time"]
-            if arrival_time > 0:
+            arrival_time_df = arrival_times_df.loc[arrival_times_df["MMSI"] == mmsi]
+            # print("arrival_time_df for mmsi: \n", arrival_time_df)
+            arrival_time = 0
+            if not is_empty(arrival_time_df):
                 print("-----------------")
                 print("!!!LABEL FOUND!!!")
                 print("-----------------")
+                arrival_time = arrival_time_df.iloc[0]["time"]
+            # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
 
             # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order but is float
             ship_df = ship_df.drop(columns=["MMSI"])
@@ -201,42 +206,41 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            # print("df with scaled timestamps: \n", ship_df)
+            # print("df with added label: \n", ship_df)
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
+            # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
+            # TODO: Check if label needs to be added after normalization
+            # Intuition: MSE is huge if target/label has large values like duration is seconds
             data_normalized, normalize_scaler = normalize(data)
-            label_normalized, _ = normalize(label, normalize_scaler) if len(label) == 1 else [np.array([]), None]
+            print("normalized data shape: ", data_normalized.shape)
 
-            # print("normalized data: \n", data_normalized)
+            train, test = split(data_normalized)
 
-            # separate train and test data keeping the order of entries
-            split_arg = [int(.80*data_normalized.shape[0])]
-            train, test = np.split(data_normalized, split_arg)
+            # print("train data shape: ", train.shape)
+            # print("test data shape: ", test.shape)
+            np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
+            np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
 
-            print("train shape: ", train.shape)
-            print("test shape: ", test.shape)
-            print("label: ", label_normalized)
-
-            np.save(os.path.join(output_dir, "train", port.name, data_f(mmsi)), train)
-            np.save(os.path.join(output_dir, "train", port.name, label_f(mmsi)), label_normalized)
-
-            np.save(os.path.join(output_dir, "test", port.name, data_f(mmsi)), test)
-            np.save(os.path.join(output_dir, "test", port.name, label_f(mmsi)), label_normalized)
-
-            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", port.name, scaler_f("normalize", mmsi)))
-            joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, scaler_f("year", mmsi)))
-            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("ship_type", mmsi)))
-            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, scaler_f("nav_status", mmsi)))
-
-            if idx == 3:
-                break
+            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", port.name, obj_file("normalize", mmsi)))
+            joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
+            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
+            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
 
     print("Done.")
 
 
-def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.Dataset:
+def split(data: np.ndarray, train_ratio: float = .9) -> Tuple[np.ndarray, np.ndarray]:
+    if 0 < train_ratio < 1:
+        return np.split(data, [int(train_ratio*data.shape[0])])
+    else:
+        print("Unable to split by {}. Use a value within (0, 1)".format(train_ratio))
+        return data, np.array([])
+
+
+def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.DataFrame:
     # initialize port manager
     pm = PortManager()
     pm.load()
@@ -251,7 +255,6 @@ def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.Datase
     if window_width > data.shape[0]:
         raise ValueError("Sparse data detected! Can not apply sliding window of width {} on {} data entries"
                          .format(window_width, data.shape[0]))
-        continue
 
     # create index matrix to directly select sliding windows from training data series
     index_matrix = (np.expand_dims(np.arange(window_width), 0) +

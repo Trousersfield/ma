@@ -15,28 +15,23 @@ def get_destination_file_name(name: any) -> str:
     return re.sub(r'\W', '', dest).upper()
 
 
-def data_f(mmsi: float) -> str:
+def data_file(mmsi: float) -> str:
     mmsi_str = str(mmsi)
     return "data_{}.npy".format(mmsi_str)
 
 
-def label_f(mmsi: float) -> str:
+def obj_file(file_type: str, mmsi: float) -> str:
     mmsi_str = str(mmsi)
-    return "label_{}".format(mmsi_str)
-
-
-def scaler_f(scaler_type: str, mmsi: float) -> str:
-    mmsi_str = str(mmsi)
-    if scaler_type == "labeler":
+    if file_type == "labeler":
         return "labeler_{}.pkl".format(mmsi_str)
-    elif scaler_type == "normalize":
+    elif file_type == "normalize":
         return "normalize_scaler_{}.pkl".format(mmsi_str)
-    elif scaler_type == "ship_type":
+    elif file_type == "ship_type":
         return "ship_type_encoder_{}.pkl".format(mmsi_str)
-    elif scaler_type == "nav_status":
+    elif file_type == "nav_status":
         return "nav_status_encoder_{}.pkl".format(mmsi_str)
     else:
-        raise ValueError("Unknown scaler type '{}'".format(scaler_type))
+        raise ValueError("Unknown file type '{}'".format(file_type))
 
 
 def npy_file_len(file_path: str) -> int:

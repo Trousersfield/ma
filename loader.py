@@ -22,10 +22,11 @@ class MmsiDataFile:
 class TrainingExampleLoader:
     def __init__(self, data_dir: str = "", window_width: int = 10) -> None:
         if data_dir == "":
-            self.data_dir = os.path.join(script_dir, "data", "train", "COPENHAGEN")
+            self.data_dir = os.path.join(script_dir, "data", "train", "ROSTOCK")
         else:
             self.data_dir = data_dir
-        self.loader_dir = os.path.join(self.data_dir, "data_loader.pkl")
+        self.loader_file_name = "data_loader.pkl"
+        self.loader_dir = os.path.join(self.data_dir, self.loader_file_name)
         self.window_width = window_width
         self.data_files: List[MmsiDataFile] = []
         self.access_matrix: np.ndarray = np.array([[-1, -1]])
@@ -48,7 +49,7 @@ class TrainingExampleLoader:
         print("data shape: ", data.shape)
 
         # generate index-matrix to extract window from data
-        index_vector = np.expand_dims(np.arange(self.window_width)) + local_file_idx
+        index_vector = np.expand_dims(np.arange(self.window_width), axis=1) + local_file_idx
         print("index-vector: ", index_vector)
 
         training_example = data[index_vector]
@@ -67,11 +68,15 @@ class TrainingExampleLoader:
             self.window_width = loader.window_width
             self.data_files = loader.data_files
             self.access_matrix = loader.access_matrix
+            print("Done!\nData dir: {}\nFiles: {}\nTraining Examples: {}"
+                  .format(self.data_dir, len(self.data_files), len(self)))
         else:
             print("No loader definition found at {}. Run fit() first.".format(self.loader_dir))
 
     def fit(self) -> None:
         for idx, data_file in enumerate(os.listdir(self.data_dir)):
+            if data_file == self.loader_file_name:
+                continue
             data_file_path = os.path.join(self.data_dir, data_file)
             data_file = MmsiDataFile(data_file_path, npy_file_len(data_file_path))
 
@@ -90,29 +95,36 @@ class TrainingExampleLoader:
             else:
                 self.access_matrix = np.concatenate([self.access_matrix, access_matrix])
             # print("concatenated: \n", self.access_matrix)
+            # print("shape: ", self.access_matrix.shape)
         joblib.dump(self, self.loader_dir)
 
 
 def main(args) -> None:
     if args.command == "init":
         print("Initializing Data Loader!")
-        TrainingExampleLoader()
+        TrainingExampleLoader(args.data_dir)
     elif args.command == "load":
         print("Loading Data Loader!")
-        loader = TrainingExampleLoader()
+        loader = TrainingExampleLoader(args.data_dir)
         loader.load()
     elif args.command == "fit":
         print("Fitting Data Loader")
-        loader = TrainingExampleLoader()
+        loader = TrainingExampleLoader(args.data_dir)
         loader.fit()
+    elif args.command == "test":
+        print("Testing Data Loader")
+        loader = TrainingExampleLoader(args.data_dir)
+        loader.load()
+        example_idx = 0
+        print("Training example at pos {}: {}".format(example_idx, loader[example_idx]))
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual testing and validating Data Loader!")
-    parser.add_argument("command", choices=["init", "load", "fit"])
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "COPENGAHEN"),
+    parser.add_argument("command", choices=["init", "load", "fit","test"])
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=10, help="Sliding window width of training examples")
     main(parser.parse_args())
