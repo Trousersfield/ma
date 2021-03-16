@@ -111,8 +111,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     df = pd.read_csv(input_dir, ",", None)
 
     # drop undesired columns
-    df = df.drop(columns=["Type of mobile", "ROT", "Type of position fixing device", "ETA", "Name", "Callsign", "IMO",
-                          "Data source type", "A", "B", "C", "D"])
+    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
+                          "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
 
     # filter out of range values
     df = df.loc[(df["Latitude"] >= LAT["min"]) & (df["Latitude"] <= LAT["max"])]
@@ -170,14 +170,16 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             print("x_df: \n", x_df)
         x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
         x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
-        x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
+        # x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
 
-        arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
+        # arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
+        arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status"])
         # print("all arrival times: \n", arrival_times_df)
 
         mmsi_col = x_df["MMSI"]
         # Add MMSI identification to categorical features
-        x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
+        # x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
+        x_ship_types["MMSI"], x_nav_states["MMSI"] = mmsi_col, mmsi_col
 
         mmsis = x_df["MMSI"].unique()
         # print("data: \n", x_df)

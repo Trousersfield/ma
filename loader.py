@@ -36,7 +36,7 @@ class TrainingExampleLoader:
             return 0
         return self.access_matrix.shape[0]
 
-    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> np.ndarray:
         self.check_initialized()
         if len(self) < idx:
             raise ValueError("Training example with index {} out of range [0, {}]!".format(idx, len(self)))
@@ -46,18 +46,18 @@ class TrainingExampleLoader:
         local_file_idx = file_vec[1]
 
         data = np.load(os.path.join(data_file.path))
-        print("data shape: ", data.shape)
+        # print("data shape for item {}: {}".format(idx, data.shape))
 
         # generate index-matrix to extract window from data
         index_vector = (np.expand_dims(np.arange(self.window_width), axis=0) + local_file_idx)
-        print("index-vector: \n", index_vector)
+        # print("index-vector: \n", index_vector)
 
         # index_matrix = (np.expand_dims(np.arange(window_width), 0) + np.expand_dims(np.arange(data.shape[0]), 0).T)
 
-        training_example = data[index_vector]
-        print("training_example \n{}".format(training_example))
+        window = data[index_vector][0]
+        # print("window: \n{}".format(window))
 
-        return training_example[1:], training_example[:-1]
+        return window
 
     def check_initialized(self) -> None:
         if len(self.data_files) == 0:
@@ -70,7 +70,7 @@ class TrainingExampleLoader:
             self.window_width = loader.window_width
             self.data_files = loader.data_files
             self.access_matrix = loader.access_matrix
-            print("Done!\nData dir: {}\nFiles: {}\nTraining Examples: {}"
+            print("---- Data loader loaded! ----\nData dir: {}\nFiles: {} Training Examples: {}"
                   .format(self.data_dir, len(self.data_files), len(self)))
         else:
             print("No loader definition found at {}. Run fit() first.".format(self.loader_dir))
@@ -117,8 +117,8 @@ def main(args) -> None:
         print("Testing Data Loader")
         loader = TrainingExampleLoader(args.data_dir)
         loader.load()
-        example_idx = 0
-        print("Training example at pos {}: {}".format(example_idx, loader[example_idx]))
+        example_idx = 1000
+        print("Window at pos {}:\n{}".format(example_idx, loader[example_idx]))
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 

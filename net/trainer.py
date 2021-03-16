@@ -53,19 +53,20 @@ def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
         loss_history.append(loss_epoch)
 
 
-def test() -> None:
-    loader = TrainingExampleLoader()
+def test(data_dir) -> None:
+    loader = TrainingExampleLoader(data_dir)
     loader.load()
-    training_example = loader[0]
-    print("training example: ", training_example)
+    window = loader[0]
+    print("window: ", window)
 
 
 def main(args) -> None:
     if args.command == "train":
         print("Training a model!")
+        train(args.data_dir)
     elif args.command == "test":
         print("Testing a model!")
-        test()
+        test(args.data_dir)
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 
@@ -73,7 +74,7 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
     parser.add_argument("command", choices=["train", "test"])
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "COPENGAHEN"),
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
     main(parser.parse_args())
 
