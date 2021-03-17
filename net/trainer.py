@@ -9,7 +9,7 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
-    model = InceptionTimeModel(num_inception_blocks=1, in_channels=9, out_channels=9, kernel_sizes=9)
+    model = InceptionTimeModel(num_inception_blocks=1, in_features=9, out_channels=1, kernel_sizes=9)
     loader = TrainingExampleLoader(data_dir)
     loader.load()
 
@@ -21,7 +21,8 @@ def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
 
     loss_history = []
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
-    optimizer: torch.optim.Adamax = torch.optim.Adamax(model.parameters(), lr=learning_rate)
+    # test what happens if using "weight_decay" e.g. with 1e-4
+    optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # get learnable parameters
     params = list(model.parameters())
@@ -37,11 +38,16 @@ def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
         loss_epoch = []
         model.train()
 
-        # iterate training examples
+        # iterate entire dataset
         for train_idx in range(len(loader)):
-            data, target = loader[train_idx]
+            batch = loader[train_idx]
+
+            # iterate training data examples within the window
+            for batch_idx in range(len(batch)):
+                data, target = batch[batch_idx][:-1], batch[batch_idx][-1]
+
             data_tensor = torch.Tensor(data)
-            target_tensor = torch.Tensor(target)
+            # target_tensor = torch.Tensor(target)
             optimizer.zero_grad()
 
             output = model(data_tensor)
@@ -50,6 +56,8 @@ def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
             loss.backward()
             optimizer.step()
 
+        if epoch % 20 == 1:
+            print("epoch: {} loss: {}".format(epoch, loss_epoch))
         loss_history.append(loss_epoch)
 
 

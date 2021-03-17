@@ -189,6 +189,8 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
         mmsi_df_2 = df_2.loc[df_2["MMSI"] == mmsi]
         min_df_1 = mmsi_df_1.loc[mmsi_df_1["time"] == mmsi_df_1["time"].min()]
         min_df_2 = mmsi_df_2.loc[mmsi_df_2["time"] == mmsi_df_2["time"].min()]
+        # print("min_df_1: \n", min_df_1)
+        # print("min_df_2: \n", min_df_2)
 
         # make sure no duplicate arrival times occur in case of identical min timestamps
         len_df_1 = len(min_df_1.index)
@@ -208,6 +210,8 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
                 result_df.loc[idx] = min_df_1.iloc[0]
         elif len_df_2 > 0:
             result_df.loc[idx] = min_df_2.iloc[0]
+        else:
+            result_df.drop([idx])
+    print("min df for each mmsi: \n", result_df)
 
     return result_df
-

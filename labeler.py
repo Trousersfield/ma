@@ -16,6 +16,7 @@ class DurationLabeler:
         self.arrival_time = arrival_time
         df = df.assign(time_scaled=df["time"] - self.min_year_timestamp)
         # data can be labeled
+        print("applying arrival time {} to df: e.g. {}".format(arrival_time, df.iloc[0]["time"]))
         if arrival_time > 0:
             df = df.assign(label=arrival_time - df["time"])
         else:

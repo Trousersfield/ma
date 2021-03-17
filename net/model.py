@@ -27,17 +27,30 @@ class SamePaddingConv1d(nn.Conv1d):
 
 
 class InceptionTimeModel(nn.Module):
-    def __init__(self, num_inception_blocks: int, in_channels: int, out_channels: int,
+    """
+    num_inception_blocks:
+        Number of inception block to use.
+    in_features:
+        Number of input features within training data
+    out_channels:
+        Number of output channels (hidden) of a block
+    kernel_sizes:
+        Size of kernels to use within each inception block
+    output_dim:
+        Number of output features = target
+    """
+
+    def __init__(self, num_inception_blocks: int, in_features: int, out_channels: int,
                  kernel_sizes: int, output_dim: int = 1) -> None:
         super().__init__()
 
-        self.in_channels = in_channels
+        self.in_features = in_features
         self.out_channels = out_channels
         self.kernel_sizes = kernel_sizes
         self.output_dim = output_dim
 
         # create in- and out-channel dimensions for each block
-        inception_channels = [in_channels] + self._block_channels(in_channels, num_inception_blocks)
+        inception_channels = [in_features] + self._block_channels(in_features, num_inception_blocks)
 
         # Inception Time blocks as first layers
         self.inception_blocks = nn.Sequential(*[
@@ -60,18 +73,16 @@ class InceptionTimeModel(nn.Module):
         )
 
     @staticmethod
-    # value: Union[int, bool, List[int], List[bool]]
-    # Irgendeiner der Werte in Union[...] muss als Input gegeben werden
     def _block_channels(channels: int, num_of_blocks: int) -> List[int]:
         result = [channels] * num_of_blocks
         return result
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_seq: torch.Tensor) -> torch.Tensor:
         # apply global average pooling on each inception block
-        x = self.inception_blocks(x).mean(dim=-1)
+        input_seq = self.inception_blocks(input_seq).mean(dim=-1)
         # concatenate outputs of each inception block based on dimension of last block
-        x = torch.cat(x, dim=-1)
-        return self.funnel_net(x)
+        input_seq = torch.cat(input_seq, dim=-1)
+        return self.funnel_net(input_seq)
 
 
 class InceptionBlock(nn.Module):

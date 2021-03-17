@@ -55,7 +55,11 @@ class TrainingExampleLoader:
         # index_matrix = (np.expand_dims(np.arange(window_width), 0) + np.expand_dims(np.arange(data.shape[0]), 0).T)
 
         window = data[index_vector][0]
-        # print("window: \n{}".format(window))
+        target = window[:, -1][len(window) - 1]
+        input_seq = window[:, :-1]
+        print("window: \n{}".format(window))
+        print("target: \n{}".format(target))
+        print("input_seq: \n{}".format(input_seq))
 
         return window
 
@@ -117,7 +121,7 @@ def main(args) -> None:
         print("Testing Data Loader")
         loader = TrainingExampleLoader(args.data_dir)
         loader.load()
-        example_idx = 1000
+        example_idx = 0
         print("Window at pos {}:\n{}".format(example_idx, loader[example_idx]))
     else:
         raise ValueError("Unknown command: {}".format(args.command))

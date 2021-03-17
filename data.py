@@ -148,8 +148,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 os.makedirs(os.path.join(output_dir, folder, port.name))
 
         dest_df = df.loc[df["Destination"] == dest_column_header]
-        if port.name == "RANDERS":
-            print("dest_df: \n", dest_df["Ship type"])
+
         dest_df = dest_df.drop(columns=["Destination"])
         dest_df = format_timestamp_col(dest_df)
 
@@ -166,8 +165,6 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             continue
 
         # handle categorical data
-        if port.name == "RANDERS":
-            print("x_df: \n", x_df)
         x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
         x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
         # x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
@@ -182,24 +179,29 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         x_ship_types["MMSI"], x_nav_states["MMSI"] = mmsi_col, mmsi_col
 
         mmsis = x_df["MMSI"].unique()
-        # print("data: \n", x_df)
-        # print("label: \n", label_df)
-        # print("data__mmsis: ", mmsis)
-        # print("label_mmsis: ", label_df["MMSI"].unique())
 
         for idx, mmsi in enumerate(mmsis):
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
             arrival_time_df = arrival_times_df.loc[arrival_times_df["MMSI"] == mmsi]
             # print("arrival_time_df for mmsi: \n", arrival_time_df)
-            arrival_time = 0
+            arrival_time = -1
             if not is_empty(arrival_time_df):
-                print("-----------------")
-                print("!!!LABEL FOUND!!!")
-                print("-----------------")
                 arrival_time = arrival_time_df.iloc[0]["time"]
-            # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
 
+                # drop rows sent after ship left the port
+                ship_df = ship_df[ship_df["time"] <= arrival_time]
+
+                if not is_empty(ship_df):
+                    print("- - - - - - - - - - - - - - - - - - - - - - -")
+                    print("- - T A R G E T  &  D A T A   F O U N D - - -")
+                    print("- - - - - - - - - - - - - - - - - - - - - - -")
+
+            if is_empty(ship_df):
+                print("No data for MMSI {}".format(mmsi))
+                continue
+
+            print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
             # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order but is float
             ship_df = ship_df.drop(columns=["MMSI"])
             # print("data: \n", ship_df)
@@ -208,7 +210,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            # print("df with added label: \n", ship_df)
+            print("df with added label: \n", ship_df)
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # print("data: ", data)
@@ -242,42 +244,10 @@ def split(data: np.ndarray, train_ratio: float = .9) -> Tuple[np.ndarray, np.nda
         return data, np.array([])
 
 
-def load_dataset(port_path: str, dest_name: str, window_width: int) -> pd.DataFrame:
-    # initialize port manager
-    pm = PortManager()
-    pm.load()
-    port = pm.find_port(dest_name)
-
-    write_to_console("Loading data for port {} with window size of {}"
-                     .format(port.name, window_width))
-
-    file_name = get_destination_file_name(dest_name)
-    data = np.load(os.path.join(output_dir, "{}", "data.npy".format(file_name)))
-
-    if window_width > data.shape[0]:
-        raise ValueError("Sparse data detected! Can not apply sliding window of width {} on {} data entries"
-                         .format(window_width, data.shape[0]))
-
-    # create index matrix to directly select sliding windows from training data series
-    index_matrix = (np.expand_dims(np.arange(window_width), 0) +
-                    np.expand_dims(np.arange(data.shape[0]), 0).T)
-
-    # apply index matrix on data
-    window_data = data[index_matrix]
-
-    scaler = joblib.load(os.path.join(output_dir, "{}", "scalers.pkl".format(file_name)))
-
-    return data, scaler
-
-
 def main(args) -> None:
     if args.command == "init":
         write_to_console("Initializing repo")
         initialize(args.output_dir)
-    elif args.command == "load":
-        write_to_console("Loading data")
-        port = args.port.upper()
-        load_dataset(args.output_dir, port, args.window_width)
     elif args.command == "generate":
         write_to_console("Generating data")
         generate_dataset(args.input_dir, args.output_dir)
@@ -300,7 +270,7 @@ if __name__ == "__main__":
     small = "small.csv"
     big = "aisdk_20181101.csv"
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["init", "generate", "load", "cc", "add_alias", "check_ports"])
+    parser.add_argument("command", choices=["init", "generate", "cc", "add_alias", "check_ports"])
     parser.add_argument("--port", type=str, default="COPENGAHEN", help="Name of port to load dataset")
     parser.add_argument("--window_width", type=int, default=20, help="Sliding window width of training examples")
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", big),
