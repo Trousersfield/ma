@@ -8,14 +8,20 @@ from net.model import InceptionTimeModel
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
-    model = InceptionTimeModel(num_inception_blocks=1, in_features=9, out_channels=1, kernel_sizes=9)
-    loader = TrainingExampleLoader(data_dir)
-    loader.load()
+def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
+    model = InceptionTimeModel(num_inception_blocks=1, in_channels=9, out_channels=1, kernel_sizes=9,
+                               bottleneck_channels=1)
+    train_loader = TrainingExampleLoader(train_dir)
+    validation_loader = TrainingExampleLoader(validation_dir)
+    train_loader.load()
+    validation_loader.load()
 
-    if len(loader) == 0:
+    if len(train_loader) == 0:
         raise ValueError("Unable to load data from directory {}!\nData loader must be initialized first!"
-                         .format(loader.data_dir))
+                         .format(train_loader.data_dir))
+    if len(validation_loader) == 0:
+        raise ValueError("Unable to load data from directory {}!\nData loader must be initialized first!"
+                         .format(validation_loader.data_dir))
 
     print("model: \n".format(model))
 
@@ -24,41 +30,55 @@ def train(data_dir, num_epochs: int = 10, learning_rate: float = .01) -> None:
     # test what happens if using "weight_decay" e.g. with 1e-4
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    print(f"Starting training from directory {train_loader.data_dir} on {len(train_loader)} training examples")
+    print(f"First training example: \n{train_loader[0]}")
+
     # get learnable parameters
     params = list(model.parameters())
     print("number of params: ", len(params))
     print("first param's weight: ", params[0].size)
 
-    # data stuff
-    print("Starting training from directory {} on {} training examples".format(loader.data_dir, len(loader)))
-    print("First example: \n{}".format(loader[0]))
-
     # training loop
     for epoch in range(num_epochs):
-        loss_epoch = []
+        loss_train = 0
+        loss_validation = 0
+
+        # train model
         model.train()
+        for train_idx in range(len(train_loader)):
+            train_data, target = train_loader[train_idx]
+            data_tensor = torch.Tensor(train_data)
+            target_tensor = torch.Tensor(target)
 
-        # iterate entire dataset
-        for train_idx in range(len(loader)):
-            batch = loader[train_idx]
+            batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
+            loss_train += batch_loss
+        loss_train_avg = loss_train / len(train_loader)
 
-            # iterate training data examples within the window
-            for batch_idx in range(len(batch)):
-                data, target = batch[batch_idx][:-1], batch[batch_idx][-1]
+        # validate model
+        model.eval()
+        for validation_idx in range(len(validation_loader)):
+            validation_data, target = validation_loader[validation_idx]
+            validation_tensor = torch.Tensor(validation_data)
+            target_tensor = torch.Tensor(target)
 
-            data_tensor = torch.Tensor(data)
-            # target_tensor = torch.Tensor(target)
-            optimizer.zero_grad()
-
-            output = model(data_tensor)
-            loss = criterion(output, target_tensor)
-            loss_epoch.append(loss.item())
-            loss.backward()
-            optimizer.step()
+            batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
+            loss_validation += batch_loss
+        loss_validation_avg = loss_validation / len(validation_loader)
 
         if epoch % 20 == 1:
-            print("epoch: {} loss: {}".format(epoch, loss_epoch))
-        loss_history.append(loss_epoch)
+            print(f"epoch: {epoch} average validation loss: {loss_validation_avg}")
+        loss_history.append([loss_train_avg, loss_validation_avg])
+
+
+def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
+                    training: bool = True):
+    output = model(data_tensor)
+    loss = criterion(output, target_tensor)
+    if training:
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    return loss.item()
 
 
 def test(data_dir) -> None:
@@ -71,7 +91,7 @@ def test(data_dir) -> None:
 def main(args) -> None:
     if args.command == "train":
         print("Training a model!")
-        train(args.data_dir)
+        train(args.data_dir, args.validation_dir)
     elif args.command == "test":
         print("Testing a model!")
         test(args.data_dir)
@@ -84,5 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["train", "test"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
+    parser.add_argument("--validation_dir", type=str, default=os.path.join(script_dir, "data", "test", "ROSTOCK"),
+                        help="Path to validation files")
     main(parser.parse_args())
 

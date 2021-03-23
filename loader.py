@@ -36,10 +36,10 @@ class TrainingExampleLoader:
             return 0
         return self.access_matrix.shape[0]
 
-    def __getitem__(self, idx: int) -> np.ndarray:
+    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
         self.check_initialized()
-        if len(self) < idx:
-            raise ValueError("Training example with index {} out of range [0, {}]!".format(idx, len(self)))
+        if len(self) <= idx:
+            raise ValueError("Training example with index {} out of range [0, {}]!".format(idx, len(self)-1))
 
         file_vec = self.access_matrix[idx]
         data_file = self.data_files[file_vec[0]]
@@ -56,12 +56,12 @@ class TrainingExampleLoader:
 
         window = data[index_vector][0]
         target = window[:, -1][len(window) - 1]
-        input_seq = window[:, :-1]
+        data = window[:, :-1]
         print("window: \n{}".format(window))
+        print("data: \n{}".format(data))
         print("target: \n{}".format(target))
-        print("input_seq: \n{}".format(input_seq))
 
-        return window
+        return data, target
 
     def check_initialized(self) -> None:
         if len(self.data_files) == 0:
@@ -121,16 +121,16 @@ def main(args) -> None:
         print("Testing Data Loader")
         loader = TrainingExampleLoader(args.data_dir)
         loader.load()
-        example_idx = 0
-        print("Window at pos {}:\n{}".format(example_idx, loader[example_idx]))
+        print("Window at pos {}:\n{}".format(args.data_idx, loader[args.data_idx]))
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual testing and validating Data Loader!")
-    parser.add_argument("command", choices=["init", "load", "fit","test"])
+    parser.add_argument("command", choices=["init", "load", "fit", "test"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=10, help="Sliding window width of training examples")
+    parser.add_argument("--data_idx", type=int, default=0, help="Data index to retrieve (for testing only)")
     main(parser.parse_args())

@@ -17,21 +17,25 @@ def get_destination_file_name(name: any) -> str:
 
 def data_file(mmsi: float) -> str:
     mmsi_str = str(mmsi)
-    return "data_{}.npy".format(mmsi_str)
+    return f"data_{mmsi_str}.npy"
 
 
 def obj_file(file_type: str, mmsi: float) -> str:
     mmsi_str = str(mmsi)
     if file_type == "labeler":
-        return "labeler_{}.pkl".format(mmsi_str)
-    elif file_type == "normalize":
-        return "normalize_scaler_{}.pkl".format(mmsi_str)
+        return f"labeler_{mmsi_str}.pkl"
+    elif file_type == "train_scaler":
+        return f"train_scaler_{mmsi_str}.pkl"
+    elif file_type == "test_scaler":
+        return f"test_scaler_{mmsi_str}.pkl"
     elif file_type == "ship_type":
-        return "ship_type_encoder_{}.pkl".format(mmsi_str)
+        return f"ship_type_encoder_{mmsi_str}.pkl"
     elif file_type == "nav_status":
-        return "nav_status_encoder_{}.pkl".format(mmsi_str)
+        return f"nav_status_encoder_{mmsi_str}.pkl"
+    elif file_type == "data_unlabeled":
+        return f"data_df_{mmsi_str}.pkl"
     else:
-        raise ValueError("Unknown file type '{}'".format(file_type))
+        raise ValueError(f"Unknown file type '{file_type}'")
 
 
 def npy_file_len(file_path: str) -> int:
@@ -41,6 +45,6 @@ def npy_file_len(file_path: str) -> int:
 
 def write_to_console(message):
     filler = "*" * len(message)
-    print("\t********** {} ***********".format(filler))
-    print("\t********** {} ***********".format(message))
-    print("\t********** {} ***********".format(filler))
+    print(f"\t********** {filler} ***********")
+    print(f"\t********** {message} ***********")
+    print(f"\t********** {filler} ***********")

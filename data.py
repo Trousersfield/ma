@@ -16,7 +16,7 @@ from labeler import DurationLabeler
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-data_folders = ("encode", "test", "train")
+data_folders = ("encode", "test", "train", "unlabeled")
 LAT = {"min": -90, "max": 90}
 LONG = {"min": -180, "max": 180}
 
@@ -198,7 +198,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                     print("- - - - - - - - - - - - - - - - - - - - - - -")
 
             if is_empty(ship_df):
-                print("No data for MMSI {}".format(mmsi))
+                print(f"No data for MMSI {mmsi}")
                 continue
 
             print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
@@ -209,26 +209,33 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
             # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
+            if arrival_time == -1:
+                print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
+                ship_df.to_pickle(os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi)))
+                continue
+
             ship_df, labeler = generate_label(ship_df, arrival_time)
             print("df with added label: \n", ship_df)
+
             data = ship_df.to_numpy()
             print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
+            train, test = split(data)
+
             # TODO: Check if label needs to be added after normalization
-            # Intuition: MSE is huge if target/label has large values like duration is seconds
-            data_normalized, normalize_scaler = normalize(data)
-            print("normalized data shape: ", data_normalized.shape)
+            # Intuition: MSE loss is huge if target has large values like duration in seconds
+            train_normalized, train_scaler = normalize(train)
+            test_normalized, test_scaler = normalize(test)
+            print(f"normalized train shape: {train_normalized.shape}")
+            print(f"normalized test shape: {test_normalized.shape}")
 
-            train, test = split(data_normalized)
-
-            # print("train data shape: ", train.shape)
-            # print("test data shape: ", test.shape)
             np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
             np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
 
-            joblib.dump(normalize_scaler, os.path.join(output_dir, "encode", port.name, obj_file("normalize", mmsi)))
+            joblib.dump(train_scaler, os.path.join(output_dir, "encode", port.name, obj_file("train_scaler", mmsi)))
+            joblib.dump(test_scaler, os.path.join(output_dir, "encode", port.name, obj_file("test_scaler", mmsi)))
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
@@ -268,6 +275,7 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     small = "small.csv"
+    medium = "medium.csv"
     big = "aisdk_20181101.csv"
     parser = argparse.ArgumentParser(description="Preprocess data.")
     parser.add_argument("command", choices=["init", "generate", "cc", "add_alias", "check_ports"])
