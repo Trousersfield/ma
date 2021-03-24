@@ -10,7 +10,7 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
     model = InceptionTimeModel(num_inception_blocks=1, in_channels=9, out_channels=1, kernel_sizes=9,
-                               bottleneck_channels=1)
+                               use_residuals=True, bottleneck_channels=1, output_dim=1)
     train_loader = TrainingExampleLoader(train_dir)
     validation_loader = TrainingExampleLoader(validation_dir)
     train_loader.load()

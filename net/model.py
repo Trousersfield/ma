@@ -18,12 +18,19 @@ from typing import List
 class SamePaddingConv1d(nn.Conv1d):
     """Workaround for same padding functionality with Tensorflow
     https://github.com/pytorch/pytorch/issues/3867
+
+    same padding = even padding to left/right & up/down, so that output has same height/width dimension as the input
     """
 
-    def forward(self, input):
-        padding = (())
+    @staticmethod
+    def _get_padding(size, kernel_size, stride, dilation):
+        return ((size - 1) * (stride - 1) + dilation * (kernel_size - 1)) // 2
 
-        return F.conv1d(input, self.weight, self.bias, self.stride, self.dilation, self.groups)
+    def forward(self, input):
+        padding = self._get_padding(input.size(2), self.weight.size(2), self.stride[0], self.dilation[0])
+
+        return F.conv1d(input=input, weight=self.weight, bias=self.bias, stride=self.stride,
+                        padding=padding, dilation=self.dilation, groups=self.groups)
 
 
 class InceptionTimeModel(nn.Module):
@@ -43,24 +50,30 @@ class InceptionTimeModel(nn.Module):
     """
 
     def __init__(self, num_inception_blocks: int, in_channels: int, out_channels: int,
-                 bottleneck_channels: int, kernel_sizes: int, num_dense_blocks: int = 4,
-                 dense_in_channels: int = 64, output_dim: int = 1) -> None:
+                 num_bottleneck_channels: int, use_residual: bool = True,
+                 num_dense_blocks: int = 4, dense_in_channels: int = 64,
+                 output_dim: int = 1) -> None:
         super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.bottleneck_channels = bottleneck_channels
-        self.kernel_sizes = kernel_sizes
+        self.num_bottleneck_channels = num_bottleneck_channels
+        # self.kernel_sizes = kernel_sizes # These are fixed
+        self.use_residual = use_residual
         self.dense_in_channels: dense_in_channels
         self.output_dim = output_dim
 
         # generate in- and out-channel dimensions
         inception_channels = [in_channels] + self._inception_channels(out_channels, num_inception_blocks)
+        bottleneck_channels = [num_bottleneck_channels] * num_inception_blocks
         dense_channels = self._dense_channels(dense_in_channels, num_dense_blocks)
 
-        # Inception Time blocks as first layers
+        use_residuals = self._use_residuals(num_inception_blocks)
+
+        # Inception Time blocks
         self.inception_blocks = nn.Sequential(*[
-            InceptionBlock(in_channels=inception_channels[i], out_channels=inception_channels[i+1], use_resudual=False)
+            InceptionBlock(in_channels=inception_channels[i], out_channels=inception_channels[i + 1],
+                           use_residual=use_residuals[i], bottleneck_channels=bottleneck_channels[i])
             for i in range(num_inception_blocks)
         ])
 
@@ -69,7 +82,7 @@ class InceptionTimeModel(nn.Module):
 
         # dense net for port specific training and to funnel inputs
         self.dense_blocks = nn.Sequential(*[
-            DenseBlock(in_channels=dense_channels[i], out_channels=dense_channels[i+1])
+            DenseBlock(in_channels=dense_channels[i], out_channels=dense_channels[i + 1])
             for i in range(num_dense_blocks)
         ])
 
@@ -85,53 +98,60 @@ class InceptionTimeModel(nn.Module):
         chs = np.arange(num_of_blocks + 1)
         return in_channels // (2 ** chs)
 
+    @staticmethod
+    def _use_residuals(num_of_blocks: int) -> List[bool]:
+        return [True if i % 3 == 2 else False for i in range(num_of_blocks)]    # each 3rd block uses residual
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.inception_blocks(x).mean(dim=-1)   # apply global average pooling on each inception block
-        x = torch.cat(x, dim=-1)    # concatenate outputs of each inception block based on dimension of last block
+        x = self.inception_blocks(x).mean(dim=-1)   # mean = global average pooling at the end of inception blocks
+        # x = torch.cat(x, dim=-1)    # concatenate outputs of each inception block based on dimension of last block
         x = self.linear_to_dense(x)
         x = self.dense_blocks(x)
         return self.target_layer(x)
 
 
 class InceptionBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, use_resudual: bool, stride: int = 1,
-                 bottleneck_channels: int = 32) -> None:
+    def __init__(self, in_channels: int, out_channels: int, use_residual: bool,
+                 stride: int = 1, bottleneck_channels: int = 0) -> None:
         super().__init__()
 
+        self.use_residual = use_residual
+        self.use_bottleneck = bottleneck_channels > 0
         kernel_sizes = [10, 20, 40]
 
-        # create in- and out-channel dimensions for each Inception Time component
-        channels = [in_channels] + [out_channels] * 3
+        # in- and out-channels for convolution layers
+        channels = [bottleneck_channels if self.use_bottleneck else in_channels] + [out_channels] * 3
 
-        """ Bottleneck Layer: Transform input of M dimensions to m << M dimensions
-        m filters each having a length of 1 (=kernel_size) and stride of 1
-        """
-        # TODO: check if bias=True or bias=False (default: bias=True)
-        # TODO: find good value for out_channels = number of output channels for bottleneck
-        self.bottleneck_layer = SamePaddingConv1d(in_channels=in_channels, out_channels=bottleneck_channels,
-                                                  kernel_size=1, stride=1, bias=False)
+        if self.use_bottleneck:
+            self.bottleneck_layer = SamePaddingConv1d(in_channels=in_channels, out_channels=bottleneck_channels,
+                                                      kernel_size=1, stride=stride, bias=False)
 
-        """ Convolution Layers applied on output of Bottleneck Layer
-        kernel sizes of 10, 20 and 40 with strides of 1
-        """
         self.convolution_layers = nn.Sequential(*[
             SamePaddingConv1d(in_channels=channels[i], out_channels=channels[i + 1],
                               kernel_size=kernel_sizes[i], stride=stride, bias=False)
             for i in range(len(kernel_sizes))
         ])
 
-        """ MaxPooling Layer on input (bottleneck)
-        """
         # accelerate Deep NN training by reducing internal covariance shift
         # https://arxiv.org/abs/1502.03167
-        self.max_pool_layer = nn.BatchNorm1d(num_features=channels[-1])
-        # self.relu = nn.ReLU()
+        self.batchNorm1d = nn.BatchNorm1d(num_features=channels[-1])
+        self.relu = nn.ReLU()
+
+        if self.use_residual:
+            self.residual = nn.Sequential(*[
+                SamePaddingConv1d(in_channels=in_channels, out_channels=out_channels,
+                                  kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm1d(out_channels),
+                nn.ReLU()
+            ])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         inp_x = x
-        x = self.bottleneck_layer(x)    # bottleneck applied on input
-        x = self.convolution_layers(x)  # convolution layers of lengths {10, 20, 40] applied on bottleneck output
-        x = x + self.max_pool_layer(inp_x)      # parallel max pooling on input
+        if self.use_bottleneck:
+            x = self.bottleneck_layer(x)    # bottleneck applied on input
+        x = self.convolution_layers(x)      # convolution layers with kernels' sizes of {10, 20, 40]
+        if self.use_residual:
+            x = x + self.residual(inp_x)    # residual on original input
         return x
 
 
