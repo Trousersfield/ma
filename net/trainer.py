@@ -3,14 +3,13 @@ import os
 import torch
 
 from ..loader import TrainingExampleLoader
+from ..plotter import plot_loss
 from net.model import InceptionTimeModel
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
-    model = InceptionTimeModel(num_inception_blocks=1, in_channels=9, out_channels=1, kernel_sizes=9,
-                               use_residuals=True, bottleneck_channels=1, output_dim=1)
     train_loader = TrainingExampleLoader(train_dir)
     validation_loader = TrainingExampleLoader(validation_dir)
     train_loader.load()
@@ -22,6 +21,15 @@ def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_ra
     if len(validation_loader) == 0:
         raise ValueError("Unable to load data from directory {}!\nData loader must be initialized first!"
                          .format(validation_loader.data_dir))
+
+    data, target = train_loader[0]
+    input_dim = data.shape[1]
+    output_dim = target.shape[1]
+
+    model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=64,
+                               num_bottleneck_channels=input_dim // 2, use_residual=True,
+                               num_dense_blocks=1, dense_in_channels=1,
+                               output_dim=output_dim)
 
     print("model: \n".format(model))
 
@@ -68,6 +76,7 @@ def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_ra
         if epoch % 20 == 1:
             print(f"epoch: {epoch} average validation loss: {loss_validation_avg}")
         loss_history.append([loss_train_avg, loss_validation_avg])
+    plot_loss(loss_history, labels=["Training", "Validation"])
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -102,7 +111,7 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
     parser.add_argument("command", choices=["train", "test"])
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
+    parser.add_argument("--train_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
     parser.add_argument("--validation_dir", type=str, default=os.path.join(script_dir, "data", "test", "ROSTOCK"),
                         help="Path to validation files")

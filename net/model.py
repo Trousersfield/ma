@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import torch
 from torch import nn
@@ -6,31 +5,27 @@ import torch.nn.functional as F
 
 from typing import List
 
-# InceptionTime model
-# inspired by Inception-v4 architecture
-# https://arxiv.org/abs/1909.04939
-# code: https://github.com/hfawaz/InceptionTime
 
-
-# def split_sequence(sequence, n_steps):
-
-
-class SamePaddingConv1d(nn.Conv1d):
-    """Workaround for same padding functionality with Tensorflow
-    https://github.com/pytorch/pytorch/issues/3867
-
-    same padding = even padding to left/right & up/down, so that output has same height/width dimension as the input
+class Conv1dSamePadding(nn.Conv1d):
     """
-
-    @staticmethod
-    def _get_padding(size, kernel_size, stride, dilation):
-        return ((size - 1) * (stride - 1) + dilation * (kernel_size - 1)) // 2
-
+    Same padding functionality with Tensorflow, inspired from https://github.com/pytorch/pytorch/issues/3867
+    same padding = even padding to left/right & up/down of tensor, so that output has same dimension as the input
+    """
     def forward(self, input):
-        padding = self._get_padding(input.size(2), self.weight.size(2), self.stride[0], self.dilation[0])
+        conv1d_same_padding(input, self.weight, self.bias, self.stride, self.dilation, self.groups)
 
-        return F.conv1d(input=input, weight=self.weight, bias=self.bias, stride=self.stride,
-                        padding=padding, dilation=self.dilation, groups=self.groups)
+
+# custom conv1d, see issue mentioned above
+def conv1d_same_padding(input, weight, bias, stride, dilation, groups):
+    kernel = weight.size(2)
+    dilation = dilation[0]
+    stride = stride[0]
+    size = input.size(2)
+    # padding = ((size - 1) * (stride - 1) + dilation * (kernel - 1)) // 2
+    padding = ((((size - 1) * stride) - size + (dilation * (kernel - 1))) + 1) // 2
+
+    return F.conv1d(input=input, weight=weight, bias=bias, stride=stride,
+                    padding=padding, dilation=dilation, groups=groups)
 
 
 class InceptionTimeModel(nn.Module):
@@ -123,11 +118,11 @@ class InceptionBlock(nn.Module):
         channels = [bottleneck_channels if self.use_bottleneck else in_channels] + [out_channels] * 3
 
         if self.use_bottleneck:
-            self.bottleneck_layer = SamePaddingConv1d(in_channels=in_channels, out_channels=bottleneck_channels,
+            self.bottleneck_layer = Conv1dSamePadding(in_channels=in_channels, out_channels=bottleneck_channels,
                                                       kernel_size=1, stride=stride, bias=False)
 
         self.convolution_layers = nn.Sequential(*[
-            SamePaddingConv1d(in_channels=channels[i], out_channels=channels[i + 1],
+            Conv1dSamePadding(in_channels=channels[i], out_channels=channels[i + 1],
                               kernel_size=kernel_sizes[i], stride=stride, bias=False)
             for i in range(len(kernel_sizes))
         ])
@@ -139,7 +134,7 @@ class InceptionBlock(nn.Module):
 
         if self.use_residual:
             self.residual = nn.Sequential(*[
-                SamePaddingConv1d(in_channels=in_channels, out_channels=out_channels,
+                Conv1dSamePadding(in_channels=in_channels, out_channels=out_channels,
                                   kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm1d(out_channels),
                 nn.ReLU()
