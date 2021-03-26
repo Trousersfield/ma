@@ -101,16 +101,13 @@ def main(args) -> None:
     if args.command == "train":
         print("Training a model!")
         train(args.data_dir, args.validation_dir)
-    elif args.command == "test":
-        print("Testing a model!")
-        test(args.data_dir)
     else:
-        raise ValueError("Unknown command: {}".format(args.command))
+        raise ValueError(f"Unknown command: {args.command}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
-    parser.add_argument("command", choices=["train", "test"])
+    parser.add_argument("command", choices=["train"])
     parser.add_argument("--train_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
                         help="Path to data files")
     parser.add_argument("--validation_dir", type=str, default=os.path.join(script_dir, "data", "test", "ROSTOCK"),
