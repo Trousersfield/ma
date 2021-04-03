@@ -55,12 +55,11 @@ class TrainingExampleLoader:
         # index_matrix = (np.expand_dims(np.arange(window_width), 0) + np.expand_dims(np.arange(data.shape[0]), 0).T)
 
         window = data[index_vector][0]
-        target = window[:, -1][len(window) - 1]
-        data = window[:, :-1]
-        print("window: \n{}".format(window))
-        print("data: \n{}".format(data))
-        print("target: \n{}".format(target))
-
+        target = np.array([window[:, -1][len(window) - 1]])
+        data = np.array([window[:, :-1]])
+        # print(f"window: \n{window}")
+        # print(f"data: \n{}")
+        # print(f"target: \n{target}")
         return data, target
 
     def check_initialized(self) -> None:
@@ -103,23 +102,23 @@ class TrainingExampleLoader:
             # print("concatenated: \n", self.access_matrix)
             # print("shape: ", self.access_matrix.shape)
         joblib.dump(self, self.loader_dir)
+        print(f"Data Loader has been fit on directory {self.data_dir}")
 
 
 def main(args) -> None:
-    if args.command == "init":
-        print("Initializing Data Loader!")
-        TrainingExampleLoader(args.data_dir)
+    if args.command == "fit":
+        print("Fitting Data Loader")
+        train_loader = TrainingExampleLoader(os.path.join(args.data_dir, "train", "ROSTOCK"))
+        test_loader = TrainingExampleLoader(os.path.join(args.data_dir, "test", "ROSTOCK"))
+        train_loader.fit()
+        test_loader.fit()
     elif args.command == "load":
         print("Loading Data Loader!")
         loader = TrainingExampleLoader(args.data_dir)
         loader.load()
-    elif args.command == "fit":
-        print("Fitting Data Loader")
-        loader = TrainingExampleLoader(args.data_dir)
-        loader.fit()
     elif args.command == "test":
         print("Testing Data Loader")
-        loader = TrainingExampleLoader(args.data_dir)
+        loader = TrainingExampleLoader(os.path.join(args.data_dir, "train", "ROSTOCK"))
         loader.load()
         print("Window at pos {}:\n{}".format(args.data_idx, loader[args.data_idx]))
     else:
@@ -129,7 +128,7 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual testing and validating Data Loader!")
     parser.add_argument("command", choices=["init", "load", "fit", "test"])
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=10, help="Sliding window width of training examples")
     parser.add_argument("--data_idx", type=int, default=0, help="Data index to retrieve (for testing only)")

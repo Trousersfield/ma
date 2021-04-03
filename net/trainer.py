@@ -2,36 +2,37 @@ import argparse
 import os
 import torch
 
-from ..loader import TrainingExampleLoader
-from ..plotter import plot_loss
+from loader import MmsiDataFile, TrainingExampleLoader
+from plotter import plot_loss
 from net.model import InceptionTimeModel
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
-    train_loader = TrainingExampleLoader(train_dir)
-    validation_loader = TrainingExampleLoader(validation_dir)
+def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
+    train_path = os.path.join(data_dir, "train", "ROSTOCK")
+    validation_path = os.path.join(data_dir, "test", "ROSTOCK")
+
+    train_loader = TrainingExampleLoader(train_path)
+    validation_loader = TrainingExampleLoader(validation_path)
     train_loader.load()
     validation_loader.load()
 
     if len(train_loader) == 0:
-        raise ValueError("Unable to load data from directory {}!\nData loader must be initialized first!"
+        raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
                          .format(train_loader.data_dir))
     if len(validation_loader) == 0:
-        raise ValueError("Unable to load data from directory {}!\nData loader must be initialized first!"
+        raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
                          .format(validation_loader.data_dir))
 
     data, target = train_loader[0]
-    input_dim = data.shape[1]
-    output_dim = target.shape[1]
+    input_dim = data.shape[2]
+    output_dim = 1
 
-    model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=64,
-                               num_bottleneck_channels=input_dim // 2, use_residual=True,
-                               num_dense_blocks=1, dense_in_channels=1,
-                               output_dim=output_dim)
+    model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
+                               bottleneck_channels=8, use_residual=True, output_dim=output_dim)
 
-    print("model: \n".format(model))
+    print(f"model: \n{model}")
 
     loss_history = []
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
@@ -39,7 +40,7 @@ def train(train_dir: str, validation_dir: str, num_epochs: int = 10, learning_ra
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     print(f"Starting training from directory {train_loader.data_dir} on {len(train_loader)} training examples")
-    print(f"First training example: \n{train_loader[0]}")
+    # print(f"First training example: \n{train_loader[0]}")
 
     # get learnable parameters
     params = list(model.parameters())
@@ -100,7 +101,7 @@ def test(data_dir) -> None:
 def main(args) -> None:
     if args.command == "train":
         print("Training a model!")
-        train(args.data_dir, args.validation_dir)
+        train(args.data_dir)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -108,9 +109,6 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
     parser.add_argument("command", choices=["train"])
-    parser.add_argument("--train_dir", type=str, default=os.path.join(script_dir, "data", "train", "ROSTOCK"),
-                        help="Path to data files")
-    parser.add_argument("--validation_dir", type=str, default=os.path.join(script_dir, "data", "test", "ROSTOCK"),
-                        help="Path to validation files")
+    path = os.path.join("C:\\", "Users", "benja", "myProjects", "ma", "data")  # , "train", "ROSTOCK")
+    parser.add_argument("--data_dir", type=str, default=path, help="Path to data files")
     main(parser.parse_args())
-

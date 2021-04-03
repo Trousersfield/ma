@@ -4,9 +4,10 @@ import numpy as np
 import os
 import pandas as pd
 
+from util import is_empty
+
 from math import radians, cos, sin, asin, sqrt, degrees
 from typing import Dict, List, Tuple
-from util import is_empty
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
