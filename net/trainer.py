@@ -2,6 +2,7 @@ import argparse
 import os
 import torch
 
+from datetime import datetime
 from loader import MmsiDataFile, TrainingExampleLoader
 from plotter import plot_loss
 from net.model import InceptionTimeModel
@@ -9,9 +10,20 @@ from net.model import InceptionTimeModel
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
+def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
     train_path = os.path.join(data_dir, "train", "ROSTOCK")
     validation_path = os.path.join(data_dir, "test", "ROSTOCK")
+    model_dir = os.path.join(output_dir, "model")
+    eval_dir = os.path.join(output_dir, "eval")
+    # set device: use gpu is available
+    # more options: https://pytorch.org/docs/stable/notes/cuda.html
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    if not os.path.exists(eval_dir):
+        os.makedirs(eval_dir)
 
     train_loader = TrainingExampleLoader(train_path)
     validation_loader = TrainingExampleLoader(validation_path)
@@ -31,7 +43,7 @@ def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> No
 
     model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
                                bottleneck_channels=8, use_residual=True, output_dim=output_dim)
-
+    model.to(device)
     print(f"model: \n{model}")
 
     loss_history = []
@@ -56,8 +68,8 @@ def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> No
         model.train()
         for train_idx in range(len(train_loader)):
             train_data, target = train_loader[train_idx]
-            data_tensor = torch.Tensor(train_data)
-            target_tensor = torch.Tensor(target)
+            data_tensor = torch.Tensor(train_data).to(device)
+            target_tensor = torch.Tensor(target).to(device)
 
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
@@ -67,8 +79,8 @@ def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> No
         model.eval()
         for validation_idx in range(len(validation_loader)):
             validation_data, target = validation_loader[validation_idx]
-            validation_tensor = torch.Tensor(validation_data)
-            target_tensor = torch.Tensor(target)
+            validation_tensor = torch.Tensor(validation_data).to(device)
+            target_tensor = torch.Tensor(target).to(device)
 
             batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
             loss_validation += batch_loss
@@ -77,7 +89,10 @@ def train(data_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> No
         if epoch % 20 == 1:
             print(f"epoch: {epoch} average validation loss: {loss_validation_avg}")
         loss_history.append([loss_train_avg, loss_validation_avg])
-    plot_loss(loss_history, labels=["Training", "Validation"])
+
+    timestamp = datetime.strftime(datetime.now(), "%Y%m%d-%H%M%S")
+    model.save(os.path.join(model_dir), f"{timestamp}_model.pt")
+    plot_loss(loss_series=loss_history, labels=["Training", "Validation"], path=eval_dir)
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -91,17 +106,10 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
     return loss.item()
 
 
-def test(data_dir) -> None:
-    loader = TrainingExampleLoader(data_dir)
-    loader.load()
-    window = loader[0]
-    print("window: ", window)
-
-
 def main(args) -> None:
     if args.command == "train":
         print("Training a model!")
-        train(args.data_dir)
+        train(args.data_dir, args.output_dir)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -109,6 +117,9 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
     parser.add_argument("command", choices=["train"])
-    path = os.path.join("C:\\", "Users", "benja", "myProjects", "ma", "data")  # , "train", "ROSTOCK")
-    parser.add_argument("--data_dir", type=str, default=path, help="Path to data files")
+    # path = os.path.join("C:\\", "Users", "benja", "myProjects", "ma", "data")  # , "train", "ROSTOCK")
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data"),
+                        help="Path to data file directory")
+    parser.add_argument("--output", type=str, default=os.path.join(script_dir, os.pardir, "output"),
+                        help="Path to output directory")
     main(parser.parse_args())

@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -57,12 +58,13 @@ class InceptionTimeModel(nn.Module):
                  output_dim: int = 1) -> None:
         super().__init__()
 
+        self.num_inception_blocks = num_inception_blocks
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.bottleneck_channels = bottleneck_channels
         # self.kernel_sizes = kernel_sizes # These are fixed
         self.use_residual = use_residual
-        self.dense_in_channels: dense_in_channels
+        self.dense_in_channels = dense_in_channels
         self.output_dim = output_dim
 
         # generate in- and out-channel dimensions
@@ -71,7 +73,7 @@ class InceptionTimeModel(nn.Module):
         expanded_bottleneck_channels = [bottleneck_channels] * num_inception_blocks
         # print(f"bottleneck_channels: {bottleneck_channels}")
         dense_channels = self._dense_channels(dense_in_channels, num_dense_blocks)
-        print(f"dense_channels: {dense_channels}")
+        # print(f"dense_channels: {dense_channels}")
 
         use_residuals = self._use_residuals(num_inception_blocks)
 
@@ -92,7 +94,7 @@ class InceptionTimeModel(nn.Module):
         ])
 
         # last layer folding to target value
-        print(f"dense_channels[-1]: {dense_channels[-1]}")
+        # print(f"dense_channels[-1]: {dense_channels[-1]}")
         self.target_layer = nn.Linear(dense_channels[-1], self.output_dim)
 
     @staticmethod
@@ -113,13 +115,38 @@ class InceptionTimeModel(nn.Module):
         x = x.permute(0, 2, 1)  # required format: (N: batch-size, C: channels, L: window-width)
         # print(f"permuted tensor: {x.size()}")
         x = self.inception_blocks(x).mean(dim=-1)   # mean = global average pooling at the end of inception blocks
-        print(f"tensor after inception: {x.size()}")
-        # x = torch.cat(x, dim=-1)    # concatenate outputs of each inception block based on dimension of last block
-        # x = self.linear_to_dense(x)
-        print(f"tensor after linear_to_dense: {x.size()}")
+        # print(f"tensor after inception: {x.size()}")
         x = self.dense_blocks(x)
-        print(f"tensor after dense_blocks: {x.size()}")
+        # print(f"tensor after dense_blocks: {x.size()}")
         return self.target_layer(x)
+
+    def save(self, output_dir: str, filename: str) -> None:
+        print("Saving model")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        torch.save({
+            "state_dict": self.state_dict(),
+            "num_inception_block": self.num_inception_blocks,
+            "in_channels": self.in_channels,
+            "out_channels": self.out_channels,
+            "bottleneck_channels": self.bottleneck_channels,
+            # self.kernel_sizes # These are fixed
+            "use_residual": self.use_residual,
+            "dense_in_channels": self.dense_in_channels,
+            "output_dim": self.output_dim
+        }, os.path.join(output_dir, filename))
+
+    @staticmethod
+    def load(model_path: str) -> 'InceptionTimeModel':
+        # see https://pytorch.org/tutorials/beginner/saving_loading_models.html
+        print(f"Loading model from {model_path}")
+        checkpoint = torch.load(model_path)
+        model = InceptionTimeModel(checkpoint["num_inception_blocks"], checkpoint["in_channels"],
+                                   checkpoint["out_channels"], checkpoint["bottleneck_channels"],
+                                   checkpoint["use_residual"], checkpoint["dense_in_channels"],
+                                   checkpoint["output_dim"])
+        model.load_state_dict(checkpoint["state_dict"])
+        return model
 
 
 class InceptionBlock(nn.Module):
@@ -137,7 +164,7 @@ class InceptionBlock(nn.Module):
         if out_channels % 4 != 0:   # add desired output channels, preferably to longer term extractor
             for i in range(out_channels % 4):
                 channels[-(i + 1)] += 1
-        print(f"inception conv channels: {channels}")
+        # print(f"inception conv channels: {channels}")
 
         if self.use_bottleneck:
             self.bottleneck_layer = Conv1dSamePadding(in_channels=in_channels, out_channels=bottleneck_channels,
@@ -174,7 +201,7 @@ class InceptionBlock(nn.Module):
             ])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(f"inception tensor size: {x.size()}")
+        # print(f"inception tensor size: {x.size()}")
         inp_x = x
         if self.use_bottleneck:
             x = self.bottleneck_layer(x)    # bottleneck applied on input
@@ -184,11 +211,11 @@ class InceptionBlock(nn.Module):
         x_40 = self.conv1D_40(x)
         # x_mean = torch.mean(inp_x)
         x_inv = self.invariant_layer(x)
-        x = torch.cat((x_10, x_20, x_40, x_inv), dim=1)
-        print(f"inception tensor size after concatenating 10, 20, 40: {x.size()}")
+        x = torch.cat((x_10, x_20, x_40, x_inv), dim=1)     # concat channel dimension
+        # print(f"inception tensor size after concatenating 10, 20, 40: {x.size()}")
         if self.use_residual:
             x = x + self.residual(inp_x)    # residual on original input
-            print(f"inception tensor after residual {x.size()}")
+            # print(f"inception tensor after residual {x.size()}")
         return x
 
 
@@ -196,12 +223,13 @@ class DenseBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
 
-        self.relu = nn.ReLU()  # nn.Selu()
-        self.batchNorm1d = nn.BatchNorm1d(in_channels)
+        # self.activation = nn.ReLU()
+        self.activation = nn.SELU()
+        # self.batchNorm1d = nn.BatchNorm1d(in_channels)
         self.linear = nn.Linear(in_features=in_channels, out_features=out_channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(f"Dense block tensor: {x.size()}")
-        x = self.relu(x)
+        # print(f"Dense block tensor: {x.size()}")
+        x = self.activation(x)
         # x = self.batchNorm1d(x)
         return self.linear(x)
