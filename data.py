@@ -16,7 +16,7 @@ from labeler import DurationLabeler
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-data_folders = ("encode", "test", "train", "unlabeled")
+data_folders = ("encode", "test", "train", "validate", "unlabeled")
 LAT = {"min": -90, "max": 90}
 LONG = {"min": -180, "max": 180}
 
@@ -222,20 +222,24 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
-            train, test = split(data)
+            train, test, val = split(data)
 
             # TODO: Check if label needs to be added after normalization
             # Intuition: MSE loss is huge if target has large values like duration in seconds
             train_normalized, train_scaler = normalize(train)
             test_normalized, test_scaler = normalize(test)
+            val_normalized, val_scaler = normalize(val)
             print(f"normalized train shape: {train_normalized.shape}")
             print(f"normalized test shape: {test_normalized.shape}")
+            print(f"normalized val shape: {val_normalized.shape}")
 
             np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
             np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
+            np.save(os.path.join(output_dir, "val", port.name, data_file(mmsi)), val)
 
             joblib.dump(train_scaler, os.path.join(output_dir, "encode", port.name, obj_file("train_scaler", mmsi)))
             joblib.dump(test_scaler, os.path.join(output_dir, "encode", port.name, obj_file("test_scaler", mmsi)))
+            joblib.dump(val_scaler, os.path.join(output_dir, "encode", port.name, obj_file("val_scaler", mmsi)))
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
@@ -243,12 +247,15 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     print("Done.")
 
 
-def split(data: np.ndarray, train_ratio: float = .9) -> Tuple[np.ndarray, np.ndarray]:
+def split(data: np.ndarray, train_ratio: float = .9, test_val_ratio: float = .5) -> Tuple[np.ndarray, np.ndarray,
+                                                                                          np.ndarray]:
     if 0 < train_ratio < 1:
-        return np.split(data, [int(train_ratio*data.shape[0])])
+        train, remain = np.split(data, [int(train_ratio*data.shape[0])])
+        test, val = np.split(remain, [int(test_val_ratio*remain.shape[0])])
+        return train, test, val
     else:
         print("Unable to split by {}. Use a value within (0, 1)".format(train_ratio))
-        return data, np.array([])
+        return data, np.array([]), np.array([])
 
 
 def main(args) -> None:
