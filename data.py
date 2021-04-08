@@ -110,8 +110,9 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
     df = pd.read_csv(input_dir, ",", None)
 
+    # TODO: Heading added recently. Maybe keep it?
     # drop undesired columns
-    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
+    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type", "Heading",
                           "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
 
     # filter out of range values

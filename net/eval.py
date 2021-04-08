@@ -5,6 +5,7 @@ import torch
 from datetime import datetime
 from loader import MmsiDataFile, TrainingExampleLoader
 from net.model import InceptionTimeModel
+from util import compute_mae, compute_mse
 
 from typing import List, Tuple
 

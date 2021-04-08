@@ -4,13 +4,15 @@ import torch
 
 from datetime import datetime
 from loader import MmsiDataFile, TrainingExampleLoader
-from plotter import plot_loss
+from plotter import plot_series
 from net.model import InceptionTimeModel
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
+def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: float = .01) -> None:
+    torch.autograd.set_detect_anomaly(True)
+
     train_path = os.path.join(data_dir, "train", "ROSTOCK")
     validation_path = os.path.join(data_dir, "validate", "ROSTOCK")
     model_dir = os.path.join(output_dir, "model")
@@ -46,7 +48,7 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: f
     model.to(device)
     print(f"model: \n{model}")
 
-    loss_history = []
+    loss_history = [[], []]
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
     # test what happens if using "weight_decay" e.g. with 1e-4
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -57,7 +59,7 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: f
     # get learnable parameters
     params = list(model.parameters())
     print("number of params: ", len(params))
-    print("first param's weight: ", params[0].size)
+    print("first param's weight: ", params[0].size())
 
     # training loop
     for epoch in range(num_epochs):
@@ -69,30 +71,48 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: f
         for train_idx in range(len(train_loader)):
             train_data, target = train_loader[train_idx]
             data_tensor = torch.Tensor(train_data).to(device)
-            target_tensor = torch.Tensor(target).to(device)
+            target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
 
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
-        loss_train_avg = loss_train / len(train_loader)
+
+            if train_idx == 0 or train_idx % 2000 == 1 or train_idx == len(train_loader) - 1:
+                # print(f"train_tensor: {data_tensor}")
+                # print(f"target_tensor: {target_tensor}")
+                print(f"idx: {train_idx} batch loss: {batch_loss}")
+                print(f"idx: {train_idx} loss_train: {loss_train}")
+
+            # if torch.isnan(data_tensor):
+            #    print(f"found tensor with nan values: {data_tensor}")
+
+        avg_train_loss = loss_train / len(train_loader)
+        loss_history[0].append((avg_train_loss, epoch))
+
+        print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         # validate model
         model.eval()
         for validation_idx in range(len(validation_loader)):
             validation_data, target = validation_loader[validation_idx]
             validation_tensor = torch.Tensor(validation_data).to(device)
-            target_tensor = torch.Tensor(target).to(device)
+            target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
 
             batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
             loss_validation += batch_loss
-        loss_validation_avg = loss_validation / len(validation_loader)
+        avg_validation_loss = loss_validation / len(validation_loader)
+        loss_history[1].append((avg_validation_loss, epoch))
+
+        print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         if epoch % 20 == 1:
-            print(f"epoch: {epoch} average validation loss: {loss_validation_avg}")
-        loss_history.append([loss_train_avg, loss_validation_avg])
+            print(f"epoch: {epoch} average validation loss: {avg_validation_loss}")
+        # loss_history.append([avg_train_loss, avg_validation_loss])
+        print(f"loss history: {loss_history}")
 
     timestamp = datetime.strftime(datetime.now(), "%Y%m%d-%H%M%S")
     model.save(os.path.join(model_dir), f"{timestamp}_model.pt")
-    plot_loss(loss_series=loss_history, labels=["Training", "Validation"], path=eval_dir)
+    plot_series(series=loss_history, x_label="Epoch", y_label="Loss", legend_labels=["Train", "Validation"],
+                path=os.path.join(eval_dir, f"{timestamp}_loss.png"))
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
