@@ -12,7 +12,7 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 def train(data_dir: str, output_dir: str, num_epochs: int = 10, learning_rate: float = .01) -> None:
     train_path = os.path.join(data_dir, "train", "ROSTOCK")
-    validation_path = os.path.join(data_dir, "test", "ROSTOCK")
+    validation_path = os.path.join(data_dir, "validate", "ROSTOCK")
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
     # set device: use gpu is available
@@ -120,6 +120,6 @@ if __name__ == "__main__":
     # path = os.path.join("C:\\", "Users", "benja", "myProjects", "ma", "data")  # , "train", "ROSTOCK")
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data"),
                         help="Path to data file directory")
-    parser.add_argument("--output", type=str, default=os.path.join(script_dir, os.pardir, "output"),
+    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory")
     main(parser.parse_args())

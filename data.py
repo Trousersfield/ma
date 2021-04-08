@@ -231,15 +231,15 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             val_normalized, val_scaler = normalize(val)
             print(f"normalized train shape: {train_normalized.shape}")
             print(f"normalized test shape: {test_normalized.shape}")
-            print(f"normalized val shape: {val_normalized.shape}")
+            print(f"normalized validate shape: {val_normalized.shape}")
 
             np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
             np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
-            np.save(os.path.join(output_dir, "val", port.name, data_file(mmsi)), val)
+            np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val)
 
             joblib.dump(train_scaler, os.path.join(output_dir, "encode", port.name, obj_file("train_scaler", mmsi)))
             joblib.dump(test_scaler, os.path.join(output_dir, "encode", port.name, obj_file("test_scaler", mmsi)))
-            joblib.dump(val_scaler, os.path.join(output_dir, "encode", port.name, obj_file("val_scaler", mmsi)))
+            joblib.dump(val_scaler, os.path.join(output_dir, "encode", port.name, obj_file("validate_scaler", mmsi)))
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))

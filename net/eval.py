@@ -8,6 +8,7 @@ from net.model import InceptionTimeModel
 
 from typing import List, Tuple
 
+script_dir = os.path.abspath(os.path.dirname(__file__))
 
 # Evaluationsmethoden: https://towardsdatascience.com/metrics-to-evaluate-your-machine-learning-algorithm-f10ba6e38234
 
@@ -21,15 +22,19 @@ def evaluate(model_path: str, data_path: str) -> None:
 
     print(f"Number of parameters: {5}")
 
-    eval_outputs: List[Tuple[torch.Tensor, torch.Tensor]] = []
+    outputs = []
+    labels = []
     for eval_idx in range(len(eval_loader)):
         eval_data, target = eval_loader[eval_idx]
         data_tensor = torch.Tensor(eval_data).to(device)
         target_tensor = torch.Tensor(target).to(device)
 
         output = model(data_tensor)
-        eval_outputs.append((output, target_tensor))
+        outputs.append(output)
+        labels.append(target_tensor)
 
+    mae = compute_mae()
+    mse = compute_mse()
 
 def main(args) -> None:
     evaluate(args.model_path, args.data_path)
@@ -37,6 +42,8 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("model_path", type=str, help="Path to model")
-    parser.add_argument("data_path", type=str, help="Path to data")
+    parser.add_argument("model_path", type=str, default=os.path.join(script_dir, os.pardir, "output", ),
+                        help="Path to model")
+    parser.add_argument("data_path", type=str, default=os.path.join(script_dir, os.pardir, "data", "test", "ROSTOCK"),
+                        help="Path to data")
     main(parser.parse_args())
