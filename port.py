@@ -213,6 +213,6 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
             result_df.loc[idx] = min_df_2.iloc[0]
         else:
             result_df.drop([idx])
-    print("min df for each mmsi: \n", result_df)
+    # print("min df for each mmsi: \n", result_df)
 
     return result_df

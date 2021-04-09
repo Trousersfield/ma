@@ -16,9 +16,24 @@ from labeler import DurationLabeler
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
+logger = Logger()
 data_folders = ("encode", "test", "train", "validate", "unlabeled")
-LAT = {"min": -90, "max": 90}
-LONG = {"min": -180, "max": 180}
+data_ranges = {"Latitude": {"min": -90., "max": 90.},
+               "Longitude": {"min": -180., "max": 180.},
+               "SOG": {"min": 0., "max": 110},                  # max = 102 from (1)
+               "COG": {"min": 0., "max": 359.9},                # (1) max from data: 359.9
+               "Heading": {"min": 0., "max": 511.},             # (1)
+               "Width": {"min": 0., "max": 80},                 # {3)
+               "Length": {"min": 0., "max": 500.},              # (2)
+               "time_scaled": {"min": 0., "max": 31622400.},    # max value for seconds per year is dependant on year
+               "label": {"min": 0., "max": 31622400.}}          # same range as time within a year
+# year with 365 days: 31536000
+# year with 366 days: 31622400
+# sources:
+# (1) https://www.sostechnic.com/epirbs/ais/aisinformationenglish/index.php
+# assume the biggest vessel in the world in service (+ some more):
+# (2) https://en.wikipedia.org/wiki/List_of_longest_ships
+# (3) https://gcaptain.com/emma-maersk-engine/worlds-largest-tanker-knock-nevis/
 
 
 def initialize(output_dir:  str) -> None:
@@ -52,13 +67,53 @@ def descale_from_label(df: pd.DataFrame, scaler: DurationLabeler) -> pd.DataFram
     return scaler.inverse_transform(df)
 
 
-def normalize(data: np.ndarray, scaler: MinMaxScaler = None) -> Tuple[np.ndarray, MinMaxScaler]:
-    if scaler is None:
-        # copy = False, if input already is numpy array
-        scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
-        scaler.fit(data)
+def init_scaler(source_df: pd.DataFrame, target_columns: List[str]) -> MinMaxScaler:
+    # use min and max from source data if no definition is available. definitions see above: data_ranges
+    source_min_df = source_df.min().to_frame().T
+    source_max_df = source_df.max().to_frame().T
+    # print(f"columns:\n{target_columns}")
+    # print(f"min df:\n{source_min_df}")
+    # print(f"max df:\n{source_max_df}")
+    target_min_df = pd.DataFrame(index=np.arange(0, 1), columns=target_columns)
+    target_max_df = pd.DataFrame(index=np.arange(0, 1), columns=target_columns)
+
+    # add min and max range for certain columns
+    for column in target_columns:
+        if column in data_ranges:
+            # check if real data point is within defined data range. adapt accordingly
+            if column in source_min_df and source_min_df.iloc[0][column] < data_ranges[column]["min"]:  # "bad" case 1
+                logger.write("Scaler init warning: Defined data range for column {}: [{}, {}], got minimum of {}"
+                             .format(column, data_ranges[column]["min"], data_ranges[column]["max"],
+                                     source_min_df.iloc[0][column]))
+                target_min_df.iloc[0][column] = source_min_df.iloc[0][column]
+            else:
+                target_min_df.loc[0][column] = data_ranges[column]["min"]
+
+            if column in source_max_df and source_max_df.iloc[0][column] > data_ranges[column]["max"]:  # "bad" case 2
+                logger.write("Scaler init warning: Defined data range for column {}: [{}, {}], got maximum of {}"
+                             .format(column, data_ranges[column]["min"], data_ranges[column]["max"],
+                                     source_max_df.iloc[0][column]))
+                target_max_df.iloc[0][column] = source_max_df.iloc[0][column]
+            else:
+                target_max_df.loc[0][column] = data_ranges[column]["max"]
+
+        elif column in source_min_df:
+            target_min_df.loc[0][column] = source_min_df.iloc[0][column]
+            target_max_df.loc[0][column] = source_min_df.iloc[0][column]
+        else:
+            raise ValueError(f"Unknown column {column}! No min and max values available!")
+
+    min_max_df = pd.concat([target_min_df, target_max_df])
+    min_max_data = min_max_df.to_numpy()
+    # copy = False, if input already is numpy array
+    scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
+    scaler.fit(min_max_data)
+    return scaler
+
+
+def normalize(data: np.ndarray, scaler: MinMaxScaler) -> np.ndarray:
     normalized_data = scaler.transform(data)
-    return normalized_data, scaler
+    return normalized_data
 
 
 def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
@@ -99,8 +154,6 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
     numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
     categorical_features = ["Ship type", "Navigational status"]
 
-    logger = Logger()
-
     # initialize port manager
     pm = PortManager()
     pm.load()
@@ -110,20 +163,27 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
     df = pd.read_csv(input_dir, ",", None)
 
-    # TODO: Heading added recently. Maybe keep it?
+    # TODO: Decide how to handle Heading
     # drop undesired columns
-    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type", "Heading",
+    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
                           "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
 
+    # fill NaN values with their defaults from official AIS documentation
+    # https://api.vtexplorer.com/docs/response-ais.html
+    df.fillna(value={"Heading": 511})
+
     # filter out of range values
-    df = df.loc[(df["Latitude"] >= LAT["min"]) & (df["Latitude"] <= LAT["max"])]
-    df = df.loc[(df["Longitude"] >= LONG["min"]) & (df["Longitude"] <= LONG["max"])]
+    df = df.loc[(df["Latitude"] >= data_ranges["Latitude"]["min"])
+                & (df["Latitude"] <= data_ranges["Latitude"]["max"])]
+    df = df.loc[(df["Longitude"] >= data_ranges["Longitude"]["min"])
+                & (df["Longitude"] <= data_ranges["Longitude"]["max"])]
 
     # assert if enough data remains
     if len(df.index) < min_number_of_rows:
         logger.write("Required {} rows of data, got {}".format(str(min_number_of_rows), len(df.index)))
 
     initialize(output_dir)
+    scaler = None
 
     """
     Find unique routes of a ship to a destination from data pool
@@ -152,6 +212,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
         dest_df = dest_df.drop(columns=["Destination"])
         dest_df = format_timestamp_col(dest_df)
+        # print(f"dest_df:\n{dest_df}")
 
         # extract data-points that are sent while sitting in port to compute label
         x_df, arrival_times_df = pm.identify_arrival_times(port, dest_df)
@@ -202,8 +263,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 print(f"No data for MMSI {mmsi}")
                 continue
 
-            print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
-            # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order but is float
+            # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
+            # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order
             ship_df = ship_df.drop(columns=["MMSI"])
             # print("data: \n", ship_df)
 
@@ -216,10 +277,14 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 continue
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            print("df with added label: \n", ship_df)
+            # print("df with added label: \n", ship_df)
+
+            if scaler is None:
+                scaler = init_scaler(x_df, ship_df.columns.tolist())
+                joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
             data = ship_df.to_numpy()
-            print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
+            # print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
@@ -227,20 +292,18 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
             # TODO: Check if label needs to be added after normalization
             # Intuition: MSE loss is huge if target has large values like duration in seconds
-            train_normalized, train_scaler = normalize(train)
-            test_normalized, test_scaler = normalize(test)
-            val_normalized, val_scaler = normalize(val)
-            print(f"normalized train shape: {train_normalized.shape}")
-            print(f"normalized test shape: {test_normalized.shape}")
-            print(f"normalized validate shape: {val_normalized.shape}")
+            train_normalized = normalize(train, scaler)
+            test_normalized = normalize(test, scaler)
+            val_normalized = normalize(val, scaler)
+            # print(f"normalized train data:\n{train_normalized}")
+            # print(f"normalized train shape: {train_normalized.shape}")
+            # print(f"normalized test shape: {test_normalized.shape}")
+            # print(f"normalized validate shape: {val_normalized.shape}")
 
             np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
             np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
             np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val)
 
-            joblib.dump(train_scaler, os.path.join(output_dir, "encode", port.name, obj_file("train_scaler", mmsi)))
-            joblib.dump(test_scaler, os.path.join(output_dir, "encode", port.name, obj_file("test_scaler", mmsi)))
-            joblib.dump(val_scaler, os.path.join(output_dir, "encode", port.name, obj_file("validate_scaler", mmsi)))
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
