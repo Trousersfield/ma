@@ -37,12 +37,18 @@ def evaluate(model_path: str, data_path: str) -> None:
     mae = compute_mae()
     mse = compute_mse()
 
+
 def main(args) -> None:
-    evaluate(args.model_path, args.data_path)
+    command = args.command
+    if command == "evaluate":
+        evaluate(args.model_path, args.data_path)
+    else:
+        raise ValueError(f"Unknown command '{command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("command", choices=["evaluate"])
     parser.add_argument("model_path", type=str, default=os.path.join(script_dir, os.pardir, "output", ),
                         help="Path to model")
     parser.add_argument("data_path", type=str, default=os.path.join(script_dir, os.pardir, "data", "test", "ROSTOCK"),

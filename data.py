@@ -290,7 +290,6 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
             train, test, val = split(data)
 
-            # TODO: Check if label needs to be added after normalization
             # Intuition: MSE loss is huge if target has large values like duration in seconds
             train_normalized = normalize(train, scaler)
             test_normalized = normalize(test, scaler)
@@ -300,9 +299,9 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
             # print(f"normalized test shape: {test_normalized.shape}")
             # print(f"normalized validate shape: {val_normalized.shape}")
 
-            np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train)
-            np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test)
-            np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val)
+            np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train_normalized)
+            np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test_normalized)
+            np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val_normalized)
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
