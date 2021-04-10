@@ -36,7 +36,6 @@ def plot_series(series: Union[List[float], List[List[float]], List[List[List[flo
     num_series = 1 if type(series[0]) == float else len(series)
     if legend_labels is not None:
         num_legend_labels = 1 if type(legend_labels) == str else len(legend_labels)
-        print(f"num legend labels: {num_legend_labels} num series: {num_series}")
         assert num_legend_labels == num_series
     plt.switch_backend("agg")   # set backend explicitly to run on Jupyter notebooks
     fix, ax = plt.subplots()
@@ -51,7 +50,6 @@ def plot_series(series: Union[List[float], List[List[float]], List[List[List[flo
         for i in range(num_series):
             curr_series = series[i]
             if type(curr_series[0]) == list and type(curr_series[1] == list):
-                print(f"curr series: {curr_series}")
                 ax.plot(curr_series[0], curr_series[1])
             else:
                 ax.plot(curr_series)

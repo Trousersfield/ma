@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 import os
 import torch
 
@@ -48,8 +49,8 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
     model.to(device)
     print(f"model: \n{model}")
 
-    train_loss_history = []
-    validate_loss_history = []
+    # train & validation loss
+    loss_history = [[], []]
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
     # test what happens if using "weight_decay" e.g. with 1e-4
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -83,11 +84,8 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
                 print(f"idx: {train_idx} batch loss: {batch_loss}")
                 print(f"idx: {train_idx} loss_train: {loss_train}")
 
-            # if torch.isnan(data_tensor):
-            #    print(f"found tensor with nan values: {data_tensor}")
-
         avg_train_loss = loss_train / len(train_loader)
-        train_loss_history.append(avg_train_loss)
+        loss_history[0].append(avg_train_loss)
 
         print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
@@ -101,20 +99,20 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
             batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
             loss_validation += batch_loss
         avg_validation_loss = loss_validation / len(validation_loader)
-        validate_loss_history.append(avg_validation_loss)
+        loss_history[1].append(avg_validation_loss)
 
         print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         if epoch % 20 == 1:
             print(f"epoch: {epoch} average validation loss: {avg_validation_loss}")
         # loss_history.append([avg_train_loss, avg_validation_loss])
-        print(f"train loss history:\n{train_loss_history}")
-        print(f"validate loss history:\n{validate_loss_history}")
+        print(f"loss history:\n{loss_history}")
 
     timestamp = datetime.strftime(datetime.now(), "%Y%m%d-%H%M%S")
     model.save(os.path.join(model_dir), f"{timestamp}_model.pt")
-    plot_series(series=[train_loss_history, validate_loss_history], x_label="Epoch", y_label="Loss",
-                legend_labels=["Training", "Validation"], ticks=1.,
+    np.save(os.path.join(model_dir, os.path.join(eval_dir, "eval", f"{timestamp}_loss.npy")), loss_history)
+    plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
+                legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
                 path=os.path.join(eval_dir, f"{timestamp}_loss.png"))
 
 
@@ -140,7 +138,6 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
     parser.add_argument("command", choices=["train"])
-    # path = os.path.join("C:\\", "Users", "benja", "myProjects", "ma", "data")  # , "train", "ROSTOCK")
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data"),
                         help="Path to data file directory")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
