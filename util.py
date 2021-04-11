@@ -8,6 +8,9 @@ from typing import List
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
+mc_to_dk = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude", "Status": "Navigational Status",
+            "Draft": "Draught", "VesselType": "Ship Type"}
+
 
 def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,7 +45,7 @@ def obj_file(file_type: str, mmsi: float) -> str:
     elif file_type == "nav_status":
         return f"nav_status_encoder_{mmsi_str}.pkl"
     elif file_type == "data_unlabeled":
-        return f"data_df_{mmsi_str}.pkl"
+        return f"u_data_{mmsi_str}.pkl"
     else:
         raise ValueError(f"Unknown file type '{file_type}'")
 

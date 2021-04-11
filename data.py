@@ -10,10 +10,11 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from typing import List, Tuple
 
+from combiner import RouteCombiner
+from labeler import DurationLabeler
 from logger import Logger
 from port import PortManager
-from labeler import DurationLabeler
-from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console
+from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console, mc_to_dk
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 logger = Logger()
@@ -142,31 +143,51 @@ def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
     return df_ohe, encoder
 
 
-def format_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.assign(time=pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S').values.astype(np.int64) // 10**9)
-    df = df.drop(columns=["# Timestamp"])
+def format_timestamp_col(df: pd.DataFrame, data_source: str) -> pd.DataFrame:
+    # data from danish maritime authority
+    # https://www.dma.dk/SikkerhedTilSoes/Sejladsinformation/AIS/Sider/default.aspx
+    if data_source == "dk":
+        df = df.assign(time=pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S')
+                       .values.astype(np.int64) // 10**9)
+        df = df.drop(columns=["# Timestamp"])
+    # data from marine cadastre: https://marinecadastre.gov/ais/
+    elif data_source == "mc":
+        df = df.assign(time=pd.to_datetime(df["BaseDateTime"], format='%Y-%m-%d %H:%M:%S')
+                       .values.astype(np.int64) // 10**9)
+        df = df.drop(columns=["# Timestamp"])
     return df
 
 
-def generate_dataset(input_dir: str, output_dir: str) -> None:
-    print("Generating dataset from {} ...".format(input_dir))
-    min_number_of_rows = 10000
-    numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
-    categorical_features = ["Ship type", "Navigational status"]
-
+def generate(data_dir: str, output_dir: str, data_source: str) -> None:
+    print(f"Generating dataset from directory '{data_dir}'")
     # initialize port manager
     pm = PortManager()
     pm.load()
-
     if len(pm.ports.keys()) < 1:
         raise ValueError("No port data available")
 
-    df = pd.read_csv(input_dir, ",", None)
+    # iterate all raw .csv files in given directory
+    files = sorted(os.listdir(data_dir))
+    for idx, file in enumerate(files):
+        if file.startswith("aisdk_"):
+            generate_dataset(os.path.join(data_dir, file), output_dir, data_source, pm)
 
-    # TODO: Decide how to handle Heading
-    # drop undesired columns
-    df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
-                          "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
+
+def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager) -> None:
+    print(f"Extracting file from '{file_path}' of type '{data_source}'")
+    min_number_of_rows = 10000
+    numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
+    categorical_features = ["Ship type", "Navigational status"]
+    df = pd.read_csv(file_path, ",", None)
+
+    if data_source == "dma":
+        df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
+                              "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
+
+    # unify data sources to 'dma' source
+    if data_source == "mc":
+        df = df.rename(columns=mc_to_dk)
+        df = df.drop(columns={"VesselName", "IMO", "Callsign", "Cargo", "TransceiverClass"})
 
     # fill NaN values with their defaults from official AIS documentation
     # https://api.vtexplorer.com/docs/response-ais.html
@@ -180,7 +201,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
     # assert if enough data remains
     if len(df.index) < min_number_of_rows:
-        logger.write("Required {} rows of data, got {}".format(str(min_number_of_rows), len(df.index)))
+        logger.write(f"Required {min_number_of_rows} rows of data, got {len(df.index)}")
 
     initialize(output_dir)
     scaler = None
@@ -202,7 +223,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         # skip if no port data is set
         if port is None:
             continue
-        print("\n\nPort match: {}".format(port.name))
+        print(f"Port match: {port.name}")
 
         for folder in data_folders:
             if not os.path.exists(os.path.join(output_dir, folder, port.name)):
@@ -217,7 +238,7 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
         # extract data-points that are sent while sitting in port to compute label
         x_df, arrival_times_df = pm.identify_arrival_times(port, dest_df)
 
-        # skip port if ship is hanging out in port area only
+        # skip port if all ships are hanging out in port area only
         if is_empty(x_df):
             print("Data for port {} only within port area. {} data, {} labels".format(port.name, len(x_df.index),
                                                                                       len(arrival_times_df.index)))
@@ -225,6 +246,10 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                                                                                                len(x_df.index),
                                                                                                len(arrival_times_df.index)))
             continue
+
+        # init route combiner on existing unlabeled data for current port
+        rc = RouteCombiner(os.path.join(output_dir, "unlabeled", port.name))
+        rc.fit()
 
         # handle categorical data
         x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
@@ -273,6 +298,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
 
             if arrival_time == -1:
                 print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
+                if rc.has_match(mmsi):
+                    ship_df = rc.match(mmsi, ship_df)
                 ship_df.to_pickle(os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi)))
                 continue
 
@@ -283,6 +310,8 @@ def generate_dataset(input_dir: str, output_dir: str) -> None:
                 scaler = init_scaler(x_df, ship_df.columns.tolist())
                 joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
+            if rc.has_match(mmsi):
+                ship_df = rc.match(mmsi, ship_df)
             data = ship_df.to_numpy()
             # print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
             # print("data: ", data)
@@ -327,7 +356,7 @@ def main(args) -> None:
         initialize(args.output_dir)
     elif args.command == "generate":
         write_to_console("Generating data")
-        generate_dataset(args.input_dir, args.output_dir)
+        generate(args.input_path, args.output_dir, args.data_source)
     elif args.command == "check_ports":
         pm = PortManager()
         pm.generate_from_source(load=True)
@@ -347,19 +376,15 @@ if __name__ == "__main__":
     small = "small.csv"
     medium = "medium.csv"
     big = "aisdk_20181101.csv"
+    data_path = os.path.join(script_dir, "data", "raw", big)
     parser = argparse.ArgumentParser(description="Preprocess data.")
     parser.add_argument("command", choices=["init", "generate", "cc", "add_alias", "check_ports"])
-    parser.add_argument("--port", type=str, default="COPENGAHEN", help="Name of port to load dataset")
-    parser.add_argument("--window_width", type=int, default=20, help="Sliding window width of training examples")
-    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", big),
-                        help="Path to AIS .csv file")
-    # parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw" "aisdk_20181101.csv"))
+    parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
+                        help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
+                        help="Path to directory of AIS .csv files")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Output directory path")
     parser.add_argument("--ship_type", type=str, default="Cargo", choices=["Cargo", "Fishing", "Passenger", "Military",
                                                                            "Tanker"])
-    # parser.add_argument("--name", type=str, required=True)
-    # parser.add_argument("--latitude", type=float, required=True)
-    # parser.add_argument("--longitude", type=float, required=True)
-    # parser.add_argument("--radius", type=float, default=1.0)
     main(parser.parse_args())
