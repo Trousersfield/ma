@@ -17,7 +17,7 @@ from port import PortManager
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console, mc_to_dk
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-logger = Logger()
+logger = Logger(file_name="log")
 data_folders = ("encode", "test", "train", "validate", "unlabeled")
 data_ranges = {"Latitude": {"min": -90., "max": 90.},
                "Longitude": {"min": -180., "max": 180.},
@@ -146,7 +146,7 @@ def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
 def format_timestamp_col(df: pd.DataFrame, data_source: str) -> pd.DataFrame:
     # data from danish maritime authority
     # https://www.dma.dk/SikkerhedTilSoes/Sejladsinformation/AIS/Sider/default.aspx
-    if data_source == "dk":
+    if data_source == "dma":
         df = df.assign(time=pd.to_datetime(df["# Timestamp"], format='%d/%m/%Y %H:%M:%S')
                        .values.astype(np.int64) // 10**9)
         df = df.drop(columns=["# Timestamp"])
@@ -158,8 +158,8 @@ def format_timestamp_col(df: pd.DataFrame, data_source: str) -> pd.DataFrame:
     return df
 
 
-def generate(data_dir: str, output_dir: str, data_source: str) -> None:
-    print(f"Generating dataset from directory '{data_dir}'")
+def generate(input_dir: str, output_dir: str, data_source: str) -> None:
+    print(f"Generating dataset from directory '{input_dir}'")
     # initialize port manager
     pm = PortManager()
     pm.load()
@@ -167,10 +167,11 @@ def generate(data_dir: str, output_dir: str, data_source: str) -> None:
         raise ValueError("No port data available")
 
     # iterate all raw .csv files in given directory
-    files = sorted(os.listdir(data_dir))
+    files = sorted(os.listdir(input_dir))
     for idx, file in enumerate(files):
         if file.startswith("aisdk_"):
-            generate_dataset(os.path.join(data_dir, file), output_dir, data_source, pm)
+            generate_dataset(os.path.join(input_dir, file), output_dir, data_source, pm)
+    print("Data generation complete!")
 
 
 def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager) -> None:
@@ -191,7 +192,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
     # fill NaN values with their defaults from official AIS documentation
     # https://api.vtexplorer.com/docs/response-ais.html
-    df.fillna(value={"Heading": 511})
+    df = df.fillna(value={"Heading": 511})
 
     # filter out of range values
     df = df.loc[(df["Latitude"] >= data_ranges["Latitude"]["min"])
@@ -232,7 +233,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         dest_df = df.loc[df["Destination"] == dest_column_header]
 
         dest_df = dest_df.drop(columns=["Destination"])
-        dest_df = format_timestamp_col(dest_df)
+        dest_df = format_timestamp_col(dest_df, data_source)
         # print(f"dest_df:\n{dest_df}")
 
         # extract data-points that are sent while sitting in port to compute label
@@ -248,7 +249,8 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             continue
 
         # init route combiner on existing unlabeled data for current port
-        rc = RouteCombiner(os.path.join(output_dir, "unlabeled", port.name))
+        rc = RouteCombiner(data_dir=os.path.join(output_dir, "unlabeled", port.name),
+                           csv_map_path=os.path.join(output_dir, "raw", "dma", "csv_to_route.json"))
         rc.fit()
 
         # handle categorical data
@@ -283,7 +285,9 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                     print("- - - - - - - - - - - - - - - - - - - - - - -")
                     print("- - T A R G E T  &  D A T A   F O U N D - - -")
                     print("- - - - - - - - - - - - - - - - - - - - - - -")
+                    print(f"MMSI {mmsi}")
 
+            print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
             if is_empty(ship_df):
                 print(f"No data for MMSI {mmsi}")
                 continue
@@ -296,12 +300,23 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
             # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
+            _, file_name = os.path.split(file_path)
+            file_date = rc.date_from_source_csv(file_name)
+
             if arrival_time == -1:
                 print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
-                if rc.has_match(mmsi):
-                    ship_df = rc.match(mmsi, ship_df)
-                ship_df.to_pickle(os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi)))
+                if rc.has_match(str(mmsi), file_date):
+                    ship_df = rc.match(str(mmsi), file_date, ship_df)
+                f_path = os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi, file_date))
+                # print(f"ship_df:\n{ship_df}")
+                print(f"path for pickle: {f_path}")
+                ship_df.to_pickle(f_path)
                 continue
+
+            # print(f"ship_df before matching (MMSI {mmsi})\n{ship_df}")
+            if rc.has_match(str(mmsi), file_date):
+                ship_df = rc.match(str(mmsi), file_date, ship_df)
+            # print(f"ship_df after matching:\n{ship_df}")
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
             # print("df with added label: \n", ship_df)
@@ -310,23 +325,24 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 scaler = init_scaler(x_df, ship_df.columns.tolist())
                 joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
-            if rc.has_match(mmsi):
-                ship_df = rc.match(mmsi, ship_df)
             data = ship_df.to_numpy()
-            # print("Shape of data for MMSI {}: {} Type: {}".format(mmsi, data.shape, data.dtype))
+            print(f"Shape after all: {data.shape}")
+            # print(f"Data:\n{data}")
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
             train, test, val = split(data)
+            # print(f"train:{train}")
+            # print(f"test:{test}")
+            # print(f"val:{val}")
 
             # Intuition: MSE loss is huge if target has large values like duration in seconds
-            train_normalized = normalize(train, scaler)
-            test_normalized = normalize(test, scaler)
-            val_normalized = normalize(val, scaler)
+            train_normalized = normalize(train, scaler) if train.shape[0] > 0 else train
+            test_normalized = normalize(test, scaler) if test.shape[0] > 0 else test
+            val_normalized = normalize(val, scaler) if val.shape[0] > 0 else val
             # print(f"normalized train data:\n{train_normalized}")
-            # print(f"normalized train shape: {train_normalized.shape}")
-            # print(f"normalized test shape: {test_normalized.shape}")
-            # print(f"normalized validate shape: {val_normalized.shape}")
+            # print(f"normalized test shape:\n{test_normalized}")
+            # print(f"normalized validate shape:\n{val_normalized}")
 
             np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train_normalized)
             np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test_normalized)
@@ -336,17 +352,18 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
 
-    print("Done.")
-
 
 def split(data: np.ndarray, train_ratio: float = .9, test_val_ratio: float = .5) -> Tuple[np.ndarray, np.ndarray,
                                                                                           np.ndarray]:
-    if 0 < train_ratio < 1:
+    # make sure there is enough data to have at least one test and validation entry
+    has_train_val = data.shape[0] * (1 - train_ratio) >= 2.
+    if 0 < train_ratio < 1 and has_train_val:
         train, remain = np.split(data, [int(train_ratio*data.shape[0])])
         test, val = np.split(remain, [int(test_val_ratio*remain.shape[0])])
         return train, test, val
     else:
-        print("Unable to split by {}. Use a value within (0, 1)".format(train_ratio))
+        print(f"Unable to split of shape {data.shape} by {train_ratio}. Use a value within (0, 1) and make sure at"
+              f"least one training and validation entry remains")
         return data, np.array([]), np.array([])
 
 
@@ -356,7 +373,7 @@ def main(args) -> None:
         initialize(args.output_dir)
     elif args.command == "generate":
         write_to_console("Generating data")
-        generate(args.input_path, args.output_dir, args.data_source)
+        generate(args.input_dir, args.output_dir, args.data_source)
     elif args.command == "check_ports":
         pm = PortManager()
         pm.generate_from_source(load=True)
@@ -381,7 +398,7 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["init", "generate", "cc", "add_alias", "check_ports"])
     parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
                         help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Output directory path")

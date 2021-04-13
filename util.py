@@ -30,22 +30,24 @@ def data_file(mmsi: float) -> str:
     return f"data_{mmsi_str}.npy"
 
 
-def obj_file(file_type: str, mmsi: float) -> str:
-    mmsi_str = str(mmsi)
+def obj_file(file_type: str, mmsi: float, suffix: str = None) -> str:
+    file_str = str(mmsi)
+    if suffix is not None:
+        file_str += f"-{suffix}"
     if file_type == "labeler":
-        return f"labeler_{mmsi_str}.pkl"
+        return f"labeler-{file_str}.pkl"
     elif file_type == "train_scaler":
-        return f"train_scaler_{mmsi_str}.pkl"
+        return f"train_scaler-{file_str}.pkl"
     elif file_type == "test_scaler":
-        return f"test_scaler_{mmsi_str}.pkl"
+        return f"test_scaler-{file_str}.pkl"
     elif file_type == "validate_scaler":
-        return f"validate_scaler{mmsi_str}.pkl"
+        return f"validate_scaler-{file_str}.pkl"
     elif file_type == "ship_type":
-        return f"ship_type_encoder_{mmsi_str}.pkl"
+        return f"ship_type_encoder-{file_str}.pkl"
     elif file_type == "nav_status":
-        return f"nav_status_encoder_{mmsi_str}.pkl"
+        return f"nav_status_encoder-{file_str}.pkl"
     elif file_type == "data_unlabeled":
-        return f"u_data_{mmsi_str}.pkl"
+        return f"u_data-{file_str}.pkl"
     else:
         raise ValueError(f"Unknown file type '{file_type}'")
 
