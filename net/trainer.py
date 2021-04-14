@@ -7,15 +7,17 @@ from datetime import datetime
 from loader import MmsiDataFile, TrainingExampleLoader
 from plotter import plot_series
 from net.model import InceptionTimeModel
+from util import encode_as_model_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: float = .01) -> None:
     torch.autograd.set_detect_anomaly(True)
+    port = "ROSTOCK"
 
-    train_path = os.path.join(data_dir, "train", "ROSTOCK")
-    validation_path = os.path.join(data_dir, "validate", "ROSTOCK")
+    train_path = os.path.join(data_dir, "train", port)
+    validation_path = os.path.join(data_dir, "validate", port)
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
     # set device: use gpu is available
@@ -109,8 +111,8 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
         print(f"loss history:\n{loss_history}")
 
     timestamp = datetime.strftime(datetime.now(), "%Y%m%d-%H%M%S")
-    model.save(os.path.join(model_dir), f"{timestamp}_model.pt")
-    np.save(os.path.join(model_dir, os.path.join(eval_dir, "eval", f"{timestamp}_loss.npy")), loss_history)
+    model.save(model_dir, encode_as_model_file(port, timestamp))
+    np.save(os.path.join(eval_dir, f"{port}_{timestamp}_loss.npy"), loss_history)
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
                 path=os.path.join(eval_dir, f"{timestamp}_loss.png"))

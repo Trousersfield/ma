@@ -4,7 +4,7 @@ import pandas as pd
 import re
 import torch
 
-from typing import List
+from typing import List, Tuple
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -81,3 +81,13 @@ def compute_mse(y_true: List[torch.Tensor], y_pred: List[torch.Tensor]) -> float
         err += (y_true[i].sum().to(torch.float32) - y_pred[i].sum().to(torch.float32))**2
     mse = err / len(y_true)
     return mse
+
+
+def encode_as_model_file(port: str, time: str) -> str:
+    return f"{port}_{time}.pt"
+
+
+def decode_model_file(file_name: str) -> Tuple[str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]

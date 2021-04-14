@@ -1,0 +1,10 @@
+[
+    {
+        "source_port": "COPENHAGEN",
+        "target_port": "ROSTOCK"
+    },
+    {
+        "source_port": "COPENHAGEN",
+        "target_port": "SKAGEN"
+    }
+]
