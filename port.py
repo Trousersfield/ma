@@ -1,10 +1,12 @@
+import argparse
 import joblib
 import json
 import numpy as np
 import os
 import pandas as pd
 
-from util import is_empty
+from logger import Logger
+from util import is_empty, get_destination_file_name
 
 from math import radians, cos, sin, asin, sqrt, degrees
 from typing import Dict, List, Tuple
@@ -216,3 +218,60 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
     # print("min df for each mmsi: \n", result_df)
 
     return result_df
+
+
+def read_ports(input_dir: str, file_name: str = None) -> None:
+    print("Reading ports...")
+    logger = Logger(f"existing_ports_{file_name}")
+    port_info: Dict[str, int] = {}
+
+    if file_name is not None:
+        print(f"Processing file at {os.path.join(input_dir, file_name)}")
+        df = pd.read_csv(os.path.join(input_dir, file_name), ",", None)
+        port_info = agg_ports_info(df, port_info)
+    else:
+        for idx, data_file in enumerate(os.listdir(input_dir)):
+            if data_file.startswith("aisdk_"):
+                print(f"Processing file at {os.path.join(input_dir, data_file)}")
+                df = pd.read_csv(os.path.join(input_dir, data_file), ",", None)
+                port_info = agg_ports_info(df, port_info)
+
+    output = ""
+    for port, rows in sorted(port_info.items(), key=lambda item: item[1], reverse=True):
+        output += f"Port {port}: {rows} rows\n"
+    logger.write(output)
+    print(f"Done!")
+
+
+def agg_ports_info(df: pd.DataFrame, port_info: Dict[str, int] = None) -> Dict[str, int]:
+    ports: List[str] = df["Destination"].unique()
+    if port_info is None:
+        port_info = {}
+
+    for port_column_header in ports:
+        if pd.isnull(port_column_header):
+            continue
+
+        port: str = get_destination_file_name(port_column_header)
+        if port in port_info:
+            port_info[port] += len(df.loc[df["Destination"] == port_column_header].index)
+        else:
+            port_info[port] = len(df.loc[df["Destination"] == port_column_header].index)
+    return port_info
+
+
+def main(args) -> None:
+    if args.command == "read_ports":
+        read_ports(args.input_dir, args.file_name)
+    else:
+        raise ValueError(f"Unknown command '{args.command}'")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Preprocess data.")
+    parser.add_argument("command", choices=["read_ports"])
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
+                        help="Path to directory of AIS .csv files")
+    parser.add_argument("--file_name", type=str,
+                        help="Specify single file name if ports shall get read from specific .csv file")
+    main(parser.parse_args())
