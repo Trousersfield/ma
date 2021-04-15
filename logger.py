@@ -1,8 +1,3 @@
-import os
-
-script_dir = os.path.abspath(os.path.dirname(__file__))
-
-
 class Logger:
     def __init__(self, file_name: str = "log"):
         self.file_path = f"{file_name}.txt"

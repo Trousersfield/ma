@@ -1,0 +1,13 @@
+{
+	"table": "port",
+	"rows":
+	[
+        {
+			"id": 3,
+			"latitude": 54.1647,
+			"longitude": 12.1138,
+			"radius": 1,
+			"name": "ROSTOCK"
+		}
+	]
+}

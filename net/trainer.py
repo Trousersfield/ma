@@ -5,19 +5,42 @@ import torch
 
 from datetime import datetime
 from loader import MmsiDataFile, TrainingExampleLoader
+from logger import Logger
 from plotter import plot_series
+from port import PortManager
 from net.model import InceptionTimeModel
-from util import encode_as_model_file
+from util import debug_data, encode_model_file, encode_loss_file, time_as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: float = .01) -> None:
-    torch.autograd.set_detect_anomaly(True)
-    port = "ROSTOCK"
+# entry point for training models for each port defined in port manager
+def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
+    pm = PortManager()
+    pm.load()
+    if len(pm.ports.keys()) < 1:
+        raise ValueError("No port data available")
 
-    train_path = os.path.join(data_dir, "train", port)
-    validation_path = os.path.join(data_dir, "validate", port)
+    for _, port in pm.ports.items():
+        train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=5, learning_rate=.01, pm=pm,
+              debug=debug)
+
+
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, learning_rate: float = .01,
+          pm: PortManager = None, debug: bool = False) -> None:
+    start_time = datetime.now()
+    torch.autograd.set_detect_anomaly(True)
+    if pm is None:
+        pm = PortManager()
+        pm.load()
+        if len(pm.ports.keys()) < 1:
+            raise ValueError("No port data available")
+    port = pm.find_port(port_name)
+    train_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}")
+    debug_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}_debug")
+
+    train_path = os.path.join(data_dir, "train", port.name)
+    validation_path = os.path.join(data_dir, "validate", port.name)
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
     # set device: use gpu is available
@@ -49,7 +72,7 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
     model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
                                bottleneck_channels=8, use_residual=True, output_dim=output_dim)
     model.to(device)
-    print(f"model: \n{model}")
+    # print(f"model: \n{model}")
 
     # train & validation loss
     loss_history = [[], []]
@@ -76,6 +99,8 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
             train_data, target = train_loader[train_idx]
             data_tensor = torch.Tensor(train_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
+            if debug:
+                debug_data(data_tensor, target_tensor, train_idx, train_loader, debug_logger)
 
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
@@ -97,25 +122,32 @@ def train(data_dir: str, output_dir: str, num_epochs: int = 3, learning_rate: fl
             validation_data, target = validation_loader[validation_idx]
             validation_tensor = torch.Tensor(validation_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
+            if debug:
+                debug_data(validation_tensor, target_tensor, validation_idx, validation_loader,
+                           debug_logger, "Validation")
 
             batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
             loss_validation += batch_loss
         avg_validation_loss = loss_validation / len(validation_loader)
         loss_history[1].append(avg_validation_loss)
 
-        print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
+        print(f"epoch: {epoch} avg val loss: {avg_validation_loss}")
 
         if epoch % 20 == 1:
             print(f"epoch: {epoch} average validation loss: {avg_validation_loss}")
         # loss_history.append([avg_train_loss, avg_validation_loss])
         print(f"loss history:\n{loss_history}")
 
-    timestamp = datetime.strftime(datetime.now(), "%Y%m%d-%H%M%S")
-    model.save(model_dir, encode_as_model_file(port, timestamp))
-    np.save(os.path.join(eval_dir, f"{port}_{timestamp}_loss.npy"), loss_history)
+        train_logger.write(f"Epoch {epoch + 1}/{num_epochs}:\n"
+                           f"\tAvg train loss {avg_train_loss}\n"
+                           f"\tAvg val loss   {avg_validation_loss}")
+
+    end_time = time_as_str(datetime.now())
+    model.save(model_dir, encode_model_file(port.name, end_time))
+    np.save(os.path.join(eval_dir, encode_loss_file(port.name, end_time)), loss_history)
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
-                path=os.path.join(eval_dir, f"{timestamp}_loss.png"))
+                path=os.path.join(eval_dir, f"{end_time}_loss.png"))
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -131,8 +163,12 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
 
 def main(args) -> None:
     if args.command == "train":
-        print("Training a model!")
-        train(args.data_dir, args.output_dir)
+        train_all(args.data_dir, args.output_dir)
+    if args.command == "train_port":
+        if not args.port_name:
+            raise ValueError(f"No port name found! Use '--port_name=' to train specific model")
+        print(f"Training single model for port {args.port_name}")
+        train(args.port_name, args.data_dir, args.output_dir)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -144,4 +180,5 @@ if __name__ == "__main__":
                         help="Path to data file directory")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory")
+    parser.add_argument("--port_name")
     main(parser.parse_args())

@@ -4,12 +4,19 @@ import pandas as pd
 import re
 import torch
 
+from datetime import datetime
+from loader import MmsiDataFile, TrainingExampleLoader
+from logger import Logger
 from typing import List, Tuple
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 mc_to_dk = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude", "Status": "Navigational Status",
             "Draft": "Draught", "VesselType": "Ship Type"}
+
+
+def time_as_str(time: datetime) -> str:
+    return datetime.strftime(time, "%Y%m%d-%H%M%S")
 
 
 def get_device() -> torch.device:
@@ -83,7 +90,7 @@ def compute_mse(y_true: List[torch.Tensor], y_pred: List[torch.Tensor]) -> float
     return mse
 
 
-def encode_as_model_file(port: str, time: str) -> str:
+def encode_model_file(port: str, time: str) -> str:
     return f"{port}_{time}.pt"
 
 
@@ -91,3 +98,24 @@ def decode_model_file(file_name: str) -> Tuple[str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
     return result[0], result[1]
+
+
+def encode_loss_file(port: str, time: str) -> str:
+    return f"{port}_{time}_loss.npy"
+
+
+def decode_loss_file(file_name: str) -> Tuple[str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]
+
+
+def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader: TrainingExampleLoader,
+               logger: Logger, log_prefix: str = "Training") -> None:
+    # use facet that 'nan != nan' for NaN detection
+    if data_tensor != data_tensor:
+        logger.write(f"{log_prefix}: Detected NaN in data-tensor at index {data_idx}. Window width "
+                     f"{loader.window_width}")
+    if target_tensor != target_tensor:
+        logger.write(f"{log_prefix}: Detected NaN in target-tensor at index {data_idx}. Window width "
+                     f"{loader.window_width}")

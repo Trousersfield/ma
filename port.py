@@ -126,10 +126,10 @@ class PortManager:
         df_outside_square.append(df_inside_square.loc[~long_mask])
         df_inside_square = df_inside_square.loc[long_mask]
 
-        print("lat interval [{}; {}] ".format(str(port.latitude - port.inner_square_lat_radius),
-                                              str(port.latitude + port.inner_square_lat_radius)))
-        print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
-                                               str(port.longitude + port.inner_square_long_radius)))
+        # print("lat interval [{}; {}] ".format(str(port.latitude - port.inner_square_lat_radius),
+        #                                      str(port.latitude + port.inner_square_lat_radius)))
+        # print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
+        #                                       str(port.longitude + port.inner_square_long_radius)))
 
         # if port.name == "RANDERS":
         #    print("df outside square: \n", df_outside_square)

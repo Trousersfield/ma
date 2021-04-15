@@ -122,9 +122,9 @@ def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
 
 
 # create one-hot encoded DataFrame: one column for each category
-def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
+def one_hot_encode(series: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
     # print("one hot encoding. number of data-points: ", len(data))
-    categories = data.unique()
+    categories = series.unique()
     nan_idx = -1
     # prevent typing error by replacing NaN with custom decorator "nan_type"
     for idx, cat in enumerate(categories):
@@ -134,10 +134,10 @@ def one_hot_encode(data: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
     if nan_idx > -1:
         categories[nan_idx] = "nan_entry"
 
-    data = data.values.reshape(-1, 1)   # shape as column
+    series = series.values.reshape(-1, 1)   # shape as column
     encoder = OneHotEncoder(sparse=False)
-    encoder.fit(data)
-    data_ohe = encoder.transform(data)
+    encoder.fit(series)
+    data_ohe = encoder.transform(series)
     df_ohe = pd.DataFrame(data_ohe, columns=[categories[i] for i in range(len(categories))])
 
     return df_ohe, encoder
@@ -192,7 +192,8 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
     # fill NaN values with their defaults from official AIS documentation
     # https://api.vtexplorer.com/docs/response-ais.html
-    df = df.fillna(value={"Heading": 511})
+    # COG = 0 and SOG = 0 might not be the best default values
+    df = df.fillna(value={"Heading": 511, "SOG": 0, "COG": 0, "Width": 0, "Length": 0, "Draught": 0})
 
     # filter out of range values
     df = df.loc[(df["Latitude"] >= data_ranges["Latitude"]["min"])
@@ -224,7 +225,6 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         # skip if no port data is set
         if port is None:
             continue
-        print(f"Port match: {port.name}")
 
         for folder in data_folders:
             if not os.path.exists(os.path.join(output_dir, folder, port.name)):
@@ -254,18 +254,26 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         rc.fit()
 
         # handle categorical data
-        x_ship_types, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
-        x_nav_states, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
-        # x_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
+        # TODO: make sure all possible categories are encoded!
+        ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
+        nav_states_df, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
+        # df_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
+        # print(f"x_df:\n{x_df}")
+        # print(f"ohe ship_types:\n{ship_types_df}")
+        # print(f"ohe nav_states:\n{nav_states_df}")
 
         # arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
         arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status"])
         # print("all arrival times: \n", arrival_times_df)
 
-        mmsi_col = x_df["MMSI"]
+        # unite source df with one hot encoded data
+        # x_df = pd.concat([x_df, ship_types_df, nav_states_df], axis=1, ignore_index=True)
+        # print(f"concatenated x_df:\n{x_df}")
+
+        # mmsi_col = x_df["MMSI"]
         # Add MMSI identification to categorical features
         # x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
-        x_ship_types["MMSI"], x_nav_states["MMSI"] = mmsi_col, mmsi_col
+        # ship_types_df["MMSI"], nav_states_df["MMSI"] = mmsi_col, mmsi_col
 
         mmsis = x_df["MMSI"].unique()
 
@@ -287,7 +295,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                     print("- - - - - - - - - - - - - - - - - - - - - - -")
                     print(f"MMSI {mmsi}")
 
-            print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
+            # print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
             if is_empty(ship_df):
                 print(f"No data for MMSI {mmsi}")
                 continue
@@ -304,12 +312,12 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             file_date = rc.date_from_source_csv(file_name)
 
             if arrival_time == -1:
-                print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
+                # print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
                 if rc.has_match(str(mmsi), file_date):
                     ship_df = rc.match(str(mmsi), file_date, ship_df)
                 f_path = os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi, file_date))
                 # print(f"ship_df:\n{ship_df}")
-                print(f"path for pickle: {f_path}")
+                # print(f"path for pickle: {f_path}")
                 ship_df.to_pickle(f_path)
                 continue
 
@@ -349,8 +357,9 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val_normalized)
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
-            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
-            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
+            # joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
+            # joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status",
+            # mmsi)))
 
 
 def split(data: np.ndarray, train_ratio: float = .9, test_val_ratio: float = .5) -> Tuple[np.ndarray, np.ndarray,
@@ -368,15 +377,15 @@ def split(data: np.ndarray, train_ratio: float = .9, test_val_ratio: float = .5)
 
 
 def main(args) -> None:
-    if args.command == "init":
+    if args.command == "init_repo":
         write_to_console("Initializing repo")
         initialize(args.output_dir)
+    elif args.command == "init_ports":
+        pm = PortManager()
+        pm.generate_from_source(load=True)
     elif args.command == "generate":
         write_to_console("Generating data")
         generate(args.input_dir, args.output_dir, args.data_source)
-    elif args.command == "check_ports":
-        pm = PortManager()
-        pm.generate_from_source(load=True)
     elif args.command == "add_alias":
         pm = PortManager()
         pm.load()
@@ -395,10 +404,10 @@ if __name__ == "__main__":
     big = "aisdk_20181101.csv"
     data_path = os.path.join(script_dir, "data", "raw", big)
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["init", "generate", "cc", "add_alias", "check_ports"])
+    parser.add_argument("command", choices=["init_repo", "init_ports", "generate", "add_alias"])
     parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
                         help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
-    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma", "2020"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Output directory path")

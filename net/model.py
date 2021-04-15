@@ -64,6 +64,7 @@ class InceptionTimeModel(nn.Module):
         self.bottleneck_channels = bottleneck_channels
         # self.kernel_sizes = kernel_sizes # These are fixed
         self.use_residual = use_residual
+        self.num_dense_blocks = num_dense_blocks
         self.dense_in_channels = dense_in_channels
         self.output_dim = output_dim
 
@@ -104,6 +105,8 @@ class InceptionTimeModel(nn.Module):
     @staticmethod
     def _dense_channels(in_channels: int, num_of_blocks: int) -> List[int]:
         chs = np.arange(num_of_blocks + 1)
+        print(f"num_of_blocks: {num_of_blocks}")
+        print(f"chs: {chs}")
         return in_channels // (2 ** chs)
 
     @staticmethod
@@ -126,12 +129,13 @@ class InceptionTimeModel(nn.Module):
             os.makedirs(output_dir)
         torch.save({
             "state_dict": self.state_dict(),
-            "num_inception_block": self.num_inception_blocks,
+            "num_inception_blocks": self.num_inception_blocks,
             "in_channels": self.in_channels,
             "out_channels": self.out_channels,
             "bottleneck_channels": self.bottleneck_channels,
             # self.kernel_sizes # These are fixed
             "use_residual": self.use_residual,
+            "num_dense_blocks": self.num_dense_blocks,
             "dense_in_channels": self.dense_in_channels,
             "output_dim": self.output_dim
         }, os.path.join(output_dir, filename))
@@ -141,10 +145,14 @@ class InceptionTimeModel(nn.Module):
         # see https://pytorch.org/tutorials/beginner/saving_loading_models.html
         print(f"Loading model from {model_path}")
         checkpoint = torch.load(model_path)
-        model = InceptionTimeModel(checkpoint["num_inception_blocks"], checkpoint["in_channels"],
-                                   checkpoint["out_channels"], checkpoint["bottleneck_channels"],
-                                   checkpoint["use_residual"], checkpoint["dense_in_channels"],
-                                   checkpoint["output_dim"])
+        model = InceptionTimeModel(num_inception_blocks=checkpoint["num_inception_blocks"],
+                                   in_channels=checkpoint["in_channels"],
+                                   out_channels=checkpoint["out_channels"],
+                                   bottleneck_channels=checkpoint["bottleneck_channels"],
+                                   use_residual=checkpoint["use_residual"],
+                                   num_dense_blocks=checkpoint["num_dense_blocks"],
+                                   dense_in_channels=checkpoint["dense_in_channels"],
+                                   output_dim=checkpoint["output_dim"])
         model.load_state_dict(checkpoint["state_dict"])
         return model
 

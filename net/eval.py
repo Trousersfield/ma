@@ -1,8 +1,9 @@
 import argparse
 import os
 import torch
-
 from datetime import datetime
+from torch import nn
+
 from loader import MmsiDataFile, TrainingExampleLoader
 from net.model import InceptionTimeModel
 from util import compute_mae, compute_mse
@@ -14,14 +15,14 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 # Evaluationsmethoden: https://towardsdatascience.com/metrics-to-evaluate-your-machine-learning-algorithm-f10ba6e38234
 
 
-def evaluate(model_path: str, data_path: str) -> None:
-    eval_loader = TrainingExampleLoader(data_path)
+def evaluate(model_path: str, data_dir: str) -> None:
+    eval_loader = TrainingExampleLoader(data_dir)
     eval_loader.load()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = InceptionTimeModel.load(model_path).to(device)
     model.eval()
 
-    print(f"Number of parameters: {5}")
+    print(f"Model has {num_parameters(model)}")
 
     outputs = []
     labels = []
@@ -34,14 +35,22 @@ def evaluate(model_path: str, data_path: str) -> None:
         outputs.append(output)
         labels.append(target_tensor)
 
-    mae = compute_mae()
-    mse = compute_mse()
+    print(f"labels:\n{labels}")
+    print(f"outputs:\n{outputs}")
+    mae = compute_mae(labels, outputs)
+    mse = compute_mse(labels, outputs)
+    print(f"mae: {mae}")
+    print(f"mse: {mse}")
+
+
+def num_parameters(model: nn.Module) -> float:
+    return sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
 
 
 def main(args) -> None:
     command = args.command
     if command == "evaluate":
-        evaluate(args.model_path, args.data_path)
+        evaluate(args.model_path, args.data_dir)
     else:
         raise ValueError(f"Unknown command '{command}'")
 
@@ -49,8 +58,10 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["evaluate"])
-    parser.add_argument("model_path", type=str, default=os.path.join(script_dir, os.pardir, "output", ),
+    parser.add_argument("--model_path", type=str, default=os.path.join(script_dir, os.pardir, "output", "model",
+                                                                       "ROSTOCK_20210414-201211.pt"),
                         help="Path to model")
-    parser.add_argument("data_path", type=str, default=os.path.join(script_dir, os.pardir, "data", "test", "ROSTOCK"),
-                        help="Path to data")
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data", "validate",
+                                                                     "ROSTOCK"),
+                        help="Direcotry to evaluation data")
     main(parser.parse_args())
