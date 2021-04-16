@@ -5,8 +5,6 @@ import re
 import torch
 
 from datetime import datetime
-from loader import MmsiDataFile, TrainingExampleLoader
-from logger import Logger
 from typing import List, Tuple
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -15,8 +13,12 @@ mc_to_dk = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude"
             "Draft": "Draught", "VesselType": "Ship Type"}
 
 
-def time_as_str(time: datetime) -> str:
+def as_str(time: datetime) -> str:
     return datetime.strftime(time, "%Y%m%d-%H%M%S")
+
+
+def as_float(time: datetime) -> float:
+    return datetime.timestamp(time)
 
 
 def get_device() -> torch.device:
@@ -110,9 +112,9 @@ def decode_loss_file(file_name: str) -> Tuple[str, str]:
     return result[0], result[1]
 
 
-def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader: TrainingExampleLoader,
-               logger: Logger, log_prefix: str = "Training") -> None:
-    # use facet that 'nan != nan' for NaN detection
+def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader, logger,
+               log_prefix: str = "Training") -> None:
+    # use fact that 'nan != nan' for NaN detection
     if data_tensor != data_tensor:
         logger.write(f"{log_prefix}: Detected NaN in data-tensor at index {data_idx}. Window width "
                      f"{loader.window_width}")

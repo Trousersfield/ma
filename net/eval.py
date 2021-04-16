@@ -19,10 +19,10 @@ def evaluate(model_path: str, data_dir: str) -> None:
     eval_loader = TrainingExampleLoader(data_dir)
     eval_loader.load()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = InceptionTimeModel.load(model_path).to(device)
+    model = InceptionTimeModel.load(model_path, device).to(device)
     model.eval()
 
-    print(f"Model has {num_parameters(model)}")
+    print(f"Model has {num_parameters(model)} Parameters")
 
     outputs = []
     labels = []
@@ -59,9 +59,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["evaluate"])
     parser.add_argument("--model_path", type=str, default=os.path.join(script_dir, os.pardir, "output", "model",
-                                                                       "ROSTOCK_20210414-201211.pt"),
+                                                                       "BREMERHAVEN_20210416-092158.pt"),
                         help="Path to model")
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data", "validate",
-                                                                     "ROSTOCK"),
-                        help="Direcotry to evaluation data")
+                                                                     "BREMERHAVEN"),
+                        help="Directory to evaluation data")
     main(parser.parse_args())

@@ -1,10 +1,10 @@
 [
     {
         "source_port": "COPENHAGEN",
-        "target_port": "ROSTOCK"
+        "target_ports": ["ROSTOCK", "SKAGEN", "BREMERHAVEN"]
     },
     {
-        "source_port": "COPENHAGEN",
-        "target_port": "SKAGEN"
+        "source_port": "BREMERHAVEN",
+        "target_ports": ["COPENHAGEN", "ROSTOCK", "SKAGEN"]
     }
 ]

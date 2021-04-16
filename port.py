@@ -6,12 +6,30 @@ import os
 import pandas as pd
 
 from logger import Logger
-from util import is_empty, get_destination_file_name
+from util import as_float, is_empty, get_destination_file_name
 
+from datetime import datetime
 from math import radians, cos, sin, asin, sqrt, degrees
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
+
+
+class TrainingIteration:
+    def __init__(self, timestamp: float, model_path: str, loss_path: str, log_path: str):
+        self.timestamp = timestamp
+        self.model_path = model_path
+        self.loss_path = loss_path
+        self.log_path = log_path
+
+    def __eq__(self, other: any) -> bool:
+        if other is str:
+            return str(self.timestamp) == other or str(int(self.timestamp)) == other
+        if other is float:
+            return self.timestamp == other
+        elif other is TrainingIteration:
+            return self.timestamp == other.timestamp
+        return False
 
 
 class Port:
@@ -29,6 +47,7 @@ class Port:
         hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
         self.inner_square_lat_radius = self.km_to_lat(hypotenuse/2)
         self.inner_square_long_radius = self.km_to_long(hypotenuse/2, self.latitude)
+        self.trainings: Dict[float, TrainingIteration] = {}
 
     def km_to_lat(self, km: float) -> float:
         return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
@@ -62,8 +81,7 @@ class PortManager:
                     ports[port_row["name"]] = Port(port_row["name"], float(port_row["latitude"]),
                                                    float(port_row["longitude"]),
                                                    float(port_row["radius"]))
-
-                joblib.dump(ports, self.port_dir)
+                self.save()
 
             if load:
                 self.load()
@@ -81,12 +99,16 @@ class PortManager:
             print("No alias definition found at {}".format(self.alias_dir))
         print("Port Manager loaded: {} Ports; {} Alias".format(len(self.ports.keys()), len(self.alias.keys())))
 
+    def save(self) -> None:
+        joblib.dump(self.ports, self.port_dir)
+
     def add_port(self, port: Port) -> None:
         # TODO: check if port name already in place and ask for confirmation if values overwrite
         # (over)write port information
         if port.name != "":
             self.ports[port.name] = port
-            joblib.dump(self.ports, os.path.join(script_dir, "port.pkl"))
+            # joblib.dump(self.ports, os.path.join(script_dir, "port.pkl"))
+            self.save()
 
     def add_alias(self, port_name: str, alias: str, overwrite: bool = False) -> None:
         alias = alias.upper()
@@ -105,7 +127,7 @@ class PortManager:
         # print("Searching match for name {}".format(name))
         name_upper = name.upper()
         if name_upper in self.ports:
-            return self.ports[name]
+            return self.ports[name_upper]
 
         if (name_upper in self.alias) and (self.alias[name_upper] in self.ports):
             return self.ports[self.alias[name_upper]]
@@ -131,19 +153,11 @@ class PortManager:
         # print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
         #                                       str(port.longitude + port.inner_square_long_radius)))
 
-        # if port.name == "RANDERS":
-        #    print("df outside square: \n", df_outside_square)
-        #    print("df inside square: \n", df_inside_square)
-
         # accurate separation outside of inner square but within port's radius
         radius_mask = df_outside_square.apply(radius_filter, args=(port,), axis=1)
 
         df_outside_circle: pd.DataFrame = df_outside_square[radius_mask]  # training data series
         df_inside_circle: pd.DataFrame = df_outside_square[~radius_mask]
-
-        # if port.name == "RANDERS":
-        #    print("df_outside_circle: \n", df_outside_circle)
-        #    print("df_inside_circle \n", df_inside_circle)
 
         # minimum timestamp of inside port area data-points is arrival time
         arrival_times: pd.DataFrame = get_minimum_time(df_inside_square, df_inside_circle)
@@ -152,6 +166,43 @@ class PortManager:
             arrival_times = pd.DataFrame(columns=df_outside_circle.columns)
 
         return df_outside_circle, arrival_times
+
+    def add_training(self, port: Union[str, Port], timestamp: Union[float, datetime], model_path: str, loss_path: str,
+                     log_path: str) -> None:
+        if port is str:
+            port = self.find_port(port)
+            if port is None:
+                return
+        if timestamp is datetime:
+            timestamp = as_float(timestamp)
+        port.trainings[timestamp] = make_training_iteration(timestamp, model_path, loss_path, log_path)
+        self.save()
+
+    def remove_training(self, port: Union[str, Port], training_iteration: TrainingIteration) -> None:
+        if port is str:
+            port = self.find_port(port)
+            if port is None:
+                return
+        if training_iteration.timestamp in port.trainings:
+            del port.trainings[training_iteration.timestamp]
+            self.save()
+        else:
+            print(f"Training iteration '{training_iteration}' not found for port {port.name}")
+
+    def reset_training(self, ports: Union[List[str], List[Port]]) -> None:
+        for port in ports:
+            if port is str:
+                port = self.find_port(port)
+            if port is not None:
+                port.trainings = []
+        self.save()
+
+
+def make_training_iteration(timestamp: float, model_path: str, loss_path: str, log_path: str) -> TrainingIteration:
+    for kind in [("model", model_path), ("loss", loss_path), ("log", log_path)]:
+        if not os.path.exists(kind[1]):
+            raise ValueError(f"Path for {kind[0]} at '{kind[1]}' does not exist")
+    return TrainingIteration(timestamp, model_path, loss_path, log_path)
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -220,7 +271,7 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
     return result_df
 
 
-def read_ports(input_dir: str, file_name: str = None) -> None:
+def analyze_csv(input_dir: str, file_name: str = None) -> None:
     print("Reading ports...")
     logger = Logger(f"existing_ports_{file_name}")
     port_info: Dict[str, int] = {}
@@ -261,15 +312,15 @@ def agg_ports_info(df: pd.DataFrame, port_info: Dict[str, int] = None) -> Dict[s
 
 
 def main(args) -> None:
-    if args.command == "read_ports":
-        read_ports(args.input_dir, args.file_name)
+    if args.command == "analyze_csv":
+        analyze_csv(args.input_dir, args.file_name)
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["read_ports"])
+    parser.add_argument("command", choices=["analyze_csv"])
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--file_name", type=str,

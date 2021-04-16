@@ -123,10 +123,8 @@ class InceptionTimeModel(nn.Module):
         # print(f"tensor after dense_blocks: {x.size()}")
         return self.target_layer(x)
 
-    def save(self, output_dir: str, filename: str) -> None:
-        print("Saving model")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+    def save(self, path: str) -> None:
+        print(f"Saving model at {path}")
         torch.save({
             "state_dict": self.state_dict(),
             "num_inception_blocks": self.num_inception_blocks,
@@ -138,13 +136,13 @@ class InceptionTimeModel(nn.Module):
             "num_dense_blocks": self.num_dense_blocks,
             "dense_in_channels": self.dense_in_channels,
             "output_dim": self.output_dim
-        }, os.path.join(output_dir, filename))
+        }, path)
 
     @staticmethod
-    def load(model_path: str) -> 'InceptionTimeModel':
+    def load(model_path: str, device) -> 'InceptionTimeModel':
         # see https://pytorch.org/tutorials/beginner/saving_loading_models.html
         print(f"Loading model from {model_path}")
-        checkpoint = torch.load(model_path)
+        checkpoint = torch.load(model_path, device)
         model = InceptionTimeModel(num_inception_blocks=checkpoint["num_inception_blocks"],
                                    in_channels=checkpoint["in_channels"],
                                    out_channels=checkpoint["out_channels"],
@@ -154,6 +152,7 @@ class InceptionTimeModel(nn.Module):
                                    dense_in_channels=checkpoint["dense_in_channels"],
                                    output_dim=checkpoint["output_dim"])
         model.load_state_dict(checkpoint["state_dict"])
+        model = model.to(device)
         return model
 
 

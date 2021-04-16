@@ -36,16 +36,20 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
         if len(pm.ports.keys()) < 1:
             raise ValueError("No port data available")
     port = pm.find_port(port_name)
-    train_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}")
-    debug_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}_debug")
 
     train_path = os.path.join(data_dir, "train", port.name)
     validation_path = os.path.join(data_dir, "validate", port.name)
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
-    # set device: use gpu is available
+
+    log_file_name = f"train-log_{port.name}_{time_as_str(start_time)}"
+    train_logger = Logger(log_file_name, eval_dir)
+    debug_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}_debug", eval_dir)
+
+    # set device: use gpu if available
     # more options: https://pytorch.org/docs/stable/notes/cuda.html
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training {port.name}-model. Device: {device}")
 
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -87,6 +91,8 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     params = list(model.parameters())
     print("number of params: ", len(params))
     print("first param's weight: ", params[0].size())
+    train_logger.write(f"{port.name}-model num_epochs: {num_epochs} learning_rate: {learning_rate}, "
+                       f"num_params: {len(params)}")
 
     # training loop
     for epoch in range(num_epochs):
@@ -142,9 +148,14 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
                            f"\tAvg train loss {avg_train_loss}\n"
                            f"\tAvg val loss   {avg_validation_loss}")
 
-    end_time = time_as_str(datetime.now())
-    model.save(model_dir, encode_model_file(port.name, end_time))
-    np.save(os.path.join(eval_dir, encode_loss_file(port.name, end_time)), loss_history)
+    curr_datetime = datetime.now()
+    end_time = time_as_str(curr_datetime)
+    model_path = os.path.join(model_dir, encode_model_file(port.name, end_time))
+    model.save(model_path)
+    loss_history_path = os.path.join(eval_dir, encode_loss_file(port.name, end_time))
+    np.save(loss_history_path, loss_history)
+    pm.add_training(port, curr_datetime, model_path, loss_history_path, os.path.join(eval_dir, log_file_name))
+
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
                 path=os.path.join(eval_dir, f"{end_time}_loss.png"))
@@ -175,10 +186,10 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
-    parser.add_argument("command", choices=["train"])
+    parser.add_argument("command", choices=["train", "train_port"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data"),
                         help="Path to data file directory")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory")
-    parser.add_argument("--port_name")
+    parser.add_argument("--port_name", type=str, help="Name of port to train model")
     main(parser.parse_args())

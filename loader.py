@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import os
 
+from port import PortManager
 from typing import List, Tuple
 from util import npy_file_len
 
@@ -115,8 +116,13 @@ class TrainingExampleLoader:
 def main(args) -> None:
     if args.command == "fit":
         print("Fitting Data Loader")
+        pm = PortManager()
+        pm.load()
+        if len(pm.ports) == 0:
+            raise ValueError("Port Manager has no ports. Is it initialized?")
+        port = pm.find_port(args.port_name)
         for loader_type in ["train", "test", "validate"]:
-            loader = TrainingExampleLoader(os.path.join(args.data_dir, loader_type, "ROSTOCK"))
+            loader = TrainingExampleLoader(os.path.join(args.data_dir, loader_type, port.name))
             loader.fit()
     elif args.command == "load":
         print("Loading Data Loader!")
@@ -155,4 +161,6 @@ if __name__ == "__main__":
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=10, help="Sliding window width of training examples")
     parser.add_argument("--data_idx", type=int, default=0, help="Data index to retrieve (for testing only)")
+    parser.add_argument("--port_name", type=str,
+                        help="Name of port to fit data loader. Make sure Port Manager is initialized")
     main(parser.parse_args())

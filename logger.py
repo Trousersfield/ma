@@ -1,6 +1,12 @@
+import os
+
+
 class Logger:
-    def __init__(self, file_name: str = "log"):
-        self.file_path = f"{file_name}.txt"
+    def __init__(self, file_name: str = "log.txt", output_dir: str = None):
+        if output_dir is None:
+            self.file_path = f"{file_name}.txt"
+        else:
+            self.file_path = os.path.join(output_dir, f"{file_name}.txt")
         file = open(self.file_path, "w+")
         file.close()
 

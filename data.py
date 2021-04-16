@@ -14,6 +14,7 @@ from combiner import RouteCombiner
 from labeler import DurationLabeler
 from logger import Logger
 from port import PortManager
+from splitter import DataSplitter
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console, mc_to_dk
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -166,19 +167,23 @@ def generate(input_dir: str, output_dir: str, data_source: str) -> None:
     if len(pm.ports.keys()) < 1:
         raise ValueError("No port data available")
 
+    # initialize data spliter
+    ds = DataSplitter(output_dir)
+
     # iterate all raw .csv files in given directory
     files = sorted(os.listdir(input_dir))
     for idx, file in enumerate(files):
         if file.startswith("aisdk_"):
-            generate_dataset(os.path.join(input_dir, file), output_dir, data_source, pm)
+            generate_dataset(os.path.join(input_dir, file), output_dir, data_source, pm, ds)
     print("Data generation complete!")
 
 
-def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager) -> None:
+def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager, ds: DataSplitter) -> None:
     print(f"Extracting file from '{file_path}' of type '{data_source}'")
     min_number_of_rows = 10000
     numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
     categorical_features = ["Ship type", "Navigational status"]
+
     df = pd.read_csv(file_path, ",", None)
 
     if data_source == "dma":
@@ -339,41 +344,22 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
 
-            train, test, val = split(data)
-            # print(f"train:{train}")
-            # print(f"test:{test}")
-            # print(f"val:{val}")
-
             # Intuition: MSE loss is huge if target has large values like duration in seconds
-            train_normalized = normalize(train, scaler) if train.shape[0] > 0 else train
-            test_normalized = normalize(test, scaler) if test.shape[0] > 0 else test
-            val_normalized = normalize(val, scaler) if val.shape[0] > 0 else val
+            train_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
             # print(f"normalized train data:\n{train_normalized}")
             # print(f"normalized test shape:\n{test_normalized}")
-            # print(f"normalized validate shape:\n{val_normalized}")
 
-            np.save(os.path.join(output_dir, "train", port.name, data_file(mmsi)), train_normalized)
-            np.save(os.path.join(output_dir, "test", port.name, data_file(mmsi)), test_normalized)
-            np.save(os.path.join(output_dir, "validate", port.name, data_file(mmsi)), val_normalized)
+            data_file_path = os.path.join(output_dir, "train", port.name, data_file(mmsi))
+            np.save(data_file_path, train_normalized)
+            # ds.register_route(data_file_path, port, data.shape[0])
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             # joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             # joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status",
             # mmsi)))
 
-
-def split(data: np.ndarray, train_ratio: float = .9, test_val_ratio: float = .5) -> Tuple[np.ndarray, np.ndarray,
-                                                                                          np.ndarray]:
-    # make sure there is enough data to have at least one test and validation entry
-    has_train_val = data.shape[0] * (1 - train_ratio) >= 2.
-    if 0 < train_ratio < 1 and has_train_val:
-        train, remain = np.split(data, [int(train_ratio*data.shape[0])])
-        test, val = np.split(remain, [int(test_val_ratio*remain.shape[0])])
-        return train, test, val
-    else:
-        print(f"Unable to split of shape {data.shape} by {train_ratio}. Use a value within (0, 1) and make sure at"
-              f"least one training and validation entry remains")
-        return data, np.array([]), np.array([])
+    # split routes after all ports have been processed
+    # ds.split()
 
 
 def main(args) -> None:
