@@ -9,7 +9,7 @@ from logger import Logger
 from plotter import plot_series
 from port import PortManager
 from net.model import InceptionTimeModel
-from util import debug_data, encode_model_file, encode_loss_file, time_as_str
+from util import debug_data, encode_model_file, encode_loss_file, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -37,14 +37,14 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
             raise ValueError("No port data available")
     port = pm.find_port(port_name)
 
-    train_path = os.path.join(data_dir, "train", port.name)
-    validation_path = os.path.join(data_dir, "validate", port.name)
+    routes_path = os.path.join(data_dir, "routes", port.name)
+    # validation_path = os.path.join(data_dir, "validate", port.name)
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
 
-    log_file_name = f"train-log_{port.name}_{time_as_str(start_time)}"
+    log_file_name = f"train-log_{port.name}_{as_str(start_time)}"
     train_logger = Logger(log_file_name, eval_dir)
-    debug_logger = Logger(f"train-log_{port.name}_{time_as_str(start_time)}_debug", eval_dir)
+    debug_logger = Logger(f"train-log_{port.name}_{as_str(start_time)}_debug", eval_dir)
 
     # set device: use gpu if available
     # more options: https://pytorch.org/docs/stable/notes/cuda.html
@@ -57,19 +57,19 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     if not os.path.exists(eval_dir):
         os.makedirs(eval_dir)
 
-    train_loader = TrainingExampleLoader(train_path)
-    validation_loader = TrainingExampleLoader(validation_path)
-    train_loader.load()
-    validation_loader.load()
+    loader = TrainingExampleLoader(routes_path)
+    # validation_loader = TrainingExampleLoader(validation_path)
+    loader.load()
+    # validation_loader.load()
 
-    if len(train_loader) == 0:
-        raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
-                         .format(train_loader.data_dir))
-    if len(validation_loader) == 0:
-        raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
-                         .format(validation_loader.data_dir))
+    if len(loader) == 0:
+        raise ValueError(f"Unable to load data from directory {loader.data_dir}\n"
+                         f"Make sure Data loader is fit!")
+    # if len(validation_loader) == 0:
+    #    raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
+    #                     .format(validation_loader.data_dir))
 
-    data, target = train_loader[0]
+    data, target = loader[0]
     input_dim = data.shape[2]
     output_dim = 1
 
@@ -84,7 +84,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     # test what happens if using "weight_decay" e.g. with 1e-4
     optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    print(f"Starting training from directory {train_loader.data_dir} on {len(train_loader)} training examples")
+    print(f"Starting training from directory {loader.data_dir} on {len(loader)} training examples")
     # print(f"First training example: \n{train_loader[0]}")
 
     # get learnable parameters
@@ -101,40 +101,41 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
 
         # train model
         model.train()
-        for train_idx in range(len(train_loader)):
-            train_data, target = train_loader[train_idx]
+
+        for train_idx in loader.train_indices:
+            train_data, target = loader[train_idx]
             data_tensor = torch.Tensor(train_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
             if debug:
-                debug_data(data_tensor, target_tensor, train_idx, train_loader, debug_logger)
+                debug_data(data_tensor, target_tensor, train_idx, loader, debug_logger)
 
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
 
-            if train_idx == 0 or train_idx % 2000 == 1 or train_idx == len(train_loader) - 1:
+            if train_idx == 0 or train_idx % 2000 == 1 or train_idx == len(loader) - 1:
                 # print(f"train_tensor: {data_tensor}")
                 # print(f"target_tensor: {target_tensor}")
                 print(f"idx: {train_idx} batch loss: {batch_loss}")
                 print(f"idx: {train_idx} loss_train: {loss_train}")
 
-        avg_train_loss = loss_train / len(train_loader)
+        avg_train_loss = loss_train / len(loader.train_indices)
         loss_history[0].append(avg_train_loss)
 
         print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         # validate model
         model.eval()
-        for validation_idx in range(len(validation_loader)):
-            validation_data, target = validation_loader[validation_idx]
-            validation_tensor = torch.Tensor(validation_data).to(device)
+        for validate_idx in loader.validate_indices:
+            validate_data, target = loader[validate_idx]
+            validate_tensor = torch.Tensor(validate_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
             if debug:
-                debug_data(validation_tensor, target_tensor, validation_idx, validation_loader,
+                debug_data(validate_tensor, target_tensor, validate_idx, loader,
                            debug_logger, "Validation")
 
-            batch_loss = make_train_step(validation_tensor, target_tensor, optimizer, model, criterion, training=False)
+            batch_loss = make_train_step(validate_tensor, target_tensor, optimizer, model, criterion, training=False)
             loss_validation += batch_loss
-        avg_validation_loss = loss_validation / len(validation_loader)
+        avg_validation_loss = loss_validation / len(loader.validate_indices)
         loss_history[1].append(avg_validation_loss)
 
         print(f"epoch: {epoch} avg val loss: {avg_validation_loss}")
@@ -149,7 +150,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
                            f"\tAvg val loss   {avg_validation_loss}")
 
     curr_datetime = datetime.now()
-    end_time = time_as_str(curr_datetime)
+    end_time = as_str(curr_datetime)
     model_path = os.path.join(model_dir, encode_model_file(port.name, end_time))
     model.save(model_path)
     loss_history_path = os.path.join(eval_dir, encode_loss_file(port.name, end_time))

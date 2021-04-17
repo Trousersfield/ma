@@ -16,8 +16,8 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 def evaluate(model_path: str, data_dir: str) -> None:
-    eval_loader = TrainingExampleLoader(data_dir)
-    eval_loader.load()
+    loader = TrainingExampleLoader(data_dir)
+    loader.load()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = InceptionTimeModel.load(model_path, device).to(device)
     model.eval()
@@ -26,9 +26,9 @@ def evaluate(model_path: str, data_dir: str) -> None:
 
     outputs = []
     labels = []
-    for eval_idx in range(len(eval_loader)):
-        eval_data, target = eval_loader[eval_idx]
-        data_tensor = torch.Tensor(eval_data).to(device)
+    for test_idx in loader.test_indices:
+        test_data, target = loader[test_idx]
+        data_tensor = torch.Tensor(test_data).to(device)
         target_tensor = torch.Tensor(target).to(device)
 
         output = model(data_tensor)

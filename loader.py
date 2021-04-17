@@ -21,9 +21,11 @@ class MmsiDataFile:
 
 
 class TrainingExampleLoader:
-    def __init__(self, data_dir: str = "", window_width: int = 10) -> None:
+    def __init__(self, data_dir: str = "", train_ratio: float = 0.8, window_width: int = 10) -> None:
+        if 0 < train_ratio < 1:
+            raise ValueError(f"Train ratio of '{train_ratio}' out of range [0, 1]")
         if data_dir == "":
-            self.data_dir = os.path.join(script_dir, "data", "train", "ROSTOCK")
+            self.data_dir = os.path.join(script_dir, "data", "routes", "ROSTOCK")
         else:
             self.data_dir = data_dir
         self.loader_file_name = "data_loader.pkl"
@@ -31,6 +33,10 @@ class TrainingExampleLoader:
         self.window_width = window_width
         self.data_files: List[MmsiDataFile] = []
         self.access_matrix: np.ndarray = np.array([[-1, -1]])
+        self.train_ratio: float = train_ratio
+        self.train_indices: List[int] = []
+        self.validate_indices: List[int] = []
+        self.test_indices: List[int] = []
 
     def __len__(self):
         if self.access_matrix[0][0] == -1:
@@ -109,6 +115,13 @@ class TrainingExampleLoader:
                 self.access_matrix = np.concatenate([self.access_matrix, access_matrix])
             # print("concatenated: \n", self.access_matrix)
             # print("shape: ", self.access_matrix.shape)
+
+        # generate random training, validation and testing data-indices
+        rand_indices = np.arange(len(self))
+        np.random.shuffle(rand_indices)
+        self.train_indices, remain = np.split(rand_indices, [self.train_ratio * len(self)])
+        self.validate_indices, self.test_indices = remain.split(remain, 2)
+
         joblib.dump(self, self.loader_dir)
         print(f"Data Loader has been fit on directory {self.data_dir}")
 
@@ -121,35 +134,51 @@ def main(args) -> None:
         if len(pm.ports) == 0:
             raise ValueError("Port Manager has no ports. Is it initialized?")
         port = pm.find_port(args.port_name)
-        for loader_type in ["train", "test", "validate"]:
-            loader = TrainingExampleLoader(os.path.join(args.data_dir, loader_type, port.name))
-            loader.fit()
+        loader = TrainingExampleLoader(os.path.join(args.data_dir, "routes", port.name))
+        loader.fit()
     elif args.command == "load":
         print("Loading Data Loader!")
         loader = TrainingExampleLoader(args.data_dir)
         loader.load()
     elif args.command == "test":
-        print("Testing Data Loader")
-        # loader = TrainingExampleLoader(os.path.join(args.data_dir, "train", "ROSTOCK"))
-        loader = TrainingExampleLoader(os.path.join(args.data_dir, "train", "ROSTOCK"))
+        print(f"Testing Data Loader for port {args.port_name} at index {args.data_idx}")
+        if args.port_name is None:
+            raise ValueError("No port name found in 'args.port_name'. Specify a port name for testing.")
+        pm = PortManager()
+        pm.load()
+        if len(pm.ports) == 0:
+            raise LookupError("Unable to load ports! Make sure port manager is fit")
+        port = pm.find_port(args.port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate '{args.port_name}' with any port")
+        # loader = TrainingExampleLoader(os.path.join(args.data_dir, "routes", "ROSTOCK"))
+        loader = TrainingExampleLoader(os.path.join(args.data_dir, "routes", port.name))
         loader.load()
         print(f"DataLoader length: {len(loader)}")
-        print("Window at pos {}:\n{}".format(args.data_idx, loader[args.data_idx]))
+        print(f"Window at pos {args.data_idx}:\n{loader[args.data_idx]}")
     elif args.command == "test_range":
-        print("Testing Data Loader")
-        for loader_type in ["train", "test", "validate"]:
-            loader = TrainingExampleLoader(os.path.join(args.data_dir, loader_type, "HUNDESTED"))
-            loader.load()
-            print(f"DataLoader length: {len(loader)}")
-            print(f"Testing {loader_type} directory...")
-            for i in range(len(loader)):
-                try:
-                    result = loader[i]
-                except IndexError:
-                    print(f"Original Exception: {IndexError}")
-                    print(f"Occurred at loader while accessing index: {i}")
-                    break
-            print("Done!")
+        print("Testing Data Loader for directory 'routes'")
+        pm = PortManager()
+        pm.load()
+        if len(pm.ports) == 0:
+            raise LookupError("Unable to load ports! Make sure port manager is fit")
+        for port in pm.ports.values():
+            port_dir = os.path.join(args.data_dir, "routes", port.name)
+            if os.path.exists(port_dir):
+                print(f"Testing port {port.name}")
+                loader = TrainingExampleLoader(port_dir)
+                loader.load()
+                print(f"DataLoader length: {len(loader)}")
+                for i in range(len(loader)):
+                    try:
+                        _ = loader[i]
+                    except IndexError:
+                        print(f"Original Exception: {IndexError}")
+                        print(f"Occurred at loader while accessing index: {i}")
+                        break
+            else:
+                print(f"Directory {port_dir} does not exist for port {port.name}")
+        print("Done!")
     else:
         raise ValueError("Unknown command: {}".format(args.command))
 

@@ -14,12 +14,11 @@ from combiner import RouteCombiner
 from labeler import DurationLabeler
 from logger import Logger
 from port import PortManager
-from splitter import DataSplitter
 from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console, mc_to_dk
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 logger = Logger(file_name="log")
-data_folders = ("encode", "test", "train", "validate", "unlabeled")
+data_folders = ["raw", "encode", "routes", "unlabeled"]
 data_ranges = {"Latitude": {"min": -90., "max": 90.},
                "Longitude": {"min": -180., "max": 180.},
                "SOG": {"min": 0., "max": 110},                  # max = 102 from (1)
@@ -45,9 +44,6 @@ def initialize(output_dir:  str) -> None:
     for folder in data_folders:
         if not os.path.exists(os.path.join(output_dir, folder)):
             os.makedirs(os.path.join(output_dir, folder))
-
-    if not os.path.exists(os.path.join(output_dir, "raw")):
-        os.makedirs(os.path.join(output_dir, "raw"))
 
 
 def correlate(raw_data_frame):
@@ -167,18 +163,15 @@ def generate(input_dir: str, output_dir: str, data_source: str) -> None:
     if len(pm.ports.keys()) < 1:
         raise ValueError("No port data available")
 
-    # initialize data spliter
-    ds = DataSplitter(output_dir)
-
     # iterate all raw .csv files in given directory
     files = sorted(os.listdir(input_dir))
     for idx, file in enumerate(files):
         if file.startswith("aisdk_"):
-            generate_dataset(os.path.join(input_dir, file), output_dir, data_source, pm, ds)
+            generate_dataset(os.path.join(input_dir, file), output_dir, data_source, pm)
     print("Data generation complete!")
 
 
-def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager, ds: DataSplitter) -> None:
+def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: PortManager) -> None:
     print(f"Extracting file from '{file_path}' of type '{data_source}'")
     min_number_of_rows = 10000
     numerical_features = ["time", "Latitude", "Longitude", "SOG", "COG", "Heading", "Width", "Length", "Draught"]
@@ -349,17 +342,13 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # print(f"normalized train data:\n{train_normalized}")
             # print(f"normalized test shape:\n{test_normalized}")
 
-            data_file_path = os.path.join(output_dir, "train", port.name, data_file(mmsi))
+            data_file_path = os.path.join(output_dir, "routes", port.name, data_file(mmsi))
             np.save(data_file_path, train_normalized)
-            # ds.register_route(data_file_path, port, data.shape[0])
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             # joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
             # joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status",
             # mmsi)))
-
-    # split routes after all ports have been processed
-    # ds.split()
 
 
 def main(args) -> None:
@@ -381,7 +370,7 @@ def main(args) -> None:
         pm.add_alias("GRENAA", "GRENA")
         pm.add_alias("GOTEBORG", "GOTHENBURG")
     else:
-        raise ValueError("Unknown command: {}".format(args.command))
+        raise ValueError(f"Unknown command: {args.command}")
 
 
 if __name__ == "__main__":
