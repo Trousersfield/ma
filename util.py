@@ -11,6 +11,51 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 mc_to_dk = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude", "Status": "Navigational Status",
             "Draft": "Draught", "VesselType": "Ship Type"}
+data_ranges = {
+    "Latitude": {"min": -90., "max": 90.},
+    "Longitude": {"min": -180., "max": 180.},
+    "SOG": {"min": 0., "max": 110},                  # max = 102 from (1)
+    "COG": {"min": 0., "max": 359.9},                # (1) max from data: 359.9
+    "Heading": {"min": 0., "max": 511.},             # (1)
+    "Width": {"min": 0., "max": 80},                 # {3)
+    "Length": {"min": 0., "max": 500.},              # (2)
+    "time_scaled": {"min": 0., "max": 31622400.},    # max value for seconds per year is dependant on year
+    "label": {"min": 0., "max": 31622400.}           # same range as time within a year
+}
+# year with 365 days: 31536000
+# year with 366 days: 31622400
+# sources:
+# (1) https://www.sostechnic.com/epirbs/ais/aisinformationenglish/index.php
+# assume the biggest vessel in the world in service (+ some more):
+# (2) https://en.wikipedia.org/wiki/List_of_longest_ships
+# (3) https://gcaptain.com/emma-maersk-engine/worlds-largest-tanker-knock-nevis/
+
+categorical_values = {
+    "ship type": [
+        "HSC",
+        "Fishing",
+        "Sailing",
+        "Reserved",
+        "Passenger",
+        "Cargo",
+        "Tanker"
+    ],
+    "navigational status": [
+        "Under way using engine",
+        "At anchor",
+        "Not under command",
+        "Restricted manoeuverability",
+        "Constrained by her draught",
+        "Moored",
+        "Aground",
+        "Engaged in fishing",
+        "Under way sailing",
+        "Reserved for future amendment of Navigational Status for HSC",
+        "Reserved for future amendment of Navigational Status for WIG",
+        "Reserved fof future use",
+        "AIS-SART is active"
+    ]
+}
 
 
 def as_str(time: datetime) -> str:

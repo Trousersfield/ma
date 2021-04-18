@@ -14,34 +14,19 @@ from combiner import RouteCombiner
 from labeler import DurationLabeler
 from logger import Logger
 from port import PortManager
-from util import get_destination_file_name, is_empty, data_file, obj_file, write_to_console, mc_to_dk
+from util import data_ranges, categorical_values, get_destination_file_name, is_empty, data_file, obj_file,\
+    write_to_console, mc_to_dk
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 logger = Logger(file_name="log")
-data_folders = ["raw", "encode", "routes", "unlabeled"]
-data_ranges = {"Latitude": {"min": -90., "max": 90.},
-               "Longitude": {"min": -180., "max": 180.},
-               "SOG": {"min": 0., "max": 110},                  # max = 102 from (1)
-               "COG": {"min": 0., "max": 359.9},                # (1) max from data: 359.9
-               "Heading": {"min": 0., "max": 511.},             # (1)
-               "Width": {"min": 0., "max": 80},                 # {3)
-               "Length": {"min": 0., "max": 500.},              # (2)
-               "time_scaled": {"min": 0., "max": 31622400.},    # max value for seconds per year is dependant on year
-               "label": {"min": 0., "max": 31622400.}}          # same range as time within a year
-# year with 365 days: 31536000
-# year with 366 days: 31622400
-# sources:
-# (1) https://www.sostechnic.com/epirbs/ais/aisinformationenglish/index.php
-# assume the biggest vessel in the world in service (+ some more):
-# (2) https://en.wikipedia.org/wiki/List_of_longest_ships
-# (3) https://gcaptain.com/emma-maersk-engine/worlds-largest-tanker-knock-nevis/
+output_folders = ["encode", "routes", "unlabeled"]
 
 
 def initialize(output_dir:  str) -> None:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    for folder in data_folders:
+    for folder in output_folders + ["raw"]:
         if not os.path.exists(os.path.join(output_dir, folder)):
             os.makedirs(os.path.join(output_dir, folder))
 
@@ -119,25 +104,53 @@ def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
 
 
 # create one-hot encoded DataFrame: one column for each category
-def one_hot_encode(series: pd.Series) -> Tuple[pd.DataFrame, OneHotEncoder]:
-    # print("one hot encoding. number of data-points: ", len(data))
-    categories = series.unique()
-    nan_idx = -1
-    # prevent typing error by replacing NaN with custom decorator "nan_type"
-    for idx, cat in enumerate(categories):
-        if type(cat) is float:
-            nan_idx = idx
+def one_hot_encode(series: pd.Series, ais_col_name: str) -> Tuple[pd.DataFrame, OneHotEncoder]:
+    series_categories = series.unique()  # in order of appearance
+    ais_col_name = ais_col_name.lower()
+    default_alias = ["Default", "Unknown", "Undefined"]
 
-    if nan_idx > -1:
-        categories[nan_idx] = "nan_entry"
+    if ais_col_name in categorical_values:
+        categories = categorical_values[ais_col_name] + default_alias
+        nan_idx = -1
+        # prevent typing error by replacing NaN with custom decorator "nan_type"
+        for idx, cat in enumerate(series_categories):
+            if type(cat) is float:
+                nan_idx = idx
 
-    series = series.values.reshape(-1, 1)   # shape as column
-    encoder = OneHotEncoder(sparse=False)
-    encoder.fit(series)
-    data_ohe = encoder.transform(series)
-    df_ohe = pd.DataFrame(data_ohe, columns=[categories[i] for i in range(len(categories))])
+        if nan_idx > -1:
+            series_categories[nan_idx] = "default"
 
-    return df_ohe, encoder
+        for s_cat in series_categories:
+            i = 0
+            found = False
+            while i < len(categories) and not found:
+                cat = categories[i]
+                if cat.lower() in s_cat.lower():
+                    if cat in default_alias:
+                        series = series.replace(s_cat, f"Default {ais_col_name}")
+                    else:
+                        series = series.replace(s_cat,  cat)
+                    found = True
+                i += 1
+            if not found or s_cat.lower() == "other":
+                print(f"One hot encoding: Unable to map value '{s_cat}' to known category from '{ais_col_name}'")
+                series = series.replace(s_cat, f"Other {ais_col_name}")
+
+        print(f"unique values after mapping:\n{series.unique()}")
+        desired_categories = categorical_values[ais_col_name] + [f"Other {ais_col_name}", f"Default {ais_col_name}"]
+        # print(f"desired categories:\n{desired_categories}")
+
+        series = series.values.reshape(-1, 1)  # shape as column
+        encoder = OneHotEncoder(sparse=False, categories=[desired_categories])
+        encoder.fit(series)
+        data_ohe = encoder.transform(series)
+        df_ohe = pd.DataFrame(data_ohe, columns=[desired_categories[i] for i in range(len(desired_categories))])
+        return df_ohe, encoder
+        # return data_ohe, desired_categories, encoder
+
+    else:
+        raise ValueError(f"Error while one hot encoding: Cannot find column {ais_col_name} "
+                         f"in {categorical_values.keys()}")
 
 
 def format_timestamp_col(df: pd.DataFrame, data_source: str) -> pd.DataFrame:
@@ -151,12 +164,14 @@ def format_timestamp_col(df: pd.DataFrame, data_source: str) -> pd.DataFrame:
     elif data_source == "mc":
         df = df.assign(time=pd.to_datetime(df["BaseDateTime"], format='%Y-%m-%d %H:%M:%S')
                        .values.astype(np.int64) // 10**9)
-        df = df.drop(columns=["# Timestamp"])
+        df = df.drop(columns=["BaseDateTime"])
     return df
 
 
 def generate(input_dir: str, output_dir: str, data_source: str) -> None:
     print(f"Generating dataset from directory '{input_dir}'")
+    initialize(output_dir)
+
     # initialize port manager
     pm = PortManager()
     pm.load()
@@ -224,7 +239,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         if port is None:
             continue
 
-        for folder in data_folders:
+        for folder in output_folders:
             if not os.path.exists(os.path.join(output_dir, folder, port.name)):
                 os.makedirs(os.path.join(output_dir, folder, port.name))
 
@@ -241,9 +256,8 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         if is_empty(x_df):
             print("Data for port {} only within port area. {} data, {} labels".format(port.name, len(x_df.index),
                                                                                       len(arrival_times_df.index)))
-            logger.write("No Data for port {} outside of port area. {} data, {} labels".format(port.name,
-                                                                                               len(x_df.index),
-                                                                                               len(arrival_times_df.index)))
+            logger.write(f"No data for port {port.name} outside of port area. "
+                         f"{x_df.index} number of data-points, {arrival_times_df.index} number of labels")
             continue
 
         # init route combiner on existing unlabeled data for current port
@@ -252,20 +266,19 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
         rc.fit()
 
         # handle categorical data
-        # TODO: make sure all possible categories are encoded!
-        ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"))
-        nav_states_df, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"))
+        # ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"), "Ship type")
+        ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"), "Ship type")
+        nav_states_df, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"), "Navigational Status")
         # df_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
-        # print(f"x_df:\n{x_df}")
         # print(f"ohe ship_types:\n{ship_types_df}")
         # print(f"ohe nav_states:\n{nav_states_df}")
 
-        # arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status", "Cargo type"])
         arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status"])
-        # print("all arrival times: \n", arrival_times_df)
 
+        # print(f"x_df: {x_df.shape} ship_types_df: {ship_types_df.shape}")
         # unite source df with one hot encoded data
-        # x_df = pd.concat([x_df, ship_types_df, nav_states_df], axis=1, ignore_index=True)
+        x_df = pd.concat([x_df.reset_index(drop=True), ship_types_df.reset_index(drop=True),
+                          nav_states_df.reset_index(drop=True)], axis=1)
         # print(f"concatenated x_df:\n{x_df}")
 
         # mmsi_col = x_df["MMSI"]
@@ -299,12 +312,8 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 continue
 
             # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
-            # TODO: Consider not dropping MMSI. But keep in mind: MMSI number has no natural order
             ship_df = ship_df.drop(columns=["MMSI"])
             # print("data: \n", ship_df)
-
-            # ship_categorical_df = x_categorical_df.loc[x_categorical_df["MMSI"] == mmsi]
-            # ship_categorical_df = ship_categorical_df.drop(columns=["MMSI"])
 
             _, file_name = os.path.split(file_path)
             file_date = rc.date_from_source_csv(file_name)
@@ -332,7 +341,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
             data = ship_df.to_numpy()
-            print(f"Shape after all: {data.shape}")
+            # print(f"Shape after all: {data.shape}")
             # print(f"Data:\n{data}")
             # print("data: ", data)
             # label = ship_categorical_df.to_numpy()
@@ -352,10 +361,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
 
 def main(args) -> None:
-    if args.command == "init_repo":
-        write_to_console("Initializing repo")
-        initialize(args.output_dir)
-    elif args.command == "init_ports":
+    if args.command == "init_ports":
         pm = PortManager()
         pm.generate_from_source(load=True)
     elif args.command == "generate":
@@ -379,7 +385,7 @@ if __name__ == "__main__":
     big = "aisdk_20181101.csv"
     data_path = os.path.join(script_dir, "data", "raw", big)
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["init_repo", "init_ports", "generate", "add_alias"])
+    parser.add_argument("command", choices=["init_ports", "generate", "add_alias"])
     parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
                         help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma", "2020"),

@@ -1,4 +1,67 @@
-No Data for port HUNDESTED outside of port area. 0 data, 5 labels
-No Data for port GLOMMEN outside of port area. 0 data, 2 labels
-No Data for port THYBORON outside of port area. 0 data, 1 labels
-No Data for port TRELLEBORG outside of port area. 0 data, 1 labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port TRELLEBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port TRELLEBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port TRELLEBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port FREDERICIA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port TRELLEBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port TRELLEBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5, 6], dtype='int64') number of labels
+No data for port FREDERICIA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5, 6], dtype='int64') number of labels
+No data for port RANDERS outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port KALUNDBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3], dtype='int64') number of labels
+No data for port FREDERICIA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4], dtype='int64') number of labels
+No data for port KALUNDBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2], dtype='int64') number of labels
+No data for port KALUNDBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5, 6, 7], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port VARBERG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port KALUNDBORG outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port FREDERIKSHAVN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port HORSENS outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5, 6], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port THYBORON outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HUNDESTED outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2, 3, 4, 5], dtype='int64') number of labels
+No data for port RANDERS outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port FREDERIKSHAVN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2], dtype='int64') number of labels
+No data for port RANDERS outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels
+No data for port GLOMMEN outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1], dtype='int64') number of labels
+No data for port HORSENS outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0, 1, 2], dtype='int64') number of labels
+No data for port GRENAA outside of port area. Int64Index([], dtype='int64') number of data-points, Int64Index([0], dtype='int64') number of labels

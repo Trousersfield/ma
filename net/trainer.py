@@ -38,7 +38,6 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     port = pm.find_port(port_name)
 
     routes_path = os.path.join(data_dir, "routes", port.name)
-    # validation_path = os.path.join(data_dir, "validate", port.name)
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
 
@@ -58,16 +57,11 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
         os.makedirs(eval_dir)
 
     loader = TrainingExampleLoader(routes_path)
-    # validation_loader = TrainingExampleLoader(validation_path)
     loader.load()
-    # validation_loader.load()
 
     if len(loader) == 0:
         raise ValueError(f"Unable to load data from directory {loader.data_dir}\n"
                          f"Make sure Data loader is fit!")
-    # if len(validation_loader) == 0:
-    #    raise ValueError("Unable to load data from directory {}\nData loader must be initialized first!"
-    #                     .format(validation_loader.data_dir))
 
     data, target = loader[0]
     input_dim = data.shape[2]
