@@ -2,7 +2,7 @@ import os
 
 
 class Logger:
-    def __init__(self, file_name: str = "log.txt", output_dir: str = None):
+    def __init__(self, file_name: str = "log", output_dir: str = None):
         if output_dir is None:
             self.file_path = f"{file_name}.txt"
         else:

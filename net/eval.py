@@ -1,7 +1,6 @@
 import argparse
 import os
 import torch
-from datetime import datetime
 from torch import nn
 
 from loader import MmsiDataFile, TrainingExampleLoader
@@ -26,10 +25,11 @@ def evaluate(model_path: str, data_dir: str) -> None:
 
     outputs = []
     labels = []
-    for test_idx in loader.test_indices:
+    test_indices = loader.shuffled_data_indices(kind="test")
+    for test_idx in test_indices:
         test_data, target = loader[test_idx]
         data_tensor = torch.Tensor(test_data).to(device)
-        target_tensor = torch.Tensor(target).to(device)
+        target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
 
         output = model(data_tensor)
         outputs.append(output)

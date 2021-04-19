@@ -5,6 +5,7 @@ import re
 import torch
 
 from datetime import datetime
+from pytz import timezone
 from typing import List, Tuple
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -19,8 +20,37 @@ data_ranges = {
     "Heading": {"min": 0., "max": 511.},             # (1)
     "Width": {"min": 0., "max": 80},                 # {3)
     "Length": {"min": 0., "max": 500.},              # (2)
+    "Draught": {"min": 0., "max": 40.},              # assume some value that seems high enough
     "time_scaled": {"min": 0., "max": 31622400.},    # max value for seconds per year is dependant on year
-    "label": {"min": 0., "max": 31622400.}           # same range as time within a year
+    "label": {"min": 0., "max": 31622400.},          # same range as time within a year
+    "Cargo": {"min": 0., "max": 1.},                 # One-Hot-Encoded features from this point
+    "Dredging": {"min": 0., "max": 1.},
+    "HSC": {"min": 0., "max": 1.},
+    "Fishing": {"min": 0., "max": 1.},
+    "Passenger": {"min": 0., "max": 1.},
+    "Pleasure": {"min": 0., "max": 1.},
+    "Reserved": {"min": 0., "max": 1.},
+    "Sailing": {"min": 0., "max": 1.},
+    "Tanker": {"min": 0., "max": 1.},
+    "Towing": {"min": 0., "max": 1.},
+    "Tug": {"min": 0., "max": 1.},
+    "Other ship type": {"min": 0., "max": 1.},
+    "Default ship type": {"min": 0., "max": 1.},
+    "Under way using engine": {"min": 0., "max": 1.},
+    "At anchor": {"min": 0., "max": 1.},
+    "Not under command": {"min": 0., "max": 1.},
+    "Restricted manoeuverability": {"min": 0., "max": 1.},
+    "Constrained by her draught": {"min": 0., "max": 1.},
+    "Moored": {"min": 0., "max": 1.},
+    "Aground": {"min": 0., "max": 1.},
+    "Engaged in fishing": {"min": 0., "max": 1.},
+    "Under way sailing": {"min": 0., "max": 1.},
+    "Reserved for future amendment of Navigational Status for HSC": {"min": 0., "max": 1.},
+    "Reserved for future amendment of Navigational Status for WIG": {"min": 0., "max": 1.},
+    "Reserved fof future use": {"min": 0., "max": 1.},
+    "AIS-SART is active": {"min": 0., "max": 1.},
+    "Other navigational status": {"min": 0., "max": 1.},
+    "Default navigational status": {"min": 0., "max": 1.}
 }
 # year with 365 days: 31536000
 # year with 366 days: 31622400
@@ -32,13 +62,17 @@ data_ranges = {
 
 categorical_values = {
     "ship type": [
+        "Cargo",
+        "Dredging",
         "HSC",
         "Fishing",
-        "Sailing",
-        "Reserved",
         "Passenger",
-        "Cargo",
-        "Tanker"
+        "Pleasure",
+        "Reserved",
+        "Sailing",
+        "Tanker",
+        "Towing",
+        "Tug"
     ],
     "navigational status": [
         "Under way using engine",
@@ -56,6 +90,11 @@ categorical_values = {
         "AIS-SART is active"
     ]
 }
+
+
+def now() -> datetime:
+    ger = timezone("Europe/Berlin")
+    return datetime.now(ger)
 
 
 def as_str(time: datetime) -> str:
@@ -137,8 +176,18 @@ def compute_mse(y_true: List[torch.Tensor], y_pred: List[torch.Tensor]) -> float
     return mse
 
 
-def encode_model_file(port: str, time: str) -> str:
-    return f"{port}_{time}.pt"
+def encode_loss_plot(port_name: str, time: str) -> str:
+    return f"{port_name}_{time}_loss.png"
+
+
+def decode_loss_plot(file_name: str) -> Tuple[str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]
+
+
+def encode_model_file(port_name: str, time: str) -> str:
+    return f"{port_name}_{time}.pt"
 
 
 def decode_model_file(file_name: str) -> Tuple[str, str]:

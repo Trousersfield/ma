@@ -47,7 +47,7 @@ class Port:
         hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
         self.inner_square_lat_radius = self.km_to_lat(hypotenuse/2)
         self.inner_square_long_radius = self.km_to_long(hypotenuse/2, self.latitude)
-        self.trainings: Dict[float, TrainingIteration] = {}
+        self.trainings: Dict[float, TrainingIteration] = dict()
 
     def km_to_lat(self, km: float) -> float:
         return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
@@ -74,13 +74,13 @@ class PortManager:
             source_dir = os.path.join(script_dir, "port.json")
         if os.path.exists(source_dir):
             with open(source_dir) as json_file:
-                ports: Dict[str, Port] = dict()
+                # ports: Dict[str, Port] = dict()
                 data = json.load(json_file)
 
                 for port_row in data["rows"]:
-                    ports[port_row["name"]] = Port(port_row["name"], float(port_row["latitude"]),
-                                                   float(port_row["longitude"]),
-                                                   float(port_row["radius"]))
+                    self.ports[port_row["name"]] = Port(port_row["name"], float(port_row["latitude"]),
+                                                        float(port_row["longitude"]),
+                                                        float(port_row["radius"]))
                 self.save()
 
             if load:
@@ -97,9 +97,10 @@ class PortManager:
             self.alias = joblib.load(self.alias_dir)
         else:
             print("No alias definition found at {}".format(self.alias_dir))
-        print("Port Manager loaded: {} Ports; {} Alias".format(len(self.ports.keys()), len(self.alias.keys())))
+        print(f"Port Manager loaded: {len(self.ports.keys())} ports; {len(self.alias.keys())} alias'")
 
     def save(self) -> None:
+        print(f"ports:\n{self.ports}")
         joblib.dump(self.ports, self.port_dir)
 
     def add_port(self, port: Port) -> None:
@@ -107,7 +108,6 @@ class PortManager:
         # (over)write port information
         if port.name != "":
             self.ports[port.name] = port
-            # joblib.dump(self.ports, os.path.join(script_dir, "port.pkl"))
             self.save()
 
     def add_alias(self, port_name: str, alias: str, overwrite: bool = False) -> None:
@@ -173,6 +173,7 @@ class PortManager:
             port = self.find_port(port)
             if port is None:
                 return
+        print(f"port:\n{port}")
         if timestamp is datetime:
             timestamp = as_float(timestamp)
         port.trainings[timestamp] = make_training_iteration(timestamp, model_path, loss_path, log_path)
@@ -194,7 +195,7 @@ class PortManager:
             if port is str:
                 port = self.find_port(port)
             if port is not None:
-                port.trainings = []
+                port.trainings = {}
         self.save()
 
 
@@ -314,13 +315,18 @@ def agg_ports_info(df: pd.DataFrame, port_info: Dict[str, int] = None) -> Dict[s
 def main(args) -> None:
     if args.command == "analyze_csv":
         analyze_csv(args.input_dir, args.file_name)
+    elif args.command == "test":
+        pm = PortManager()
+        pm.load()
+        port = pm.find_port("hamburg")
+        print(f"Port Manager:\n{port.trainings}")
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["analyze_csv"])
+    parser.add_argument("command", choices=["analyze_csv", "test"])
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--file_name", type=str,

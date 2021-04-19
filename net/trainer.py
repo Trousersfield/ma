@@ -9,7 +9,7 @@ from logger import Logger
 from plotter import plot_series
 from port import PortManager
 from net.model import InceptionTimeModel
-from util import debug_data, encode_model_file, encode_loss_file, as_str
+from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, now
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -28,7 +28,7 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
 
 def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, learning_rate: float = .01,
           pm: PortManager = None, debug: bool = False) -> None:
-    start_time = datetime.now()
+    start_time = now()
     torch.autograd.set_detect_anomaly(True)
     if pm is None:
         pm = PortManager()
@@ -70,7 +70,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
                                bottleneck_channels=8, use_residual=True, output_dim=output_dim)
     model.to(device)
-    # print(f"model: \n{model}")
+    print(f"model:\n{model}")
 
     # train & validation loss
     loss_history = [[], []]
@@ -95,22 +95,28 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
 
         # train model
         model.train()
+        train_indices = loader.shuffled_data_indices(kind="train")
 
-        for train_idx in loader.train_indices:
+        for loop_idx, train_idx in enumerate(train_indices):
             train_data, target = loader[train_idx]
+            # print(f"train data:\n{train_data}")
+            # print(f"target data:\n{target}")
             data_tensor = torch.Tensor(train_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
+            # print(f"train tensor:\n{data_tensor.shape}")
+            # print(f"target tensor:\n{target_tensor.shape}")
+
             if debug:
                 debug_data(data_tensor, target_tensor, train_idx, loader, debug_logger)
 
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
 
-            if train_idx == 0 or train_idx % 2000 == 1 or train_idx == len(loader) - 1:
-                # print(f"train_tensor: {data_tensor}")
-                # print(f"target_tensor: {target_tensor}")
-                print(f"idx: {train_idx} batch loss: {batch_loss}")
-                print(f"idx: {train_idx} loss_train: {loss_train}")
+            if loop_idx == 0 or loop_idx == len(train_indices) - 1:
+                print(f"train_tensor: {data_tensor}")
+                print(f"target_tensor: {target_tensor}")
+                print(f"loop idx: {loop_idx} batch loss: {batch_loss}")
+                print(f"loop idx: {loop_idx} loss_train: {loss_train}")
 
         avg_train_loss = loss_train / len(loader.train_indices)
         loss_history[0].append(avg_train_loss)
@@ -119,16 +125,20 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
 
         # validate model
         model.eval()
-        for validate_idx in loader.validate_indices:
-            validate_data, target = loader[validate_idx]
-            validate_tensor = torch.Tensor(validate_data).to(device)
-            target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
-            if debug:
-                debug_data(validate_tensor, target_tensor, validate_idx, loader,
-                           debug_logger, "Validation")
+        with torch.no_grad():
+            validate_indices = loader.shuffled_data_indices(kind="validate")
 
-            batch_loss = make_train_step(validate_tensor, target_tensor, optimizer, model, criterion, training=False)
-            loss_validation += batch_loss
+            for validate_idx in validate_indices:
+                validate_data, target = loader[validate_idx]
+                validate_tensor = torch.Tensor(validate_data).to(device)
+                target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
+                if debug:
+                    debug_data(validate_tensor, target_tensor, validate_idx, loader,
+                               debug_logger, "Validation")
+
+                batch_loss = make_train_step(validate_tensor, target_tensor, optimizer, model, criterion,
+                                             training=False)
+                loss_validation += batch_loss
         avg_validation_loss = loss_validation / len(loader.validate_indices)
         loss_history[1].append(avg_validation_loss)
 
@@ -143,17 +153,17 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
                            f"\tAvg train loss {avg_train_loss}\n"
                            f"\tAvg val loss   {avg_validation_loss}")
 
-    curr_datetime = datetime.now()
+    curr_datetime = now()
     end_time = as_str(curr_datetime)
     model_path = os.path.join(model_dir, encode_model_file(port.name, end_time))
     model.save(model_path)
     loss_history_path = os.path.join(eval_dir, encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
-    pm.add_training(port, curr_datetime, model_path, loss_history_path, os.path.join(eval_dir, log_file_name))
+    pm.add_training(port, curr_datetime, model_path, loss_history_path, os.path.join(eval_dir, f"{log_file_name}.txt"))
 
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
-                path=os.path.join(eval_dir, f"{end_time}_loss.png"))
+                path=os.path.join(eval_dir, encode_loss_plot(port.name, end_time)))
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,

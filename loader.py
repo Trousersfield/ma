@@ -21,8 +21,8 @@ class MmsiDataFile:
 
 
 class TrainingExampleLoader:
-    def __init__(self, data_dir: str = "", train_ratio: float = 0.8, window_width: int = 10) -> None:
-        if 0 < train_ratio < 1:
+    def __init__(self, data_dir: str = "", train_ratio: float = 0.8, window_width: int = 50) -> None:
+        if not .0 < train_ratio < 1.:
             raise ValueError(f"Train ratio of '{train_ratio}' out of range [0, 1]")
         if data_dir == "":
             self.data_dir = os.path.join(script_dir, "data", "routes", "ROSTOCK")
@@ -84,6 +84,10 @@ class TrainingExampleLoader:
             self.window_width = loader.window_width
             self.data_files = loader.data_files
             self.access_matrix = loader.access_matrix
+            self.train_ratio = loader.train_ratio
+            self.train_indices = loader.train_indices
+            self.validate_indices = loader.validate_indices
+            self.test_indices = loader.test_indices
             print("---- Data loader loaded! ----\nData dir: {}\nFiles: {} Training Examples: {}"
                   .format(self.data_dir, len(self.data_files), len(self)))
         else:
@@ -119,11 +123,20 @@ class TrainingExampleLoader:
         # generate random training, validation and testing data-indices
         rand_indices = np.arange(len(self))
         np.random.shuffle(rand_indices)
-        self.train_indices, remain = np.split(rand_indices, [self.train_ratio * len(self)])
-        self.validate_indices, self.test_indices = remain.split(remain, 2)
+        self.train_indices, remain = np.split(rand_indices, [int(self.train_ratio * len(self))])
+        self.validate_indices, self.test_indices = np.split(remain, 2)
 
         joblib.dump(self, self.loader_dir)
         print(f"Data Loader has been fit on directory {self.data_dir}")
+
+    def shuffled_data_indices(self, kind: str) -> List[int]:
+        rand_indices = self.train_indices
+        if kind == "validate":
+            rand_indices = self.validate_indices
+        elif kind == "test":
+            rand_indices = self.test_indices
+        np.random.shuffle(rand_indices)
+        return rand_indices
 
 
 def main(args) -> None:

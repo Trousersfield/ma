@@ -6,6 +6,8 @@ import joblib
 import re
 # import random
 # import matplotlib.pyplot as plt
+
+from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 from typing import List, Tuple
@@ -15,10 +17,10 @@ from labeler import DurationLabeler
 from logger import Logger
 from port import PortManager
 from util import data_ranges, categorical_values, get_destination_file_name, is_empty, data_file, obj_file,\
-    write_to_console, mc_to_dk
+    write_to_console, mc_to_dk, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-logger = Logger(file_name="log")
+logger = Logger(file_name=f"log_{as_str(datetime.now())}")
 output_folders = ["encode", "routes", "unlabeled"]
 
 
@@ -89,7 +91,7 @@ def init_scaler(source_df: pd.DataFrame, target_columns: List[str]) -> MinMaxSca
     min_max_df = pd.concat([target_min_df, target_max_df])
     min_max_data = min_max_df.to_numpy()
     # copy = False, if input already is numpy array
-    scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
+    scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
     scaler.fit(min_max_data)
     return scaler
 
@@ -136,7 +138,7 @@ def one_hot_encode(series: pd.Series, ais_col_name: str) -> Tuple[pd.DataFrame, 
                 print(f"One hot encoding: Unable to map value '{s_cat}' to known category from '{ais_col_name}'")
                 series = series.replace(s_cat, f"Other {ais_col_name}")
 
-        print(f"unique values after mapping:\n{series.unique()}")
+        # print(f"unique values after mapping:\n{series.unique()}")
         desired_categories = categorical_values[ais_col_name] + [f"Other {ais_col_name}", f"Default {ais_col_name}"]
         # print(f"desired categories:\n{desired_categories}")
 
@@ -254,8 +256,8 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
         # skip port if all ships are hanging out in port area only
         if is_empty(x_df):
-            print("Data for port {} only within port area. {} data, {} labels".format(port.name, len(x_df.index),
-                                                                                      len(arrival_times_df.index)))
+            # print(f"Data for port {port.name} only within port area. {len(x_df.index)} data,"
+            #      f"{len(arrival_times_df.index)} labels")
             logger.write(f"No data for port {port.name} outside of port area. "
                          f"{x_df.index} number of data-points, {arrival_times_df.index} number of labels")
             continue
@@ -300,15 +302,14 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 # drop rows sent after ship left the port
                 ship_df = ship_df[ship_df["time"] <= arrival_time]
 
-                if not is_empty(ship_df):
-                    print("- - - - - - - - - - - - - - - - - - - - - - -")
-                    print("- - T A R G E T  &  D A T A   F O U N D - - -")
-                    print("- - - - - - - - - - - - - - - - - - - - - - -")
-                    print(f"MMSI {mmsi}")
+                # if not is_empty(ship_df):
+                    # print("- - - - - - - - - - - - - - - - - - - - - - -")
+                    # print("- - T A R G E T  &  D A T A   F O U N D - - -")
+                    # print("- - - - - - - - - - - - - - - - - - - - - - -")
+                    # print(f"MMSI {mmsi}")
 
             # print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
             if is_empty(ship_df):
-                print(f"No data for MMSI {mmsi}")
                 continue
 
             # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
@@ -334,7 +335,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # print(f"ship_df after matching:\n{ship_df}")
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            # print("df with added label: \n", ship_df)
+            print("df with added label: \n", ship_df)
 
             if scaler is None:
                 scaler = init_scaler(x_df, ship_df.columns.tolist())
@@ -342,17 +343,14 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
             data = ship_df.to_numpy()
             # print(f"Shape after all: {data.shape}")
-            # print(f"Data:\n{data}")
-            # print("data: ", data)
-            # label = ship_categorical_df.to_numpy()
+            print(f"Data:\n{data}")
 
             # Intuition: MSE loss is huge if target has large values like duration in seconds
-            train_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
-            # print(f"normalized train data:\n{train_normalized}")
-            # print(f"normalized test shape:\n{test_normalized}")
+            data_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
+            print(f"normalized data:\n{data_normalized}")
 
             data_file_path = os.path.join(output_dir, "routes", port.name, data_file(mmsi))
-            np.save(data_file_path, train_normalized)
+            np.save(data_file_path, data_normalized)
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
             # joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
