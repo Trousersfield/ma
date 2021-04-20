@@ -12,7 +12,7 @@ series_colors = ["b", "r", "g"]
 
 def plot_series(series: Union[List[float], List[List[float]], List[List[List[float]]]], x_label: str, y_label: str,
                 title: str = None, legend_labels: Union[str, List[str]] = None, x_ticks: float = None,
-                y_ticks: float = None, path: str = None) -> None:
+                y_ticks: float = None, x_scale: str = None, y_scale: str = None, path: str = None) -> None:
     """
     :param series:
         One or more series to plot. Each list must contain x-values and optional y-values. If no y-values are given,
@@ -29,10 +29,16 @@ def plot_series(series: Union[List[float], List[List[float]], List[List[List[flo
         Ticks for x-axis
     :param y_ticks:
         Ticks for y-axis
+    :param x_scale
+        Custom scale for x-axis
+    :param y_scale
+        Custom scale for y-axis
     :param path:
         Path for saving the plot
     :return: None
     """
+    scales = ["linear", "log", "symlog", "logit"]
+
     num_series = 1 if type(series[0]) == float else len(series)
     if legend_labels is not None:
         num_legend_labels = 1 if type(legend_labels) == str else len(legend_labels)
@@ -43,6 +49,10 @@ def plot_series(series: Union[List[float], List[List[float]], List[List[List[flo
         ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_ticks))
     if y_ticks is not None:
         ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_ticks))
+    if x_scale is not None:
+        ax.set_xscale(x_scale) if x_scale in scales else print(f"Unable to apply scaling '{x_scale}' to x-axis")
+    if y_scale is not None:
+        ax.set_yscale(y_scale) if y_scale in scales else print(f"Unable to apply scaling '{y_scale}' to y-axis")
 
     if num_series == 1 and type(series[0]) == float:
         ax.plot(series)
@@ -93,6 +103,7 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices={"test"})
+    parser.add_argument("command", choices={"plot", "test"})
     parser.add_argument("--output_path", type=str, default=os.path.join(script_dir, "output"), help="Path to output")
+    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "output", "plots"), help="Directory to training plit data ")
     main(parser.parse_args())

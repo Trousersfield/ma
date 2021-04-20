@@ -6,7 +6,7 @@ import os
 import pandas as pd
 
 from logger import Logger
-from util import as_float, is_empty, get_destination_file_name
+from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name
 
 from datetime import datetime
 from math import radians, cos, sin, asin, sqrt, degrees
@@ -16,19 +16,20 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class TrainingIteration:
-    def __init__(self, timestamp: float, model_path: str, loss_path: str, log_path: str):
-        self.timestamp = timestamp
+    def __init__(self, start_time: float, end_time: float, model_path: str, loss_path: str, log_path: str):
+        self.start_time = start_time
+        self.end_time = end_time
         self.model_path = model_path
         self.loss_path = loss_path
         self.log_path = log_path
 
     def __eq__(self, other: any) -> bool:
         if other is str:
-            return str(self.timestamp) == other or str(int(self.timestamp)) == other
+            return str(self.end_time) == other or str(int(self.end_time)) == other
         if other is float:
-            return self.timestamp == other
+            return self.end_time == other
         elif other is TrainingIteration:
-            return self.timestamp == other.timestamp
+            return self.end_time == other.end_time
         return False
 
 
@@ -57,23 +58,37 @@ class Port:
 
 
 class PortManager:
-    def __init__(self, port_dir: str = "", alias_dir: str = "") -> None:
+    def __init__(self, init_new: bool = False, port_path: str = "", alias_path: str = "") -> None:
         self.ports: Dict[str, Port] = dict()
         self.alias: Dict[str, str] = dict()
-        if (port_dir != "") and os.path.exists(port_dir):
-            self.port_dir = port_dir
+        if (port_path != "") and os.path.exists(port_path):
+            self.port_path = port_path
         else:
-            self.port_dir = os.path.join(script_dir, "port.pkl")
-        if os.path.exists(alias_dir):
-            self.alias_dir = alias_dir
+            if init_new:
+                now = as_str(datetime.now())
+                self.port_path = os.path.join(script_dir, encode_pm_file(now))
+            else:
+                times = []
+                for idx, data_file in enumerate(os.listdir(script_dir)):
+                    if data_file.startswith("pm-ports_"):
+                        _, time = decode_pm_file(data_file)
+                        times.append(time)
+                if len(times) > 0:
+                    times = sorted(times)
+                    self.port_path = os.path.join(script_dir, encode_pm_file(times[-1]))
+                else:
+                    raise ValueError(f"Unable to initialize Port Manager on directory '{script_dir}': "
+                                     f"No 'pm-ports'-file found")
+        if os.path.exists(alias_path):
+            self.alias_path = alias_path
         else:
-            self.alias_dir = os.path.join(script_dir, "alias.pkl")
+            self.alias_path = os.path.join(script_dir, "alias.pkl")
 
-    def generate_from_source(self, source_dir: str = "", load: bool = False) -> None:
-        if source_dir == "":
-            source_dir = os.path.join(script_dir, "port.json")
-        if os.path.exists(source_dir):
-            with open(source_dir) as json_file:
+    def generate_from_source(self, source_path: str = "", load: bool = False) -> None:
+        if source_path == "":
+            source_path = os.path.join(script_dir, "port.json")
+        if os.path.exists(source_path):
+            with open(source_path) as json_file:
                 # ports: Dict[str, Port] = dict()
                 data = json.load(json_file)
 
@@ -86,22 +101,22 @@ class PortManager:
             if load:
                 self.load()
         else:
-            print("Unable to locate port source file at {}".format(source_dir))
+            print(f"Unable to locate port source file at {source_path}")
 
     def load(self) -> None:
-        if os.path.exists(self.port_dir):
-            self.ports = joblib.load(self.port_dir)
+        if os.path.exists(self.port_path):
+            self.ports = joblib.load(self.port_path)
         else:
-            print("No port definition found at {}. Generate from source first.".format(self.port_dir))
-        if os.path.exists(self.alias_dir):
-            self.alias = joblib.load(self.alias_dir)
+            print(f"No port definition found at {self.port_path}. Generate from source first.")
+        if os.path.exists(self.alias_path):
+            self.alias = joblib.load(self.alias_path)
         else:
-            print("No alias definition found at {}".format(self.alias_dir))
+            print("No alias definition found at {}".format(self.alias_path))
         print(f"Port Manager loaded: {len(self.ports.keys())} ports; {len(self.alias.keys())} alias'")
 
     def save(self) -> None:
         print(f"ports:\n{self.ports}")
-        joblib.dump(self.ports, self.port_dir)
+        joblib.dump(self.ports, self.port_path)
 
     def add_port(self, port: Port) -> None:
         # TODO: check if port name already in place and ask for confirmation if values overwrite
@@ -115,13 +130,13 @@ class PortManager:
         if port_name in self.ports.keys():
             if overwrite or (alias not in self.alias.keys()):
                 self.alias[alias] = port_name
-                joblib.dump(self.alias, self.alias_dir)
-                print("Alias {} added. Associated port: {}".format(alias, self.alias[alias]))
+                joblib.dump(self.alias, self.alias_path)
+                print(f"Alias '{alias}' added. Associated port: {self.alias[alias]}")
             else:
-                print("Alias {} already contained! Associated port: {}".format(alias, self.alias[alias]))
+                print(f"Alias '{alias}' already contained! Associated port: {self.alias[alias]}")
         else:
-            print("Unable to associate {} with loaded port data. Make sure port data is loaded before adding alias."
-                  .format(port_name))
+            print(f"Unable to associate '{port_name}' with loaded port data. Make sure port data is loaded "
+                  f"before adding alias.")
 
     def find_port(self, name: str) -> Port:
         # print("Searching match for name {}".format(name))
@@ -167,16 +182,18 @@ class PortManager:
 
         return df_outside_circle, arrival_times
 
-    def add_training(self, port: Union[str, Port], timestamp: Union[float, datetime], model_path: str, loss_path: str,
-                     log_path: str) -> None:
+    def add_training(self, port: Union[str, Port], start_time: Union[float, datetime], end_time: Union[float, datetime],
+                     model_path: str, loss_path: str, log_path: str) -> None:
         if port is str:
             port = self.find_port(port)
             if port is None:
                 return
         print(f"port:\n{port}")
-        if timestamp is datetime:
-            timestamp = as_float(timestamp)
-        port.trainings[timestamp] = make_training_iteration(timestamp, model_path, loss_path, log_path)
+        if start_time is datetime:
+            start_time = as_float(start_time)
+        if end_time is datetime:
+            end_time = as_float(end_time)
+        port.trainings[end_time] = make_training_iteration(start_time, end_time, model_path, loss_path, log_path)
         self.save()
 
     def remove_training(self, port: Union[str, Port], training_iteration: TrainingIteration) -> None:
@@ -184,8 +201,8 @@ class PortManager:
             port = self.find_port(port)
             if port is None:
                 return
-        if training_iteration.timestamp in port.trainings:
-            del port.trainings[training_iteration.timestamp]
+        if training_iteration.end_time in port.trainings:
+            del port.trainings[training_iteration.end_time]
             self.save()
         else:
             print(f"Training iteration '{training_iteration}' not found for port {port.name}")
@@ -199,11 +216,12 @@ class PortManager:
         self.save()
 
 
-def make_training_iteration(timestamp: float, model_path: str, loss_path: str, log_path: str) -> TrainingIteration:
+def make_training_iteration(start_time: float, end_time: float, model_path: str, loss_path: str,
+                            log_path: str) -> TrainingIteration:
     for kind in [("model", model_path), ("loss", loss_path), ("log", log_path)]:
         if not os.path.exists(kind[1]):
             raise ValueError(f"Path for {kind[0]} at '{kind[1]}' does not exist")
-    return TrainingIteration(timestamp, model_path, loss_path, log_path)
+    return TrainingIteration(start_time, end_time, model_path, loss_path, log_path)
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:

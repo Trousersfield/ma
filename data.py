@@ -335,7 +335,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # print(f"ship_df after matching:\n{ship_df}")
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            print("df with added label: \n", ship_df)
+            # print("df with added label: \n", ship_df)
 
             if scaler is None:
                 scaler = init_scaler(x_df, ship_df.columns.tolist())
@@ -343,11 +343,11 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
             data = ship_df.to_numpy()
             # print(f"Shape after all: {data.shape}")
-            print(f"Data:\n{data}")
+            # print(f"Data:\n{data}")
 
             # Intuition: MSE loss is huge if target has large values like duration in seconds
             data_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
-            print(f"normalized data:\n{data_normalized}")
+            # print(f"normalized data:\n{data_normalized}")
 
             data_file_path = os.path.join(output_dir, "routes", port.name, data_file(mmsi))
             np.save(data_file_path, data_normalized)
@@ -360,7 +360,7 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
 def main(args) -> None:
     if args.command == "init_ports":
-        pm = PortManager()
+        pm = PortManager(init_new=True)
         pm.generate_from_source(load=True)
     elif args.command == "generate":
         write_to_console("Generating data")

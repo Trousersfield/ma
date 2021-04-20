@@ -39,7 +39,7 @@ data_ranges = {
     "Under way using engine": {"min": 0., "max": 1.},
     "At anchor": {"min": 0., "max": 1.},
     "Not under command": {"min": 0., "max": 1.},
-    "Restricted manoeuverability": {"min": 0., "max": 1.},
+    "Restricted maneuverability": {"min": 0., "max": 1.},
     "Constrained by her draught": {"min": 0., "max": 1.},
     "Moored": {"min": 0., "max": 1.},
     "Aground": {"min": 0., "max": 1.},
@@ -78,7 +78,7 @@ categorical_values = {
         "Under way using engine",
         "At anchor",
         "Not under command",
-        "Restricted manoeuverability",
+        "Restricted maneuverability",
         "Constrained by her draught",
         "Moored",
         "Aground",
@@ -176,34 +176,52 @@ def compute_mse(y_true: List[torch.Tensor], y_pred: List[torch.Tensor]) -> float
     return mse
 
 
+def encode_pm_file(time: str) -> str:
+    return f"pm-ports_{time}.pkl"
+
+
+def decode_pm_file(file_name: str) -> str:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]
+
+
 def encode_loss_plot(port_name: str, time: str) -> str:
-    return f"{port_name}_{time}_loss.png"
+    return f"loss_{port_name}_{time}.png"
 
 
-def decode_loss_plot(file_name: str) -> Tuple[str, str]:
+def decode_loss_plot(file_name: str) -> Tuple[str, str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1]
-
-
-def encode_model_file(port_name: str, time: str) -> str:
-    return f"{port_name}_{time}.pt"
-
-
-def decode_model_file(file_name: str) -> Tuple[str, str]:
-    file_no_ext = os.path.splitext(file_name)[0]
-    result = file_no_ext.split("_")
-    return result[0], result[1]
+    return result[0], result[1], result[2]
 
 
 def encode_loss_file(port: str, time: str) -> str:
-    return f"{port}_{time}_loss.npy"
+    return f"loss_{port}_{time}_loss.npy"
 
 
-def decode_loss_file(file_name: str) -> Tuple[str, str]:
+def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1]
+    return result[0], result[1], result[2]
+
+
+def encode_model_file(port_name: str, start_time: str, end_time: str) -> str:
+    return f"model_{port_name}_{start_time}_{end_time}.pt"
+
+
+def decode_model_file(file_name: str) -> Tuple[str, str, str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1], result[2], result[3]
+
+
+def num_total_parameters(model) -> int:
+    return sum(p.numel() for p in model.parameters())
+
+
+def num_total_trainable_parameters(model) -> int:
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader, logger,

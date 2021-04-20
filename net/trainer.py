@@ -9,9 +9,11 @@ from logger import Logger
 from plotter import plot_series
 from port import PortManager
 from net.model import InceptionTimeModel
-from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, now
+from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
+    num_total_trainable_parameters
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
+torch.set_printoptions(precision=10)
 
 
 # entry point for training models for each port defined in port manager
@@ -22,13 +24,14 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
         raise ValueError("No port data available")
 
     for _, port in pm.ports.items():
-        train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=5, learning_rate=.01, pm=pm,
+        train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=5, learning_rate=.0001, pm=pm,
               debug=debug)
 
 
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, learning_rate: float = .01,
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, learning_rate: float = .0001,
           pm: PortManager = None, debug: bool = False) -> None:
-    start_time = now()
+    start_datetime = datetime.now()
+    start_time = as_str(start_datetime)
     torch.autograd.set_detect_anomaly(True)
     if pm is None:
         pm = PortManager()
@@ -41,9 +44,9 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     model_dir = os.path.join(output_dir, "model")
     eval_dir = os.path.join(output_dir, "eval")
 
-    log_file_name = f"train-log_{port.name}_{as_str(start_time)}"
+    log_file_name = f"train-log_{port.name}_{start_time}"
     train_logger = Logger(log_file_name, eval_dir)
-    debug_logger = Logger(f"train-log_{port.name}_{as_str(start_time)}_debug", eval_dir)
+    debug_logger = Logger(f"train-log_{port.name}_{start_time}_debug", eval_dir)
 
     # set device: use gpu if available
     # more options: https://pytorch.org/docs/stable/notes/cuda.html
@@ -85,8 +88,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
     params = list(model.parameters())
     print("number of params: ", len(params))
     print("first param's weight: ", params[0].size())
-    train_logger.write(f"{port.name}-model num_epochs: {num_epochs} learning_rate: {learning_rate}, "
-                       f"num_params: {len(params)}")
+    train_logger.write(f"{port.name}-model num_epochs: {num_epochs} learning_rate: {learning_rate}")
 
     # training loop
     for epoch in range(num_epochs):
@@ -103,8 +105,8 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
             # print(f"target data:\n{target}")
             data_tensor = torch.Tensor(train_data).to(device)
             target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
-            # print(f"train tensor:\n{data_tensor.shape}")
-            # print(f"target tensor:\n{target_tensor.shape}")
+            # print(f"train tensor:\n{data_tensor}")
+            # print(f"target tensor:\n{target_tensor}")
 
             if debug:
                 debug_data(data_tensor, target_tensor, train_idx, loader, debug_logger)
@@ -112,7 +114,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
             batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             loss_train += batch_loss
 
-            if loop_idx == 0 or loop_idx == len(train_indices) - 1:
+            if loop_idx % 1000 == 0:
                 print(f"train_tensor: {data_tensor}")
                 print(f"target_tensor: {target_tensor}")
                 print(f"loop idx: {loop_idx} batch loss: {batch_loss}")
@@ -153,16 +155,19 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
                            f"\tAvg train loss {avg_train_loss}\n"
                            f"\tAvg val loss   {avg_validation_loss}")
 
-    curr_datetime = now()
-    end_time = as_str(curr_datetime)
-    model_path = os.path.join(model_dir, encode_model_file(port.name, end_time))
+    end_datetime = datetime.now()
+    end_time = as_str(end_datetime)
+    model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, end_time))
     model.save(model_path)
     loss_history_path = os.path.join(eval_dir, encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
-    pm.add_training(port, curr_datetime, model_path, loss_history_path, os.path.join(eval_dir, f"{log_file_name}.txt"))
+    pm.add_training(port, start_datetime, end_datetime, model_path, loss_history_path,
+                    os.path.join(eval_dir, f"{log_file_name}.txt"))
 
+    train_logger.write(f"Total number of parameters: {num_total_parameters(model)}\n"
+                       f"Total number of trainable parameters: {num_total_trainable_parameters(model)}")
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
-                legend_labels=["Training", "Validation"], x_ticks=1., y_ticks=.2,
+                legend_labels=["Training", "Validation"], x_ticks=1.,
                 path=os.path.join(eval_dir, encode_loss_plot(port.name, end_time)))
 
 

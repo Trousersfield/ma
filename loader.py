@@ -21,7 +21,7 @@ class MmsiDataFile:
 
 
 class TrainingExampleLoader:
-    def __init__(self, data_dir: str = "", train_ratio: float = 0.8, window_width: int = 50) -> None:
+    def __init__(self, data_dir: str = "", train_ratio: float = 0.8, window_width: int = 100) -> None:
         if not .0 < train_ratio < 1.:
             raise ValueError(f"Train ratio of '{train_ratio}' out of range [0, 1]")
         if data_dir == "":
@@ -123,7 +123,10 @@ class TrainingExampleLoader:
         # generate random training, validation and testing data-indices
         rand_indices = np.arange(len(self))
         np.random.shuffle(rand_indices)
-        self.train_indices, remain = np.split(rand_indices, [int(self.train_ratio * len(self))])
+        num_train = int(self.train_ratio * len(self))
+        if not (len(self) - num_train) % 2 == 0 and num_train < len(self):
+            num_train += 1
+        self.train_indices, remain = np.split(rand_indices, [num_train])
         self.validate_indices, self.test_indices = np.split(remain, 2)
 
         joblib.dump(self, self.loader_dir)
@@ -201,7 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("command", choices=["fit", "load", "test", "test_range"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Path to data files")
-    parser.add_argument("--window_width", type=int, default=10, help="Sliding window width of training examples")
+    parser.add_argument("--window_width", type=int, default=100, help="Sliding window width of training examples")
     parser.add_argument("--data_idx", type=int, default=0, help="Data index to retrieve (for testing only)")
     parser.add_argument("--port_name", type=str,
                         help="Name of port to fit data loader. Make sure Port Manager is initialized")
