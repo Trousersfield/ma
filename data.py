@@ -20,7 +20,7 @@ from util import data_ranges, categorical_values, get_destination_file_name, is_
     write_to_console, mc_to_dk, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-logger = Logger(file_name=f"log_{as_str(datetime.now())}")
+logger = Logger(file_name=f"data_log_{as_str(datetime.now())}")
 output_folders = ["encode", "routes", "unlabeled"]
 
 

@@ -206,8 +206,9 @@ def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
-def encode_model_file(port_name: str, start_time: str, end_time: str) -> str:
-    return f"model_{port_name}_{start_time}_{end_time}.pt"
+def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False) -> str:
+    model_type = "checkpoint" if is_checkpoint else "model"
+    return f"{model_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
 def decode_model_file(file_name: str) -> Tuple[str, str, str, str]:

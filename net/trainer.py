@@ -1,19 +1,38 @@
 import argparse
+import joblib
 import numpy as np
 import os
 import torch
 
 from datetime import datetime
+from typing import Dict, List, Tuple
+
 from loader import MmsiDataFile, TrainingExampleLoader
 from logger import Logger
 from plotter import plot_series
-from port import PortManager
+from port import Port, PortManager
 from net.model import InceptionTimeModel
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
-    num_total_trainable_parameters
+    num_total_trainable_parameters, decode_model_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
+
+
+class TrainingCheckpoint:
+    def __init__(self, model_path: str, start_time: str, epoch: int, num_epochs: int, learning_rate: float,
+                 loss_history: Tuple[List[float], List[float]], optimizer: torch.optim.Adam) -> None:
+        self.model_path = model_path
+        self.save_path = os.path.join(os.path.split(model_path)[0], "checkpoint.pkl")
+        self.start_time = start_time
+        self.epoch = epoch
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.loss_history = loss_history
+        self.optimizer = optimizer
+
+    def safe(self):
+        joblib.dump(self, self.save_path)
 
 
 # entry point for training models for each port defined in port manager
@@ -25,11 +44,11 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
 
     for _, port in pm.ports.items():
         train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=5, learning_rate=.0001, pm=pm,
-              debug=debug)
+              resume_checkpoint=False, debug=debug)
 
 
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, learning_rate: float = .0001,
-          pm: PortManager = None, debug: bool = False) -> None:
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, learning_rate: float = .0001,
+          pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False) -> None:
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
     torch.autograd.set_detect_anomaly(True)
@@ -40,24 +59,25 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
             raise ValueError("No port data available")
     port = pm.find_port(port_name)
 
+    output_dirs: Dict[str, str] = {}
+    for kind in ["data", "debug", "model", "plot", "log"]:
+        curr_dir = os.path.join(output_dir, kind, port.name)
+        if not os.path.exists(curr_dir):
+            os.makedirs(curr_dir)
+        output_dirs[kind] = curr_dir
+
     routes_path = os.path.join(data_dir, "routes", port.name)
-    model_dir = os.path.join(output_dir, "model")
-    eval_dir = os.path.join(output_dir, "eval")
+    # eval_dir = os.path.join(output_dir, "eval")
 
     log_file_name = f"train-log_{port.name}_{start_time}"
-    train_logger = Logger(log_file_name, eval_dir)
-    debug_logger = Logger(f"train-log_{port.name}_{start_time}_debug", eval_dir)
+    train_logger = Logger(log_file_name, output_dirs["log"])
+    if debug:
+        debug_logger = Logger(f"train-log_{port.name}_{start_time}_debug", output_dirs["log"])
 
     # set device: use gpu if available
     # more options: https://pytorch.org/docs/stable/notes/cuda.html
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training {port.name}-model. Device: {device}")
-
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-
-    if not os.path.exists(eval_dir):
-        os.makedirs(eval_dir)
 
     loader = TrainingExampleLoader(routes_path)
     loader.load()
@@ -66,32 +86,38 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
         raise ValueError(f"Unable to load data from directory {loader.data_dir}\n"
                          f"Make sure Data loader is fit!")
 
+    # tc: TrainingCheckpoint = TrainingCheckpoint("", 0)
     data, target = loader[0]
     input_dim = data.shape[2]
     output_dim = 1
-
-    model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
-                               bottleneck_channels=8, use_residual=True, output_dim=output_dim)
-    model.to(device)
-    print(f"model:\n{model}")
-
-    # train & validation loss
+    start_epoch = 0
     loss_history = [[], []]
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
-    # test what happens if using "weight_decay" e.g. with 1e-4
-    optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    # resume from a checkpoint if training was aborted
+    if resume_checkpoint:
+        tc = load_checkpoint(output_dirs["model"])
+        model = InceptionTimeModel.load(tc.model_path, device).to(device)
+        start_epoch = tc.epoch
+        start_time = tc.start_time
+        num_epochs = tc.num_epochs
+        learning_rate = tc.learning_rate
+        loss_history = tc.loss_history
+        optimizer: torch.optim.Adam = tc.optimizer
+    else:
+        model = InceptionTimeModel(num_inception_blocks=1, in_channels=input_dim, out_channels=32,
+                                   bottleneck_channels=8, use_residual=True, output_dim=output_dim).to(device)
+        # test what happens if using "weight_decay" e.g. with 1e-4
+        optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    # model.to(device)
+    print(f"model:\n{model}")
     print(f"Starting training from directory {loader.data_dir} on {len(loader)} training examples")
     # print(f"First training example: \n{train_loader[0]}")
-
-    # get learnable parameters
-    params = list(model.parameters())
-    print("number of params: ", len(params))
-    print("first param's weight: ", params[0].size())
     train_logger.write(f"{port.name}-model num_epochs: {num_epochs} learning_rate: {learning_rate}")
 
     # training loop
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch, num_epochs):
         loss_train = 0
         loss_validation = 0
 
@@ -144,12 +170,10 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
         avg_validation_loss = loss_validation / len(loader.validate_indices)
         loss_history[1].append(avg_validation_loss)
 
+        make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
+                                 epoch=epoch, num_epochs=num_epochs, learning_rate=learning_rate,
+                                 loss_history=loss_history, optimizer=optimizer)
         print(f"epoch: {epoch} avg val loss: {avg_validation_loss}")
-
-        if epoch % 20 == 1:
-            print(f"epoch: {epoch} average validation loss: {avg_validation_loss}")
-        # loss_history.append([avg_train_loss, avg_validation_loss])
-        print(f"loss history:\n{loss_history}")
 
         train_logger.write(f"Epoch {epoch + 1}/{num_epochs}:\n"
                            f"\tAvg train loss {avg_train_loss}\n"
@@ -157,18 +181,20 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 5, l
 
     end_datetime = datetime.now()
     end_time = as_str(end_datetime)
-    model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, end_time))
+    model_path = os.path.join(output_dirs["model"], encode_model_file(port.name, start_time, end_time))
     model.save(model_path)
-    loss_history_path = os.path.join(eval_dir, encode_loss_file(port.name, end_time))
+    loss_history_path = os.path.join(output_dirs["data"], encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
     pm.add_training(port, start_datetime, end_datetime, model_path, loss_history_path,
-                    os.path.join(eval_dir, f"{log_file_name}.txt"))
+                    os.path.join(output_dirs["log"], f"{log_file_name}.txt"))
 
     train_logger.write(f"Total number of parameters: {num_total_parameters(model)}\n"
                        f"Total number of trainable parameters: {num_total_trainable_parameters(model)}")
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1.,
-                path=os.path.join(eval_dir, encode_loss_plot(port.name, end_time)))
+                path=os.path.join(output_dirs["plot"], encode_loss_plot(port.name, end_time)))
+
+    remove_training_checkpoint(output_dirs["model"], port, start_time, end_time)
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -180,6 +206,43 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
         loss.backward()
         optimizer.step()
     return loss.item()
+
+
+def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, epoch: int, num_epochs: int,
+                             learning_rate: float, loss_history: Tuple[List[float], List[float]],
+                             optimizer: torch.optim.Adam) -> None:
+    current_time = as_str(datetime.now())
+    model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time, is_checkpoint=True))
+    model.save(model_path)
+    tc = TrainingCheckpoint(model_path=model_path, epoch=epoch, start_time=start_time, num_epochs=num_epochs,
+                            learning_rate=learning_rate, loss_history=loss_history, optimizer=optimizer)
+    tc.safe()
+    # remove previous checkpoint
+    remove_training_checkpoint(model_dir, port, start_time, current_time)
+
+
+def remove_training_checkpoint(model_dir: str, port: Port, start_time: str, current_time: str) -> None:
+    for file in os.listdir(model_dir):
+        if file.startswith("checkpoint_"):
+            _, cp_port_name, cp_start_time, cp_end_time = decode_model_file(file)
+            if cp_port_name == port.name and cp_start_time == start_time and cp_end_time < current_time:
+                os.rmdir(file)
+
+
+def load_checkpoint(model_dir: str) -> TrainingCheckpoint:
+    max_start_time, max_end_time, file_path = None, None, None
+    for file in os.listdir(model_dir):
+        if file.startswith("checkpoint_"):
+            _, port_name, start_time, end_time = decode_model_file(file)
+            if file_path is None or max_start_time < start_time and max_end_time < end_time:
+                max_start_time = start_time
+                max_end_time = end_time
+                file_path = os.path.join(model_dir, file)
+    if file_path is not None:
+        tc: TrainingCheckpoint = joblib.load(file_path)
+        return tc
+    else:
+        raise FileNotFoundError(f"Unable to load training checkpoint from directory {model_dir}")
 
 
 def main(args) -> None:
