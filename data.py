@@ -20,7 +20,7 @@ from util import data_ranges, categorical_values, get_destination_file_name, is_
     write_to_console, mc_to_dk, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-logger = Logger(file_name=f"data_log_{as_str(datetime.now())}")
+logger = Logger(file_name=f"log_data-generation_{as_str(datetime.now())}")
 output_folders = ["encode", "routes", "unlabeled"]
 
 
@@ -353,16 +353,12 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             np.save(data_file_path, data_normalized)
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
-            # joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
-            # joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status",
-            # mmsi)))
+            joblib.dump(ship_type_encoder, os.path.join(output_dir, "encode", port.name, obj_file("ship_type", mmsi)))
+            joblib.dump(nav_status_encoder, os.path.join(output_dir, "encode", port.name, obj_file("nav_status", mmsi)))
 
 
 def main(args) -> None:
-    if args.command == "init_ports":
-        pm = PortManager(init_new=True)
-        pm.generate_from_source(load=True)
-    elif args.command == "generate":
+    if args.command == "generate":
         write_to_console("Generating data")
         generate(args.input_dir, args.output_dir, args.data_source)
     elif args.command == "add_alias":
@@ -383,7 +379,7 @@ if __name__ == "__main__":
     big = "aisdk_20181101.csv"
     data_path = os.path.join(script_dir, "data", "raw", big)
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["init_ports", "generate", "add_alias"])
+    parser.add_argument("command", choices=["generate", "add_alias"])
     parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
                         help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma", "2020"),

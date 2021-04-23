@@ -6,6 +6,7 @@ import os
 import pandas as pd
 
 from logger import Logger
+from training import TrainingIteration, make_training_iteration
 from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name
 
 from datetime import datetime
@@ -13,24 +14,6 @@ from math import radians, cos, sin, asin, sqrt, degrees
 from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-
-
-class TrainingIteration:
-    def __init__(self, start_time: float, end_time: float, model_path: str, loss_path: str, log_path: str):
-        self.start_time = start_time
-        self.end_time = end_time
-        self.model_path = model_path
-        self.loss_path = loss_path
-        self.log_path = log_path
-
-    def __eq__(self, other: any) -> bool:
-        if other is str:
-            return str(self.end_time) == other or str(int(self.end_time)) == other
-        if other is float:
-            return self.end_time == other
-        elif other is TrainingIteration:
-            return self.end_time == other.end_time
-        return False
 
 
 class Port:
@@ -78,7 +61,7 @@ class PortManager:
                     self.port_path = os.path.join(script_dir, encode_pm_file(times[-1]))
                 else:
                     raise ValueError(f"Unable to initialize Port Manager on directory '{script_dir}': "
-                                     f"No 'pm-ports'-file found")
+                                     f"No 'pm-ports'-file found. Initialize new if desired.")
         if os.path.exists(alias_path):
             self.alias_path = alias_path
         else:
@@ -105,7 +88,8 @@ class PortManager:
 
     def load(self) -> None:
         if os.path.exists(self.port_path):
-            self.ports = joblib.load(self.port_path)
+            ports = joblib.load(self.port_path)
+            self.ports = ports
         else:
             print(f"No port definition found at {self.port_path}. Generate from source first.")
         if os.path.exists(self.alias_path):
@@ -188,7 +172,6 @@ class PortManager:
             port = self.find_port(port)
             if port is None:
                 return
-        print(f"port:\n{port}")
         if start_time is datetime:
             start_time = as_float(start_time)
         if end_time is datetime:
@@ -214,14 +197,6 @@ class PortManager:
             if port is not None:
                 port.trainings = {}
         self.save()
-
-
-def make_training_iteration(start_time: float, end_time: float, model_path: str, loss_path: str,
-                            log_path: str) -> TrainingIteration:
-    for kind in [("model", model_path), ("loss", loss_path), ("log", log_path)]:
-        if not os.path.exists(kind[1]):
-            raise ValueError(f"Path for {kind[0]} at '{kind[1]}' does not exist")
-    return TrainingIteration(start_time, end_time, model_path, loss_path, log_path)
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -331,7 +306,10 @@ def agg_ports_info(df: pd.DataFrame, port_info: Dict[str, int] = None) -> Dict[s
 
 
 def main(args) -> None:
-    if args.command == "analyze_csv":
+    if args.command == "init_ports":
+        pm = PortManager(init_new=True)
+        pm.generate_from_source(load=True)
+    elif args.command == "analyze_csv":
         analyze_csv(args.input_dir, args.file_name)
     elif args.command == "test":
         pm = PortManager()
@@ -343,8 +321,8 @@ def main(args) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["analyze_csv", "test"])
+    parser = argparse.ArgumentParser(description="Handle ports")
+    parser.add_argument("command", choices=["init_ports", "analyze_csv", "test"])
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--file_name", type=str,

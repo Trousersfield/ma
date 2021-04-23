@@ -114,7 +114,7 @@ class InceptionTimeModel(nn.Module):
         return [True if i % 3 == 2 else False for i in range(num_of_blocks)]    # each 3rd block uses residual
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # print(f"tensor: {x.size()}")
+        print(f"tensor: {x.shape}")
         x = x.permute(0, 2, 1)  # required format: (N: batch-size, C: channels, L: window-width)
         # print(f"permuted tensor: {x.size()}")
         x = self.inception_blocks(x).mean(dim=-1)   # mean = global average pooling at the end of inception blocks

@@ -1,5 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 
 from matplotlib import ticker
@@ -70,6 +71,24 @@ def plot_series(series: Union[List[float], List[List[float]], List[List[List[flo
         ax.legend(legend_labels)
     if title is not None:
         plt.title(title)
+
+    if path is None:
+        plt.show()
+    else:
+        plt.savefig(path)
+
+
+def plot_bars(data: List[float], bar_labels: List[str], title: str, y_label: str, path: str = None) -> None:
+    fix, ax = plt.subplots()
+    indices = np.arange(len(data))
+
+    p = ax.bar(indices, label="MAEs")
+
+    ax.set_title(title)
+    ax.set_ylabel(y_label)
+    ax.set_xticks(indices)
+    ax.set_xticklabels(bar_labels)
+    # ax.legend()
 
     if path is None:
         plt.show()
