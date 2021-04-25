@@ -1,12 +1,11 @@
 import argparse
-import bisect
-import joblib
+import math
 import numpy as np
 import os
-
 import torch
 
 from port import Port, PortManager
+
 from torch.utils.data import Dataset
 from typing import List, Tuple
 from util import npy_file_len
@@ -14,7 +13,7 @@ from util import npy_file_len
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
-class MmsiDataFile:
+class RouteFile:
     def __init__(self, path: str, length: int):
         self.path = path
         self.length = length
@@ -24,131 +23,184 @@ class MmsiDataFile:
 
 
 class RoutesDirectoryDataset(Dataset):
-    def __init__(self, data_dir: str, start: int = 0, end: int = None, window_width: int = 100) -> None:
+    def __init__(self, data_dir: str, kind: str = None, start: int = 0, end: int = None, window_width: int = 100,
+                 batch_size: int = 1, shuffled_data_indices: List[int] = None) -> None:
         if end is not None and end < start:
             raise ValueError(f"Invalid data indices: start ({start}) < end ({end})")
+        if kind is None:
+            kind = "default"
+        elif kind not in ["default", "train", "validate", "eval"]:
+            raise ValueError(f"Invalid value for parameter 'kind': Not contained in [train, validate, eval]")
         self.data_dir = data_dir
-        self.config_file_name = "dataset_config.pkl"
+        self.kind = kind
+        self.config_file_name = f"{kind}_dataset_config.pkl"
         self.config_path = os.path.join(self.data_dir, self.config_file_name)
         self.start = start
-        self.end = end
         self.window_width = window_width
-        self.size = None
-        self.data_files: List[MmsiDataFile] = []
-        self.access_matrix: np.ndarray = np.array([[-1, -1]])
-        self.shuffled_data_indices: List[int] = []
-        self.load_config()
+        self.batch_size = batch_size
+        self.route_file_paths = list(map(lambda file_name: os.path.join(data_dir, file_name),
+                                         filter(lambda file_name: file_name.startswith("data_"), os.listdir(data_dir))))
+        self.size = sum(map(self._count_data_length, self.route_file_paths))
+        if end is None:
+            self.end = self.size
+        else:
+            assert end <= self.size
+            self.end = end
+        print(f"start: {self.start} end: {self.end}")
+        assert self.start < self.end
+        self.data = list(map(self._read_file, self.route_file_paths))
+        self.access_matrix = self._generate_access_matrix()
+        if shuffled_data_indices is None:
+            self.shuffled_data_indices = self._shuffle_data_indices()
+        else:
+            self.shuffled_data_indices = shuffled_data_indices
 
     def __len__(self):
-        return 0 if self.end is None else self.end - self.start
+        return self.end - self.start
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        self.check_initialized()
-        if len(self) <= idx:
-            raise ValueError(f"Training example with index {idx} out of range [0, {len(self) - 1}]!")
+    def __getitem__(self, batch_idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        if len(self) <= batch_idx:
+            raise ValueError(f"Batch with index {batch_idx} out of range [0, {len(self) - 1}]!")
 
-        shuffled_idx = self.shuffled_data_indices[idx]
-        file_vec = self.access_matrix[shuffled_idx]
-        # print(f"file vec: {file_vec}")
-        data_file = self.data_files[file_vec[0]]
-        # print(f"data file: {data_file.path}")
-        local_file_idx = file_vec[1]
-        # print(f"local file idx: {local_file_idx}")
+        batch_idx = self.start + batch_idx  # transform to start
+        # print(f"batch_idx: {batch_idx}")
+        batch_idx = self.shuffled_data_indices[batch_idx]  # use shuffled indices
+        # print(f"shuffled: {batch_idx}")
+        # start and end (exclusive) entry that belong to batch
+        start = batch_idx * self.batch_size
+        stop = (batch_idx + 1) * self.batch_size
+        # print(f"start: {start} stop: {stop}")
+        if stop > len(self.access_matrix):
+            stop = len(self.access_matrix)
+        file_vectors = self.access_matrix[start:stop, :]
 
-        # TODO: alles in Arbeitsspeicher laden
-        data = np.load(os.path.join(data_file.path))
-        # print("data shape for item {}: {}".format(idx, data.shape))
+        data_tensors: List[torch.Tensor] = []
+        target_tensors: List[torch.Tensor] = []
+        for file_vector in file_vectors:
+            # generate index-matrix to extract window from data
+            index_vector = (np.expand_dims(np.arange(self.window_width), axis=0) + file_vector[1])
+            window = self.data[file_vector[0]][index_vector][0]
+            data_tensors.append(torch.from_numpy(np.array(window[:, :-1])).float())
+            target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
 
-        # generate index-matrix to extract window from data
-        index_vector = (np.expand_dims(np.arange(self.window_width), axis=0) + local_file_idx)
-        # print("index-vector: \n", index_vector)
-
-        # print(f"index_vector: {index_vector}")
-        # print(f"data: {data}")
-
-        window = data[index_vector][0]
-        target = torch.from_numpy(np.array(window[:, -1][len(window) - 1])).float()
-        data = torch.from_numpy(np.array(window[:, :-1])).float()
+        data = torch.stack(data_tensors, dim=0)
+        target = torch.stack(target_tensors, dim=0)
         # print(f"window:\n{window}")
-        # print(f"data:\n{data}")
-        # print(f"target:\n{target}")
+        # print(f"data:\n{data.shape}")
+        # print(f"target:\n{target.shape}")
         return data, target
 
-    def check_initialized(self) -> None:
-        if len(self.data_files) == 0:
-            raise ValueError("Route directory dataset either has no data or is not fit! Run fit() first!")
+    def _count_data_length(self, file_path: str) -> int:
+        num_rows = npy_file_len(file_path) - self.window_width
+        # print(f"num raw rows: {num_rows}")
+        # print(f"num rows with batch size ({self.batch_size}): {int(math.ceil(num_rows / self.batch_size))}")
+        # round up to also get last data-points, even though the batch is smaller than intended
+        return int(math.ceil(num_rows / self.batch_size))
 
-    def load_config(self) -> None:
-        if os.path.exists(self.config_path):
-            rdd: RoutesDirectoryDataset = joblib.load(self.config_path)
-            self.data_dir = rdd.data_dir
-            # self.start = rdd.start
-            # self.end = rdd.end
-            self.window_width = rdd.window_width
-            self.size = rdd.size
-            self.data_files = rdd.data_files
-            self.access_matrix = rdd.access_matrix
-            self.shuffled_data_indices = rdd.shuffled_data_indices
-            if self.end is None:
-                self.end = self.size
-            assert self.end <= self.size
-            print(f"---- Route directory dataset loaded! ----\n"
-                  f"Data dir: {self.data_dir}\n"
-                  f"Start: {self.start} End: {self.end} Files: {len(self.data_files)} Training Examples: {len(self)}")
+    @staticmethod
+    def _read_file(file_path: str) -> np.ndarray:
+        data = np.load(os.path.join(file_path))
+        return data
+
+    @staticmethod
+    def load_from_config(config_path: str, kind: str = None, start: int = None,
+                         end: int = None) -> 'RoutesDirectoryDataset':
+        if os.path.exists(config_path):
+            print(f"Loading dataset from config {config_path}")
+            config = torch.load(config_path)
+            dataset = RoutesDirectoryDataset(data_dir=config["data_dir"],
+                                             kind=config["kind"] if kind is None else kind,
+                                             start=config["start"] if start is None else start,
+                                             end=config["end"] if end is None else end,
+                                             window_width=config["window_width"],
+                                             batch_size=config["batch_size"],
+                                             shuffled_data_indices=config["shuffled_data_indices"])
+            return dataset
         else:
-            print(f"No config found at {self.config_path}. "
-                  f"Run 'fit()' to initialize Dataset for directory {self.data_dir}")
+            print(f"No config found at {config_path}")
 
-    def fit(self) -> None:
-        for idx, file in enumerate(os.listdir(self.data_dir)):
-            # print(f"idx: {idx}")
-            if not file.startswith("data_"):
+    def save_config(self) -> None:
+        print(f"Saving dataset config at {self.config_path}")
+        torch.save({
+            "data_dir": self.data_dir,
+            "kind": self.kind,
+            "start": self.start,
+            "end": self.end,
+            "window_width": self.window_width,
+            "batch_size": self.batch_size,
+            "shuffled_data_indices": self.shuffled_data_indices
+        }, self.config_path)
+
+    def _generate_access_matrix(self) -> np.ndarray:
+        """
+        Generate constant access by indices fit on self.data. access_matrix of n-rows with each row consisting of
+        two columns:
+        [[file_index, internal_data_index],
+         [file_index, internal_data_index],
+         ...]
+        :return: 2-dim array of indices
+        """
+        access_matrix = np.array([[-1, -1]])
+        for index, data in enumerate(self.data):
+            num_rows = data.shape[0] - self.window_width + 1
+            # print(f"file ({index}) num of rows: {num_rows}")
+            if num_rows < 1:  # skip data file if no train example can be extracted
                 continue
-            data_file_path = os.path.join(self.data_dir, file)
-            data_file = MmsiDataFile(data_file_path, npy_file_len(data_file_path))
-            self.data_files.append(data_file)
 
-            num_train_examples = len(data_file) - self.window_width + 1
-            if num_train_examples < 1:  # skip data file if no train example can be extracted
-                continue
+            data_index = np.empty(shape=(num_rows, 1), dtype=int)  # indices of file in folder = position in self.data
+            data_index.fill(index)
+            internal_data_indices = np.arange(num_rows).reshape(-1, 1)  # indices within the current file
+            data_matrix = np.hstack((data_index, internal_data_indices))
 
-            file_idx = np.empty(shape=(num_train_examples, 1), dtype=int)   # array of index of file in folder
-            file_idx.fill(idx)
-            local_file_indices = np.arange(num_train_examples).reshape(-1, 1)   # indices within the current file
-            access_matrix = np.hstack((file_idx, local_file_indices))
-
-            if self.access_matrix[0][0] == -1:
-                self.access_matrix = access_matrix
+            if access_matrix[0][0] == -1:
+                access_matrix = data_matrix
             else:
-                self.access_matrix = np.concatenate([self.access_matrix, access_matrix])
-            # print("concatenated: \n", self.access_matrix)
-            # print("shape: ", self.access_matrix.shape)
+                access_matrix = np.concatenate([access_matrix, data_matrix])
+        return access_matrix
 
-        self.size = self.access_matrix.shape[0]
-        # generate random training, validation and testing data-indices
-        self.shuffled_data_indices = np.arange(self.size)
-        np.random.shuffle(self.shuffled_data_indices)
-        joblib.dump(self, self.config_path)
-        print(f"Dataset config has been fit on directory {self.data_dir}")
+    def _shuffle_data_indices(self) -> np.ndarray:
+        shuffled = np.arange(self.size)
+        np.random.shuffle(shuffled)
+        return shuffled
 
 
 def main(args) -> None:
-    if args.command == "fit":
-        print("Fitting Directory Dataset")
+    if args.command == "generate":
+        print("Generating Directory Dataset")
         pm = PortManager()
         pm.load()
         if len(pm.ports) == 0:
             raise ValueError("Port Manager has no ports. Is it initialized?")
         port = pm.find_port(args.port_name)
-        dataset = RoutesDirectoryDataset(os.path.join(args.data_dir, "routes", port.name))
-        dataset.fit()
-    elif args.command == "load":
-        pm = PortManager()
-        pm.load()
-        if len(pm.ports) == 0:
-            raise ValueError("Port Manager has no ports. Is it initialized?")
-        port = pm.find_port(args.port_name)
-        dataset = RoutesDirectoryDataset(os.path.join(args.data_dir, "routes", port.name))
+        data_dir = os.path.join(args.data_dir, "routes", port.name)
+        batch_size = int(args.batch_size)
+        dataset = RoutesDirectoryDataset(data_dir, batch_size=batch_size, start=0)
+        dataset.save_config()
+        end_train = int(.8 * len(dataset))
+        if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
+            end_train += 1
+        end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
+
+        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
+                                                                end=end_train)
+        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
+                                                                   start=end_train, end=end_validate)
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+
+        print(f"- - - - - Generated Datasets - - - - - -")
+        print(f"Dataset: {len(dataset)}")
+        print(f"Train: {len(train_dataset)}")
+        print(f"Validate: {len(validate_dataset)}")
+        print(f"Eval: {len(eval_dataset)}")
+
+        data, target = dataset[args.data_idx]
+        print(f"Dataset at pos {args.data_idx} has shape {data.shape}. Target shape: {target.shape}")
+        data, target = train_dataset[args.data_idx]
+        print(f"Train at pos {args.data_idx} has shape {data.shape}. Target shape: {target.shape}")
+        data, target = validate_dataset[args.data_idx]
+        print(f"Validate at pos {args.data_idx} has shape {data.shape}. Target shape: {target.shape}")
+        data, target = eval_dataset[args.data_idx]
+        print(f"Validate at pos {args.data_idx} has shape {data.shape}. Target shape: {target.shape}")
     elif args.command == "test":
         print(f"Testing Directory Dataset for port {args.port_name} at index {args.data_idx}")
         if args.port_name is None:
@@ -160,7 +212,8 @@ def main(args) -> None:
         port = pm.find_port(args.port_name)
         if port is None:
             raise ValueError(f"Unable to associate '{args.port_name}' with any port")
-        dataset = RoutesDirectoryDataset(os.path.join(args.data_dir, "routes", port.name))
+        dataset = RoutesDirectoryDataset.load_from_config(os.path.join(args.data_dir, "routes", port.name,
+                                                                       "default_dataset_config.pkl"))
         print(f"Dataset length: {len(dataset)}")
         data, target = dataset[args.data_idx]
         print(f"Data at pos {args.data_idx} of shape {data.shape}:\n{data}")
@@ -171,33 +224,51 @@ def main(args) -> None:
         pm.load()
         if len(pm.ports) == 0:
             raise LookupError("Unable to load ports! Make sure port manager is fit")
-        for port in pm.ports.values():
-            port_dir = os.path.join(args.data_dir, "routes", port.name)
-            if os.path.exists(port_dir):
-                print(f"Testing port {port.name}")
-                dataset = RoutesDirectoryDataset(port_dir)
-                print(f"Dataset length: {len(dataset)}")
-                for i in range(len(dataset)):
-                    try:
-                        _ = dataset[i]
-                    except IndexError:
-                        print(f"Original Exception: {IndexError}")
-                        print(f"Occurred in Directory Dataset while accessing index: {i}")
-                        break
-            else:
-                print(f"Directory {port_dir} does not exist for port {port.name}")
-        print("Done!")
+        port = pm.find_port(args.port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate '{args.port_name}' with any port")
+
+        dataset_dir = os.path.join(args.data_dir, "routes", port.name)
+        # batch_size = int(args.batch_size)
+        dataset = RoutesDirectoryDataset.load_from_config(os.path.join(dataset_dir, "default_dataset_config.pkl"))
+        # dataset.save_config()
+        end_train = int(.8 * len(dataset))
+        if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
+            end_train += 1
+        end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
+
+        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
+                                                                end=end_train)
+        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
+                                                                   start=end_train, end=end_validate)
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+
+        test_dataset(train_dataset, kind="train")
+        test_dataset(validate_dataset, kind="validate")
+        test_dataset(eval_dataset, kind="eval")
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
 
+def test_dataset(dataset, kind: str) -> None:
+    for batch_idx in range(len(dataset)):
+        try:
+            _, _ = dataset[batch_idx]
+        except (IndexError, RuntimeError) as e:
+            print(f"Original Exception: {e}")
+            print(f"Occurred in Directory Dataset '{kind}' while accessing index: {batch_idx}")
+            break
+    print(f"'{kind}' Dataset checked!")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual testing and validating Directory Dataset!")
-    parser.add_argument("command", choices=["fit", "load", "test", "test_range"])
+    parser.add_argument("command", choices=["generate", "test", "test_range"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=100, help="Sliding window width of training examples")
     parser.add_argument("--data_idx", type=int, default=0, help="Data index to retrieve (for testing only)")
     parser.add_argument("--port_name", type=str,
                         help="Name of port to fit Dataset Directory. Make sure Port Manager is initialized")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size to extract from individual files")
     main(parser.parse_args())

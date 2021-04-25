@@ -6,7 +6,7 @@ import torch
 
 from datetime import datetime
 from pytz import timezone
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -90,6 +90,7 @@ categorical_values = {
         "AIS-SART is active"
     ]
 }
+time_format = "%Y%m%d-%H%M%S"
 
 
 def now() -> datetime:
@@ -98,11 +99,15 @@ def now() -> datetime:
 
 
 def as_str(time: datetime) -> str:
-    return datetime.strftime(time, "%Y%m%d-%H%M%S")
+    return datetime.strftime(time, time_format)
 
 
 def as_float(time: datetime) -> float:
     return datetime.timestamp(time)
+
+
+def as_datetime(time: str) -> datetime:
+    return datetime.strptime(time, time_format)
 
 
 def get_device() -> torch.device:
@@ -211,10 +216,16 @@ def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpo
     return f"{model_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
-def decode_model_file(file_name: str) -> Tuple[str, str, str, str]:
+def decode_model_file(file_name: str, times_as_datetime=False) -> Tuple[str, str, Union[str, datetime],
+                                                                        Union[str, datetime]]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2], result[3]
+    start_time = result[2]
+    end_time = result[3]
+    if times_as_datetime:
+        start_time = as_datetime(start_time)
+        end_time = as_datetime(end_time)
+    return result[0], result[1], start_time, end_time
 
 
 def num_total_parameters(model) -> int:
@@ -223,6 +234,15 @@ def num_total_parameters(model) -> int:
 
 def num_total_trainable_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def find_checkpoint_file_path(checkpoint_dir: str) -> str:
+    if not os.path.exists(checkpoint_dir):
+        raise ValueError(f"Unable to find checkpoint file: No such directory: {checkpoint_dir}")
+    for file in os.listdir(checkpoint_dir):
+        if file == "checkpoint.tar":
+            return os.path.join(checkpoint_dir, file)
+    raise FileNotFoundError(f"No file 'checkpoint.tar' in directory {checkpoint_dir}")
 
 
 def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader, logger,

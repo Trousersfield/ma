@@ -7,13 +7,13 @@ from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Union
 
-from dataset import MmsiDataFile, RoutesDirectoryDataset
+from dataset import RouteFile, RoutesDirectoryDataset
 from logger import Logger
 from net.model import InceptionTimeModel
 from plotter import plot_series
 from port import Port, PortManager
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
-    num_total_trainable_parameters, decode_model_file
+    num_total_trainable_parameters, decode_model_file, find_checkpoint_file_path
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
@@ -49,7 +49,7 @@ class TrainingCheckpoint:
     @staticmethod
     def load(checkpoint_path: str, device) -> Tuple['TrainingCheckpoint', InceptionTimeModel]:
         print(f"Loading training checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, device)
         model = InceptionTimeModel.load(checkpoint["model_path"], device)  # .to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=checkpoint["learning_rate"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -114,28 +114,31 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
     batch_size = 32
     window_width = 100
     dataset_dir = os.path.join(data_dir, "routes", port.name)
-    # dataset = RoutesDirectoryDataset(data_dir=dataset_dir, train_ratio=.8, window_width=100)
-    dataset = RoutesDirectoryDataset(data_dir=dataset_dir, window_width=window_width)
-    # eval_dir = os.path.join(output_dir, "eval")
+    dataset_config_path = os.path.join(dataset_dir, "default_dataset_config.pkl")
 
-    if len(dataset) == 0:
-        print(f"No data for port {port.name} available! Make sure Directory Dataset is fit")
-        return
-
-    # rand_indices = np.arange(len(dataset))
-    # np.random.shuffle(rand_indices)
+    # init dataset on directory
+    dataset = RoutesDirectoryDataset(dataset_dir, batch_size=batch_size, start=0, window_width=window_width)
+    if not resume_checkpoint:
+        dataset.save_config()
+    else:
+        if not os.path.exists(dataset_config_path):
+            raise FileNotFoundError(f"Unable to recoder training: No dataset config found at {dataset_config_path}")
+        dataset = RoutesDirectoryDataset.load_from_config(dataset_config_path)
     end_train = int(.8 * len(dataset))
     if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
         end_train += 1
     end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
-    train_dataset = RoutesDirectoryDataset(data_dir=dataset_dir, end=end_train, window_width=window_width)
-    validate_dataset = RoutesDirectoryDataset(data_dir=dataset_dir, start=end_train, end=end_validate,
-                                              window_width=window_width)
+    # use initialized dataset's config for consistent split
+    train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
+                                                            end=end_train)
+    validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
+                                                               start=end_train, end=end_validate)
+    # eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, drop_last=False, pin_memory=True,
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=None, drop_last=False, pin_memory=True,
                                                num_workers=1)
-    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size, drop_last=False,
+    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=None, drop_last=False,
                                                   pin_memory=True, num_workers=1)
 
     # if len(loader) == 0:
@@ -144,7 +147,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
 
     # data, target = loader[0]
     # input_dim = data.shape[2]
-    data, target = dataset[0]
+    data, target = train_dataset[0]
     input_dim = data.size(-1)
     output_dim = 1
     start_epoch = 0
@@ -161,7 +164,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
         loss_history = tc.loss_history
         optimizer: torch.optim.Adam = tc.optimizer
     else:
-        model = InceptionTimeModel(num_inception_blocks=3, in_channels=input_dim, out_channels=32,
+        model = InceptionTimeModel(num_inception_blocks=2, in_channels=input_dim, out_channels=32,
                                    bottleneck_channels=16, use_residual=True, output_dim=output_dim).to(device)
         # test what happens if using "weight_decay" e.g. with 1e-4
         optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -188,23 +191,15 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
 
         # for loop_idx, train_idx in enumerate(train_indices):
         for batch_idx, (train_data, target) in enumerate(train_loader):
-            # TODO: Tensoren
-            # train_data, target = loader[train_idx]
-            # print(f"train data:\n{train_data}")
-            # print(f"target data:\n{target}")
-            # TODO: from_numpy
-            # data_tensor = torch.Tensor(train_data).to(device)
-            # target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
             train_data = train_data.to(device)
-            target = target.unsqueeze(-1).to(device)
+            # target = target.unsqueeze(-1).to(device)
+            target = target.to(device)
             # print(f"train tensor:\n{train_data.shape}")
             # print(f"target tensor:\n{target.shape}")
 
             if debug:
-                # debug_data(data_tensor, target_tensor, train_idx, loader, debug_logger)
                 debug_data(train_data, target, batch_idx, train_loader, debug_logger)
 
-            # batch_loss = make_train_step(data_tensor, target_tensor, optimizer, model, criterion)
             batch_loss = make_train_step(train_data, target, optimizer, model, criterion)
             loss_train += batch_loss
 
@@ -226,19 +221,12 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
 
             # for validate_idx in validate_indices:
             for batch_idx, (validate_data, target) in enumerate(train_loader):
-                # validate_data, target = loader[validate_idx]
-                # validate_tensor = torch.Tensor(validate_data).to(device)
-                # target_tensor = torch.Tensor(target).unsqueeze(-1).to(device)
                 validate_data = validate_data.to(device)
                 target = target.unsqueeze(-1).to(device)
 
                 if debug:
-                    # debug_data(validate_tensor, target_tensor, validate_idx, loader,
-                    #            debug_logger, "Validation")
                     debug_data(validate_data, target, batch_idx, validate_loader, debug_logger, "Validation")
 
-                # batch_loss = make_train_step(validate_tensor, target_tensor, optimizer, model, criterion,
-                #                              training=False)
                 batch_loss = make_train_step(validate_data, target, optimizer, model, criterion, training=False)
 
                 loss_validation += batch_loss
@@ -256,7 +244,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
         make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
                                  epoch=epoch, num_epochs=num_epochs, learning_rate=learning_rate,
                                  loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch)
-        print(f"epoch: {epoch} avg val loss: {avg_validation_loss}")
+        print(f"epoch: {epoch + 1} avg val loss: {avg_validation_loss}")
 
     # save data concerning training
     end_datetime = datetime.now()
@@ -267,12 +255,16 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
     loss_history_path = os.path.join(output_dirs["data"], encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
     model_path = find_model_path(output_dirs["model"], start_time=start_time)
-    pm.add_training(port, start_datetime, end_datetime, model_path, loss_history_path,
-                    os.path.join(output_dirs["log"], f"{log_file_name}.txt"))
 
+    plot_path = os.path.join(output_dirs["plot"], encode_loss_plot(port.name, end_time))
     plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], x_ticks=1.,
-                path=os.path.join(output_dirs["plot"], encode_loss_plot(port.name, end_time)))
+                path=plot_path)
+
+    pm.add_training(port=port, start_time=start_datetime, end_time=end_datetime, model_path=model_path,
+                    data_path=loss_history_path, plot_path=plot_path,
+                    log_path=train_logger.file_path,
+                    debug_path=debug_logger.file_path if debug else None)
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -307,23 +299,13 @@ def remove_previous_checkpoint_model(model_dir: str, port: Port, start_time: str
         if file.startswith("checkpoint_") or (new_optimum and file.startswith("model_")):
             _, cp_port_name, cp_start_time, cp_end_time = decode_model_file(file)
             if cp_port_name == port.name and cp_start_time == start_time and cp_end_time < current_time:
-                os.rmdir(os.path.join(model_dir, file))
+                os.remove(os.path.join(model_dir, file))
 
 
 def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, InceptionTimeModel]:
-    max_start_time, max_end_time, file_path = None, None, None
-    for file in os.listdir(model_dir):
-        if file.startswith("checkpoint_") or file.startswith("model_"):
-            _, _, start_time, end_time = decode_model_file(file)
-            if file_path is None or (max_start_time < start_time and max_end_time < end_time):
-                max_start_time = start_time
-                max_end_time = end_time
-                file_path = os.path.join(model_dir, file)
-    if file_path is not None:
-        tc, model = TrainingCheckpoint.load(file_path, device)
-        return tc, model
-    else:
-        raise FileNotFoundError(f"Unable to load training checkpoint from directory {model_dir}")
+    file_path = find_checkpoint_file_path(model_dir)
+    tc, model = TrainingCheckpoint.load(file_path, device)
+    return tc, model
 
 
 def find_model_path(model_dir: str, start_time: str) -> str:

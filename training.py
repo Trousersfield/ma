@@ -37,9 +37,9 @@ def make_training_iteration(start_time: float, end_time: float, data_path: str, 
         if not os.path.exists(kind[1]):
             raise_path_err(kind[0], kind[1])
     if debug_path is not None and not os.path.exists(debug_path):
-        raise_path_err("log", log_path)
+        raise_path_err("debug", debug_path)
     return TrainingIteration(start_time, end_time, data_path, log_path, model_path, plot_path, debug_path)
 
 
 def raise_path_err(kind: str, path: str) -> None:
-    raise ValueError(f"Path for {kind} at '{path}' does not exist")
+    raise ValueError(f"Path for '{kind}' at '{path}' does not exist")

@@ -167,7 +167,7 @@ class PortManager:
         return df_outside_circle, arrival_times
 
     def add_training(self, port: Union[str, Port], start_time: Union[float, datetime], end_time: Union[float, datetime],
-                     model_path: str, loss_path: str, log_path: str) -> None:
+                     model_path: str, data_path: str, log_path: str, plot_path: str, debug_path: str) -> None:
         if port is str:
             port = self.find_port(port)
             if port is None:
@@ -176,7 +176,10 @@ class PortManager:
             start_time = as_float(start_time)
         if end_time is datetime:
             end_time = as_float(end_time)
-        port.trainings[end_time] = make_training_iteration(start_time, end_time, model_path, loss_path, log_path)
+        port.trainings[end_time] = make_training_iteration(start_time=start_time, end_time=end_time,
+                                                           log_path=log_path, model_path=model_path,
+                                                           data_path=data_path, plot_path=plot_path,
+                                                           debug_path=debug_path)
         self.save()
 
     def remove_training(self, port: Union[str, Port], training_iteration: TrainingIteration) -> None:
