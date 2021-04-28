@@ -4,14 +4,14 @@ import numpy as np
 import os
 
 from matplotlib import ticker
-from typing import List, Union
+from typing import List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 series_colors = ["b", "r", "g"]
 
 
-def plot_series(series: Union[List[float], List[List[float]], List[List[List[float]]]], x_label: str, y_label: str,
+def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float], List[float]]], x_label: str, y_label: str,
                 title: str = None, legend_labels: Union[str, List[str]] = None, x_ticks: float = None,
                 y_ticks: float = None, x_scale: str = None, y_scale: str = None, path: str = None) -> None:
     """

@@ -345,7 +345,6 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # print(f"Shape after all: {data.shape}")
             # print(f"Data:\n{data}")
 
-            # Intuition: MSE loss is huge if target has large values like duration in seconds
             data_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
             # print(f"normalized data:\n{data_normalized}")
 

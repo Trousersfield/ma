@@ -7,7 +7,7 @@ from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Union
 
-from dataset import RouteFile, RoutesDirectoryDataset
+from dataset import RoutesDirectoryDataset
 from logger import Logger
 from net.model import InceptionTimeModel
 from plotter import plot_series
@@ -76,7 +76,10 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
               resume_checkpoint=False, debug=debug)
 
 
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, learning_rate: float = .0001,
+# lr = .0001  --> some jumps
+# lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
+# lr = .00005 --> ?
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00001,
           pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False) -> None:
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
@@ -107,9 +110,6 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
     # more options: https://pytorch.org/docs/stable/notes/cuda.html
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training {port.name}-model. Device: {device}")
-
-    # loader = TrainingExampleLoader(routes_path)
-    # loader.load()
 
     batch_size = 32
     window_width = 100
@@ -151,7 +151,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
     input_dim = data.size(-1)
     output_dim = 1
     start_epoch = 0
-    loss_history = [[], []]
+    loss_history = ([], [])
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
 
     # resume from a checkpoint if training was aborted
@@ -182,55 +182,15 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
     min_val_idx = 0
     # training loop
     for epoch in range(start_epoch, num_epochs):
-        loss_train = 0
-        loss_validation = 0
-
         # train model
-        model.train()
-        # train_indices = loader.shuffled_data_indices(kind="train")
-
-        # for loop_idx, train_idx in enumerate(train_indices):
-        for batch_idx, (train_data, target) in enumerate(train_loader):
-            train_data = train_data.to(device)
-            # target = target.unsqueeze(-1).to(device)
-            target = target.to(device)
-            # print(f"train tensor:\n{train_data.shape}")
-            # print(f"target tensor:\n{target.shape}")
-
-            if debug:
-                debug_data(train_data, target, batch_idx, train_loader, debug_logger)
-
-            batch_loss = make_train_step(train_data, target, optimizer, model, criterion)
-            loss_train += batch_loss
-
-            if batch_idx % 1000 == 0:
-                # print(f"train_tensor: {data_tensor}")
-                # print(f"target_tensor: {target_tensor}")
-                print(f"Loop idx: {batch_idx} batch loss: {batch_loss}")
-                print(f"Loop idx: {batch_idx} loss_train: {loss_train}")
-
-        avg_train_loss = loss_train / len(train_loader)
+        avg_train_loss = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
+                                    loader=train_loader, debug=debug, debug_logger=debug_logger)
         loss_history[0].append(avg_train_loss)
-
         print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         # validate model
-        model.eval()
-        with torch.no_grad():
-            # validate_indices = loader.shuffled_data_indices(kind="validate")
-
-            # for validate_idx in validate_indices:
-            for batch_idx, (validate_data, target) in enumerate(train_loader):
-                validate_data = validate_data.to(device)
-                target = target.unsqueeze(-1).to(device)
-
-                if debug:
-                    debug_data(validate_data, target, batch_idx, validate_loader, debug_logger, "Validation")
-
-                batch_loss = make_train_step(validate_data, target, optimizer, model, criterion, training=False)
-
-                loss_validation += batch_loss
-        avg_validation_loss = loss_validation / len(validate_loader)
+        avg_validation_loss = validate_loop(criterion=criterion, device=device, model=model, optimizer=optimizer,
+                                            loader=validate_loader, debug=debug, debug_logger=debug_logger)
         loss_history[1].append(avg_validation_loss)
 
         # check if current model has lowest validation loss (= is current optimal model)
@@ -246,25 +206,73 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 50, 
                                  loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch)
         print(f"epoch: {epoch + 1} avg val loss: {avg_validation_loss}")
 
-    # save data concerning training
+    # conclude training
     end_datetime = datetime.now()
-    end_time = as_str(end_datetime)
-    remove_previous_checkpoint_model(output_dirs["model"], port, start_time, end_time)
-    # model_path = os.path.join(output_dirs["model"], encode_model_file(port.name, start_time, end_time))
-    # model.save(model_path)
-    loss_history_path = os.path.join(output_dirs["data"], encode_loss_file(port.name, end_time))
-    np.save(loss_history_path, loss_history)
-    model_path = find_model_path(output_dirs["model"], start_time=start_time)
-
-    plot_path = os.path.join(output_dirs["plot"], encode_loss_plot(port.name, end_time))
-    plot_series(series=loss_history, x_label="Epoch", y_label="Loss",
-                legend_labels=["Training", "Validation"], x_ticks=1.,
-                path=plot_path)
+    loss_history_path, model_path, plot_path = conclude_training(loss_history=loss_history, end=end_datetime,
+                                                                 model_dir=output_dirs["model"],
+                                                                 data_dir=output_dirs["data"],
+                                                                 plot_dir=output_dirs["plot"],
+                                                                 port=port, start_time=start_time)
 
     pm.add_training(port=port, start_time=start_datetime, end_time=end_datetime, model_path=model_path,
                     data_path=loss_history_path, plot_path=plot_path,
                     log_path=train_logger.file_path,
                     debug_path=debug_logger.file_path if debug else None)
+
+
+def conclude_training(loss_history: Tuple[List[float], List[float]], end: datetime, model_dir: str, data_dir: str,
+                      plot_dir: str, port: Port, start_time: str,
+                      plot_title: str = "Training loss") -> Tuple[str, str, str]:
+    end_time = as_str(end)
+    remove_previous_checkpoint_model(model_dir, port, start_time, end_time)
+    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time))
+    np.save(loss_history_path, loss_history)
+    model_path = find_model_path(model_dir, start_time=start_time)
+    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, end_time))
+    plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
+                legend_labels=["Training", "Validation"], path=plot_path)
+    plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
+                legend_labels=["Training", "Validation"], y_scale="log",
+                path=os.path.join(plot_dir, encode_loss_plot(f"{port.name}_LOG-SCALE", end_time)))
+    return loss_history_path, model_path, plot_path
+
+
+def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
+    loss = 0
+    model.train()
+    for batch_idx, (inputs, target) in enumerate(loader):
+        inputs = inputs.to(device)
+        target = target.to(device)
+        # print(f"train tensor:\n{train_data.shape}")
+        # print(f"target tensor:\n{target.shape}")
+
+        if debug and debug_logger is not None:
+            debug_data(inputs, target, batch_idx, loader, debug_logger)
+
+        batch_loss = make_train_step(inputs, target, optimizer, model, criterion)
+        loss += batch_loss
+
+        # if batch_idx % 1000 == 0:
+        #     print(f"Loop idx: {batch_idx} batch loss: {batch_loss}")
+        #     print(f"Loop idx: {batch_idx} loss_train: {loss}")
+    return loss / len(loader)
+
+
+def validate_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
+    loss = 0
+    model.eval()
+    with torch.no_grad():
+        for batch_idx, (inputs, target) in enumerate(loader):
+            inputs = inputs.to(device)
+            target = target.to(device)
+
+            if debug and debug_logger is not None:
+                debug_data(inputs, target, batch_idx, loader, debug_logger, "Validation")
+
+            batch_loss = make_train_step(inputs, target, optimizer, model, criterion, training=False)
+
+            loss += batch_loss
+    return loss / len(loader)
 
 
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
@@ -280,10 +288,11 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
 
 def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, epoch: int, num_epochs: int,
                              learning_rate: float, loss_history: Tuple[List[float], List[float]],
-                             optimizer: torch.optim.Adam, is_optimum: bool) -> None:
+                             optimizer: torch.optim.Adam, is_optimum: bool, is_transfer: bool = False) -> None:
     current_time = as_str(datetime.now())
     model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time,
-                                                           is_checkpoint=False if is_optimum else True))
+                                                           is_checkpoint=False if is_optimum else True,
+                                                           is_transfer=is_transfer))
     model.save(model_path)
     tc = TrainingCheckpoint(model_path=model_path, epoch=epoch, start_time=start_time, num_epochs=num_epochs,
                             learning_rate=learning_rate, loss_history=loss_history, optimizer=optimizer,
@@ -308,15 +317,16 @@ def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, Incepti
     return tc, model
 
 
-def find_model_path(model_dir: str, start_time: str) -> str:
+def find_model_path(model_dir: str, start_time: str, transfer: bool = False) -> str:
     result = ""
+    file_kind = "transfer_" if transfer else "model_"
     for file in os.listdir(model_dir):
-        if file.startswith("model_"):
+        if file.startswith(file_kind):
             _, _, file_start_time, file_end_time = decode_model_file(file)
             if file_start_time == start_time:
                 if result != "":
-                    print(f"Warning: Multiple models in directory {model_dir} with same training-time '{start_time}' "
-                          f"detected. Returning latest")
+                    print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same"
+                          f"training-time '{start_time}' detected. Returning latest")
                 result = os.path.join(model_dir, file)
     if result is not None:
         return result

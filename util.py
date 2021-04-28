@@ -1,10 +1,12 @@
+# import datetime as dt
 import numpy as np
 import os
 import pandas as pd
 import re
 import torch
 
-from datetime import datetime
+# from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from typing import List, Tuple, Union
 
@@ -128,6 +130,15 @@ def data_file(mmsi: float) -> str:
     return f"data_{mmsi_str}.npy"
 
 
+def descale_mae(scaled_mae: float, as_duration=False) -> Union[float, str]:
+    scaled_mae = scaled_mae / 2
+    range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
+    mae_eta = scaled_mae * range
+    if as_duration:
+        return str(timedelta(seconds=mae_eta))
+    return mae_eta
+
+
 def obj_file(file_type: str, mmsi: float, suffix: str = None) -> str:
     file_str = str(mmsi)
     if suffix is not None:
@@ -151,7 +162,7 @@ def obj_file(file_type: str, mmsi: float, suffix: str = None) -> str:
 
 
 def npy_file_len(file_path: str) -> int:
-    file = np.load(file_path, mmap_mode="r")
+    file = np.load(file_path, mmap_mode="r", allow_pickle=True)
     return file.shape[0]
 
 
@@ -166,7 +177,6 @@ def compute_mae(y_true: List[torch.Tensor], y_pred: List[torch.Tensor]) -> float
     assert len(y_true) == len(y_pred)
     err = 0
     for i in range(len(y_true)):
-        # TODO: .sum() might not be necessary
         err += abs(y_true[i].sum().to(torch.float32) - y_pred[i].sum().to(torch.float32))
     mae = err / len(y_true)
     return mae
@@ -211,8 +221,9 @@ def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
-def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False) -> str:
-    model_type = "checkpoint" if is_checkpoint else "model"
+def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False,
+                      is_transfer: bool = False) -> str:
+    model_type = "checkpoint" if is_checkpoint else ("transfer" if is_transfer else "model")
     return f"{model_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
@@ -226,6 +237,16 @@ def decode_model_file(file_name: str, times_as_datetime=False) -> Tuple[str, str
         start_time = as_datetime(start_time)
         end_time = as_datetime(end_time)
     return result[0], result[1], start_time, end_time
+
+
+def encode_transfer_result_file(start_time: str, end_time: str) -> str:
+    return f"transfer-result_{start_time}_{end_time}"
+
+
+def decode_transfer_result_file(file_name: str) -> Tuple[str, str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1], result[2]
 
 
 def num_total_parameters(model) -> int:

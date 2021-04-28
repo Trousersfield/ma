@@ -154,6 +154,16 @@ class InceptionTimeModel(nn.Module):
         model = model.to(device)
         return model
 
+    def freeze_inception(self):
+        for block in self.inception_blocks:
+            for param in block.parameters():
+                param.requires_grad = False
+
+    def unfreeze_inception(self):
+        for block in self.inception_blocks:
+            for param in block.parameters():
+                param.requires_grad = True
+
 
 class InceptionBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, use_residual: bool,

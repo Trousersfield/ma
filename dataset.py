@@ -1,25 +1,15 @@
 import argparse
-import math
 import numpy as np
 import os
 import torch
 
-from port import Port, PortManager
-
 from torch.utils.data import Dataset
 from typing import List, Tuple
+
+from port import Port, PortManager
 from util import npy_file_len
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-
-
-class RouteFile:
-    def __init__(self, path: str, length: int):
-        self.path = path
-        self.length = length
-
-    def __len__(self):
-        return self.length
 
 
 class RoutesDirectoryDataset(Dataset):
@@ -38,8 +28,10 @@ class RoutesDirectoryDataset(Dataset):
         self.start = start
         self.window_width = window_width
         self.batch_size = batch_size
+        self.window_vector = np.expand_dims(np.arange(self.window_width), axis=0)
         self.route_file_paths = list(map(lambda file_name: os.path.join(data_dir, file_name),
                                          filter(lambda file_name: file_name.startswith("data_"), os.listdir(data_dir))))
+        self.offsets = []
         self.size = sum(map(self._count_data_length, self.route_file_paths))
         if end is None:
             self.end = self.size
@@ -61,27 +53,37 @@ class RoutesDirectoryDataset(Dataset):
     def __getitem__(self, batch_idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         if len(self) <= batch_idx:
             raise ValueError(f"Batch with index {batch_idx} out of range [0, {len(self) - 1}]!")
-
         batch_idx = self.start + batch_idx  # transform to start
         # print(f"batch_idx: {batch_idx}")
         batch_idx = self.shuffled_data_indices[batch_idx]  # use shuffled indices
         # print(f"shuffled: {batch_idx}")
         # start and end (exclusive) entry that belong to batch
         start = batch_idx * self.batch_size
-        stop = (batch_idx + 1) * self.batch_size
-        # print(f"start: {start} stop: {stop}")
-        if stop > len(self.access_matrix):
-            stop = len(self.access_matrix)
-        file_vectors = self.access_matrix[start:stop, :]
+        end = (batch_idx + 1) * self.batch_size
+        # print(f"start: {start} stop: {end}")
+        if end > len(self.access_matrix):
+            # print(f"len access matrix: {len(self.access_matrix)}")
+            end = len(self.access_matrix - 1)
+        file_vectors = self.access_matrix[start:end, :]
+        # print(f"file vectors:\n{file_vectors}")
 
         data_tensors: List[torch.Tensor] = []
         target_tensors: List[torch.Tensor] = []
+        # print(f"file vectors: {file_vectors}")
         for file_vector in file_vectors:
-            # generate index-matrix to extract window from data
-            index_vector = (np.expand_dims(np.arange(self.window_width), axis=0) + file_vector[1])
+            # generate index-based access vector to extract window from data with offset
+            # print(f"offset: {self.offsets[file_vector[0]]}")
+            index_vector = (self.window_vector + file_vector[1])
+            # print(f"index vector:\n{index_vector}")
+            # print(f"data size: {self.data[file_vector[0]].shape}")
             window = self.data[file_vector[0]][index_vector][0]
-            data_tensors.append(torch.from_numpy(np.array(window[:, :-1])).float())
-            target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
+            # print(f"window:\n{window}")
+            # print(f"data type: {window.dtype}")
+            # data_tensors.append(torch.from_numpy(np.array(window[:, :-1])).float())
+            # target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
+            data_tensors.append(torch.from_numpy(window[:, :-1]))
+            # print(f"target: {window[-1][window[-1].shape[0] - 1]}")
+            target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])))
 
         data = torch.stack(data_tensors, dim=0)
         target = torch.stack(target_tensors, dim=0)
@@ -91,11 +93,20 @@ class RoutesDirectoryDataset(Dataset):
         return data, target
 
     def _count_data_length(self, file_path: str) -> int:
-        num_rows = npy_file_len(file_path) - self.window_width
-        # print(f"num raw rows: {num_rows}")
-        # print(f"num rows with batch size ({self.batch_size}): {int(math.ceil(num_rows / self.batch_size))}")
-        # round up to also get last data-points, even though the batch is smaller than intended
-        return int(math.ceil(num_rows / self.batch_size))
+        data_len = npy_file_len(file_path) - self.window_width + 1
+        # print(f"num raw rows: {data_len}")
+        if data_len < 1:
+            data_len = 0
+        # print(f"num rows with batch size ({self.batch_size}): {int(math.ceil(data_len / self.batch_size))}")
+        # DO NOT round up to also get last data-points, even though the batch is smaller than intended
+        # instead round down to get the exact size of the dataset
+        # TODO: offset data at beginning by number of entries that are lost at the end
+        # trade-off: keep data at the end a series rather than at beginning
+        num_batches, offset = divmod(data_len, self.batch_size)
+        self.offsets.append(offset)
+        # print(f"file index {len(self.offsets) - 1} data len: {data_len} num batches: {num_batches}  offset: {offset}")
+        # return int(data_len / self.batch_size)
+        return num_batches
 
     @staticmethod
     def _read_file(file_path: str) -> np.ndarray:
@@ -142,14 +153,17 @@ class RoutesDirectoryDataset(Dataset):
         """
         access_matrix = np.array([[-1, -1]])
         for index, data in enumerate(self.data):
-            num_rows = data.shape[0] - self.window_width + 1
-            # print(f"file ({index}) num of rows: {num_rows}")
-            if num_rows < 1:  # skip data file if no train example can be extracted
+            # data_len = data.shape[0] - self.window_width + 1
+            data_len = data.shape[0] - self.window_width + 1  # - self.offsets[index]
+            # print(f"file ({index}) source data len: {data.shape[0]} after window ({self.window_width}) "
+            #       f"and offset ({self.offsets[index]}): {data_len}")
+            if data_len < 1:  # skip data file if no train example can be extracted
                 continue
 
-            data_index = np.empty(shape=(num_rows, 1), dtype=int)  # indices of file in folder = position in self.data
+            data_index = np.empty(shape=(data_len - self.offsets[index], 1), dtype=int)
             data_index.fill(index)
-            internal_data_indices = np.arange(num_rows).reshape(-1, 1)  # indices within the current file
+            internal_data_indices = np.arange(self.offsets[index], data_len).reshape(-1, 1)
+            # print(f"internal data indices: {internal_data_indices}")
             data_matrix = np.hstack((data_index, internal_data_indices))
 
             if access_matrix[0][0] == -1:

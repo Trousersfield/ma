@@ -2,45 +2,174 @@ import argparse
 import joblib
 import json
 import os
+import torch
 
 from datetime import datetime
+from torch.utils.data import DataLoader
 from typing import Dict, List, Union
 
+from dataset import RoutesDirectoryDataset
+from logger import Logger
+from net.model import InceptionTimeModel
+from net.trainer import train_loop, validate_loop, make_train_step, make_training_checkpoint, conclude_training
 from port import Port, PortManager
-from util import decode_model_file
+from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class TransferDefinition:
-    def __init__(self, base_model_path: str, target_model_dir: str, target_port: str):
+    def __init__(self, base_port_name: str, base_model_path: str, target_port_name: str, target_data_dir: str,
+                 target_model_dir: str, target_output_data_dir: str, target_plot_dir: str, target_log_dir: str,
+                 learning_rate: float = .0001):
+        if learning_rate > .001:
+            raise ValueError(f"Max value for parameter learning_rate is 0.001 (got {learning_rate})")
+        self.base_port_name = base_port_name
         self.base_model_path = base_model_path
-        self.target_port = target_port
+        self.target_port_name = target_port_name
+        self.target_data_dir = target_data_dir
         self.target_model_dir = target_model_dir
+        self.target_output_data_dir = target_output_data_dir
+        self.target_plot_dir = target_plot_dir
+        self.target_log_dir = target_log_dir
+        self.learning_rate = learning_rate
 
 
 class TransferResult:
-    def __init__(self, transfer_definition: TransferDefinition, start_time: datetime = None):
+    def __init__(self, path: str, transfer_definition: TransferDefinition, start: datetime, end: datetime,
+                 loss_history_path: str, model_path: str, plot_path: str) -> None:
+        self.path = path
         self.transfer_definition = transfer_definition
-        self.start_time = start_time
-        self.end_time = datetime.now()
-        self.result = "Result of transfer"
+        self.start = start
+        self.end = end
+        self.loss_history_path = loss_history_path
+        self.model_path = model_path
+        self.plot_path = plot_path
 
-    def str_start_time(self) -> str:
-        return "no-start-time" if self.start_time is None else datetime.strftime(self.start_time, "%Y%m%d-%H%M%S")
+    def save(self) -> None:
+        torch.save({
+            "path": self.path,
+            "transfer_definition": self.transfer_definition,
+            "start": self.start,
+            "end": self.end,
+            "loss_history_path": self.loss_history_path,
+            "model_path": self.model_path,
+            "plot_path": self.plot_path
+        }, self.path)
 
-    def str_end_time(self) -> str:
-        return datetime.strftime(self.end_time, "%Y%m%d-%H%M%S")
+    @staticmethod
+    def load(path: str) -> 'TransferResult':
+        if os.path.exists(path):
+            file = torch.load(path)
+            result = TransferResult(path=file["path"],
+                                    transfer_definition=file["transfer_definition"],
+                                    start=file["start"], end=file["end"],
+                                    loss_history_path=file["loss_history_path"],
+                                    model_path=file["model_path"], plot_path=file["plot_path"])
+            return result
 
 
-class ModelTransactor:
-    def __init__(self):
-        self.data = "Test"
-        self.transfer_definitions: List[TransferDefinition] = []
+class TransferManager:
+    def __init__(self, config_path: str, data_dir: str):
+        self.config_path = config_path
+        self.data_dir = data_dir
+        self.pm = PortManager()
+        self.pm.load()
+        if len(self.pm.ports.keys()) < 1:
+            raise ValueError("No port data available")
+        self.transfer_definitions = self._generate_transfers()
         self.completed_transfers: List[TransferResult] = []
 
-    def transfer(self, transfer_definition: TransferDefinition) -> TransferResult:
-        result = TransferResult(transfer_definition)
+    def transfer(self, port_name: str) -> TransferResult:
+        port = self.pm.find_port(port_name)
+        p_transfer = self._find_transfer(port)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger = Logger("transfer", p_transfer.target_log_dir)
+        batch_size = 32
+        window_width = 100
+        port = self.pm.find_port(p_transfer.target_port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate transfer-target port name {p_transfer.target_port_name}")
+        dataset = RoutesDirectoryDataset(p_transfer.target_data_dir, batch_size=batch_size, start=0,
+                                         window_width=window_width)
+        dataset_config_path = os.path.join(p_transfer.target_data_dir, "default_dataset_config.pkl")
+        if not os.path.exists(dataset_config_path):
+            dataset.save_config()
+        else:
+            if not os.path.exists(dataset_config_path):
+                raise FileNotFoundError(f"Unable to transfer: No dataset config found at {dataset_config_path}")
+            dataset = RoutesDirectoryDataset.load_from_config(dataset_config_path)
+        end_train = int(.8 * len(dataset))
+        if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
+            end_train += 1
+        end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
+
+        # use initialized dataset's config for consistent split
+        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
+                                                                end=end_train)
+        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
+                                                                   start=end_train, end=end_validate)
+        # eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=None, drop_last=False, pin_memory=True,
+                                                   num_workers=1)
+        validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=None, drop_last=False,
+                                                      pin_memory=True, num_workers=1)
+
+        model = InceptionTimeModel.load(p_transfer.base_model_path, device=device)
+        model.freeze_inception()
+        optimizer: torch.optim.Adam = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+                                                       lr=p_transfer.learning_rate)
+
+        # data, target = train_dataset[0]
+        # input_dim = data.size(-1)
+        # output_dim = 1
+        # start_epoch = 0
+        num_epochs = 50
+        loss_history = ([], [])
+        criterion: torch.nn.MSELoss = torch.nn.MSELoss()
+        min_val_idx = 0
+        start_time = datetime.now()
+        start_time = as_str(start_time)
+
+        # transfer loop
+        for epoch in range(num_epochs):
+            # re-train model-parameters with requires_grad == True
+            avg_train_loss = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
+                                        loader=train_loader)
+            loss_history[0].append(avg_train_loss)
+            print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
+
+            # validate model
+            avg_validation_loss = validate_loop(criterion=criterion, device=device, model=model, optimizer=optimizer,
+                                                loader=validate_loader)
+            loss_history[1].append(avg_validation_loss)
+
+            # check if current model has lowest validation loss (= is current optimal model)
+            if loss_history[1][epoch] < loss_history[1][min_val_idx]:
+                min_val_idx = epoch
+
+            logger.write(f"Epoch {epoch + 1}/{num_epochs}:\n"
+                         f"\tAvg train loss {avg_train_loss}\n"
+                         f"\tAvg val loss   {avg_validation_loss}")
+
+            make_training_checkpoint(model=model, model_dir=p_transfer.target_model_dir, port=port, start_time=start_time,
+                                     epoch=epoch, num_epochs=num_epochs, learning_rate=p_transfer.learning_rate,
+                                     loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch,
+                                     is_transfer=True)
+            print(f"epoch: {epoch + 1} avg val loss: {avg_validation_loss}")
+
+        # conclude transfer
+        end = datetime.now()
+        loss_history_path, model_path, plot_path = conclude_training(loss_history=loss_history, end=end,
+                                                                     model_dir=p_transfer.target_model_dir,
+                                                                     data_dir=p_transfer.target_output_data_dir,
+                                                                     plot_dir=p_transfer.target_plot_dir,
+                                                                     port=port, start_time=start_time)
+
+        tr_path = os.path.join(p_transfer.target_model_dir, encode_transfer_result_file(start_time, as_str(end)))
+        result = TransferResult(path=tr_path, transfer_definition=p_transfer, start=as_datetime(start_time), end=end,
+                                loss_history_path=loss_history_path, model_path=model_path, plot_path=plot_path)
         self.completed_transfers.append(result)
         return result
 
@@ -51,31 +180,38 @@ class ModelTransactor:
             raise FileNotFoundError(f"No transfer definition file found at '{transfer_definition_path}'. "
                                     f"Make sure to generate definitions are generated.")
 
+    def _generate_transfers(self, transfer_latest_model: bool = True) -> List[TransferDefinition]:
+        config = read_json(self.config_path)
+        transfers: List[TransferDefinition] = []
 
-def generate_transfers(config_path: str, transfer_latest_model: bool = True) -> None:
-    pm = PortManager()
-    pm.load()
-    if len(pm.ports.keys()) < 1:
-        raise ValueError("No port data available")
-    config = read_json(config_path)
-    transfers: List[TransferDefinition] = []
+        for transfer_def in config:
+            base_port = self.pm.find_port(transfer_def["base_port"])
+            for target_port_name in transfer_def["target_ports"]:
+                target_port = self.pm.find_port(target_port_name)
 
-    for transfer_def in config:
-        base_port = pm.find_port(transfer_def["base_port"])
-        for target_port_name in transfer_def["target_ports"]:
-            target_port = pm.find_port(target_port_name)
+                if transfer_latest_model:
+                    base_model_path = base_port.trainings[-1].model_path
+                    target_data_dir = os.path.join(self.data_dir, target_port.name)
+                    target_model_dir = os.path.split(base_model_path)[0]
+                    out_dir = os.path.join(target_model_dir, os.pardir)
+                    if not os.path.exists(target_model_dir):
+                        os.makedirs(target_model_dir)
 
-            if transfer_latest_model:
-                base_model_path = base_port.trainings[-1].model_path
-                target_model_dir = os.path.split(base_model_path)[0]
-                if not os.path.exists(target_model_dir):
-                    os.makedirs(target_model_dir)
+                    td = TransferDefinition(base_port_name=base_port.name,
+                                            base_model_path=base_model_path,
+                                            target_port_name=target_port.name,
+                                            target_data_dir=target_data_dir,
+                                            target_model_dir=target_model_dir,
+                                            target_output_data_dir=os.path.join(out_dir, "data", target_port.name),
+                                            target_plot_dir=os.path.join(out_dir, "plot", target_port.name),
+                                            target_log_dir=os.path.join(out_dir, "log", target_port.name))
+                    transfers.append(td)
+        return transfers
 
-                transfers.append(TransferDefinition(base_model_path=base_model_path,
-                                                    target_model_dir=target_model_dir,
-                                                    target_port=target_port.name))
-    # dump in same directory as config
-    joblib.dump(transfers, os.path.join(os.path.split(config_path)[0], "transfer_definitions.pkl"))
+    def _find_transfer(self, port: Port) -> TransferDefinition:
+        for td in self.transfer_definitions:
+            if port.name == td.base_port_name:
+                return td
 
 
 def read_json(path: str) -> json:
@@ -88,29 +224,25 @@ def read_json(path: str) -> json:
 
 
 # entry point for transferring models
-def transfer(td_dir: str) -> None:
-    mt = ModelTransactor()
-    tds = mt.load_transfer_definitions(td_dir)
-
-    for td in tds:
-        result = mt.transfer(td)
+def transfer(config_path: str, port_name: str, data_dir: str) -> None:
+    tm = TransferManager(config_path, data_dir)
+    tm.transfer(port_name=port_name)
 
 
 def main(args) -> None:
     if args.command == "transfer":
-        transfer(args.transfer_dir)
-    elif args.command == "generate":
-        generate_transfers(args.config_path)
+        transfer(args.config_path, args.port_name, args.data_dir)
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["read_ports"])
-    parser.add_argument("--transfer_dir", type=str, default=os.path.join(script_dir, "transfer"),
-                        help="Directory to transfer definition files")
+    parser.add_argument("command", choices=["transfer"])
+    parser.add_argument("port_name", type=str, help="Port to transfer from")
     parser.add_argument("--config_path", type=str, default=os.path.join(script_dir, "transfer", "config.json"),
                         help="Path to file for transfer definition generation")
+    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "routes"),
+                        help="Path to routes-data directory without port")
     main(parser.parse_args())
 

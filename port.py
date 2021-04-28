@@ -44,28 +44,31 @@ class PortManager:
     def __init__(self, init_new: bool = False, port_path: str = "", alias_path: str = "") -> None:
         self.ports: Dict[str, Port] = dict()
         self.alias: Dict[str, str] = dict()
-        if (port_path != "") and os.path.exists(port_path):
-            self.port_path = port_path
-        else:
-            if init_new:
-                now = as_str(datetime.now())
-                self.port_path = os.path.join(script_dir, encode_pm_file(now))
-            else:
-                times = []
-                for idx, data_file in enumerate(os.listdir(script_dir)):
-                    if data_file.startswith("pm-ports_"):
-                        _, time = decode_pm_file(data_file)
-                        times.append(time)
-                if len(times) > 0:
-                    times = sorted(times)
-                    self.port_path = os.path.join(script_dir, encode_pm_file(times[-1]))
-                else:
-                    raise ValueError(f"Unable to initialize Port Manager on directory '{script_dir}': "
-                                     f"No 'pm-ports'-file found. Initialize new if desired.")
+        self.port_path = self._init_port_path(init_new, port_path)
         if os.path.exists(alias_path):
             self.alias_path = alias_path
         else:
             self.alias_path = os.path.join(script_dir, "alias.pkl")
+
+    @staticmethod
+    def _init_port_path(init_new: bool, port_path: str) -> str:
+        if (port_path != "") and os.path.exists(port_path):
+            return port_path
+        elif init_new:
+            now = as_str(datetime.now())
+            return os.path.join(script_dir, encode_pm_file(now))
+        else:  # look for latest pm-ports file
+            times = []
+            for idx, data_file in enumerate(os.listdir(script_dir)):
+                if data_file.startswith("pm-ports_"):
+                    _, time = decode_pm_file(data_file)
+                    times.append(time)
+            if len(times) > 0:
+                times = sorted(times)
+                return os.path.join(script_dir, encode_pm_file(times[-1]))
+            else:
+                raise ValueError(f"Unable to initialize Port Manager on directory '{script_dir}': "
+                                 f"No 'pm-ports'-file found. Initialize new if desired.")
 
     def generate_from_source(self, source_path: str = "", load: bool = False) -> None:
         if source_path == "":
@@ -95,7 +98,7 @@ class PortManager:
         if os.path.exists(self.alias_path):
             self.alias = joblib.load(self.alias_path)
         else:
-            print("No alias definition found at {}".format(self.alias_path))
+            print(f"No alias definition found at {self.alias_path}")
         print(f"Port Manager loaded: {len(self.ports.keys())} ports; {len(self.alias.keys())} alias'")
 
     def save(self) -> None:
@@ -193,7 +196,7 @@ class PortManager:
         else:
             print(f"Training iteration '{training_iteration}' not found for port {port.name}")
 
-    def reset_training(self, ports: Union[List[str], List[Port]]) -> None:
+    def reset_trainings(self, ports: Union[List[str], List[Port]]) -> None:
         for port in ports:
             if port is str:
                 port = self.find_port(port)
