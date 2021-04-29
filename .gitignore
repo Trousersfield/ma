@@ -3,6 +3,8 @@
 
 # Data
 data
+*.txt
+*.pkl
 
 # Output
 output

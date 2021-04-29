@@ -15,8 +15,8 @@ from typing import List, Tuple
 from combiner import RouteCombiner
 from labeler import DurationLabeler
 from logger import Logger
-from port import PortManager
-from util import data_ranges, categorical_values, get_destination_file_name, is_empty, data_file, obj_file,\
+from port import Port, PortManager
+from util import data_ranges, categorical_values, get_destination_file_name, is_empty, encode_data_file, obj_file,\
     write_to_console, mc_to_dk, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -135,7 +135,7 @@ def one_hot_encode(series: pd.Series, ais_col_name: str) -> Tuple[pd.DataFrame, 
                     found = True
                 i += 1
             if not found or s_cat.lower() == "other":
-                print(f"One hot encoding: Unable to map value '{s_cat}' to known category from '{ais_col_name}'")
+                # print(f"One hot encoding: Unable to map value '{s_cat}' to known category from '{ais_col_name}'")
                 series = series.replace(s_cat, f"Other {ais_col_name}")
 
         # print(f"unique values after mapping:\n{series.unique()}")
@@ -263,8 +263,10 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             continue
 
         # init route combiner on existing unlabeled data for current port
+        # rc = RouteCombiner(data_dir=os.path.join(output_dir, "unlabeled", port.name),
+        #                    csv_map_path=os.path.join(output_dir, "raw", "dma", "csv_to_route.json"))
         rc = RouteCombiner(data_dir=os.path.join(output_dir, "unlabeled", port.name),
-                           csv_map_path=os.path.join(output_dir, "raw", "dma", "csv_to_route.json"))
+                           csv_map_path=os.path.join(output_dir, "dma", "combinations.json"))
         rc.fit()
 
         # handle categorical data
@@ -348,7 +350,9 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             data_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
             # print(f"normalized data:\n{data_normalized}")
 
-            data_file_path = os.path.join(output_dir, "routes", port.name, data_file(mmsi))
+            routes_dir = os.path.join(output_dir, "routes", port.name)
+            data_file_path = encode_data_file(mmsi, routes_dir, join=True)
+
             np.save(data_file_path, data_normalized)
 
             joblib.dump(labeler, os.path.join(output_dir, "encode", port.name, obj_file("labeler", mmsi)))
@@ -360,14 +364,6 @@ def main(args) -> None:
     if args.command == "generate":
         write_to_console("Generating data")
         generate(args.input_dir, args.output_dir, args.data_source)
-    elif args.command == "add_alias":
-        pm = PortManager()
-        pm.load()
-        pm.add_alias("PETERSBURG", "ST.PETERSBURG")
-        pm.add_alias("THYBORON", "THYBOROEN")
-        pm.add_alias("ANTWERPEN", "ANTWERP")
-        pm.add_alias("GRENAA", "GRENA")
-        pm.add_alias("GOTEBORG", "GOTHENBURG")
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -378,7 +374,7 @@ if __name__ == "__main__":
     big = "aisdk_20181101.csv"
     data_path = os.path.join(script_dir, "data", "raw", big)
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["generate", "add_alias"])
+    parser.add_argument("command", choices=["generate"])
     parser.add_argument("--data_source", choices=["dma", "mc"], default="dma",
                         help="Source type for raw dataset: 'dma' - Danish Marine Authority, 'mc' - MarineCadastre")
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma", "2020"),

@@ -31,7 +31,7 @@ class Port:
         hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
         self.inner_square_lat_radius = self.km_to_lat(hypotenuse/2)
         self.inner_square_long_radius = self.km_to_long(hypotenuse/2, self.latitude)
-        self.trainings: Dict[float, TrainingIteration] = dict()
+        self.training: TrainingIteration = None
 
     def km_to_lat(self, km: float) -> float:
         return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
@@ -315,6 +315,15 @@ def main(args) -> None:
     if args.command == "init_ports":
         pm = PortManager(init_new=True)
         pm.generate_from_source(load=True)
+    elif args.command == "add_alias":
+        pm = PortManager()
+        pm.load()
+        pm.add_alias("PETERSBURG", "ST.PETERSBURG")
+        pm.add_alias("THYBORON", "THYBOROEN")
+        pm.add_alias("ANTWERPEN", "ANTWERP")
+        pm.add_alias("GRENAA", "GRENA")
+        pm.add_alias("GOTEBORG", "GOTHENBURG")
+        pm.add_alias("HVIDESANDE", "HVIDE SANDE")
     elif args.command == "analyze_csv":
         analyze_csv(args.input_dir, args.file_name)
     elif args.command == "test":
@@ -328,7 +337,7 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Handle ports")
-    parser.add_argument("command", choices=["init_ports", "analyze_csv", "test"])
+    parser.add_argument("command", choices=["init_ports", "add_alias", "analyze_csv", "test"])
     parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--file_name", type=str,

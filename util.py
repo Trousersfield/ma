@@ -125,15 +125,21 @@ def get_destination_file_name(name: any) -> str:
     return re.sub(r'\W', '', dest).upper()
 
 
-def data_file(mmsi: float) -> str:
+def encode_data_file(mmsi: float, data_dir: str = None, join: bool = False) -> str:
     mmsi_str = str(mmsi)
-    return f"data_{mmsi_str}.npy"
+    file_name = f"data_{mmsi_str}"
+    if data_dir is not None and os.path.exists(data_dir):
+        route_files = list(filter(lambda file: file.startswith(file_name), os.listdir(data_dir)))
+        if len(route_files) > 0:
+            file_name = f"{file_name}_{len(route_files)}"
+    file_name = f"{file_name}.npy"
+    return os.path.join(data_dir, file_name) if join else file_name
 
 
 def descale_mae(scaled_mae: float, as_duration=False) -> Union[float, str]:
     scaled_mae = scaled_mae / 2
-    range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
-    mae_eta = scaled_mae * range
+    data_range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
+    mae_eta = scaled_mae * data_range
     if as_duration:
         return str(timedelta(seconds=mae_eta))
     return mae_eta

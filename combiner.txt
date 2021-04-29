@@ -1,0 +1,2274 @@
+Data match: MMSI 219002838 | match min time: 1584174626.0 new data time: 1585699262.0
+	match data lenght: 159224 new data length: 8526result data length: 167750
+Data match: MMSI 219959000 | match min time: 1578170659.0 new data time: 1585699845.0
+	match data lenght: 767699 new data length: 9175result data length: 776874
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1585726682.0
+	match data lenght: 60392 new data length: 1602result data length: 61994
+Data match: MMSI 219025498 | match min time: 1585180908.0 new data time: 1585699320.0
+	match data lenght: 4146 new data length: 141result data length: 4287
+Data match: MMSI 257071530 | match min time: 1585665670.0 new data time: 1585699888.0
+	match data lenght: 1809 new data length: 860result data length: 2669
+Data match: MMSI 219012073 | match min time: 1585180868.0 new data time: 1585699210.0
+	match data lenght: 53292 new data length: 8778result data length: 62070
+Data match: MMSI 219001588 | match min time: 1584294467.0 new data time: 1585699449.0
+	match data lenght: 180245 new data length: 8835result data length: 189080
+Data match: MMSI 211789180 | match min time: 1585671298.0 new data time: 1585699481.0
+	match data lenght: 2837 new data length: 2484result data length: 5321
+Data match: MMSI 219613000 | match min time: 1585676596.0 new data time: 1585699308.0
+	match data lenght: 1651 new data length: 1269result data length: 2920
+Data match: MMSI 258429000 | match min time: 1585669232.0 new data time: 1585699416.0
+	match data lenght: 1663 new data length: 1513result data length: 3176
+Data match: MMSI 246058000 | match min time: 1585696999.0 new data time: 1585699881.0
+	match data lenght: 176 new data length: 1351result data length: 1527
+Data match: MMSI 219468000 | match min time: 1585645111.0 new data time: 1585701184.0
+	match data lenght: 6274 new data length: 3504result data length: 9778
+Data match: MMSI 219449000 | match min time: 1585673990.0 new data time: 1585710388.0
+	match data lenght: 1055 new data length: 813result data length: 1868
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1585699223.0
+	match data lenght: 327975 new data length: 8224result data length: 336199
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1585699352.0
+	match data lenght: 25093 new data length: 2570result data length: 27663
+Data match: MMSI 211533590 | match min time: 1585671777.0 new data time: 1585699496.0
+	match data lenght: 747 new data length: 2664result data length: 3411
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1585701964.0
+	match data lenght: 9933 new data length: 184result data length: 10117
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1585699229.0
+	match data lenght: 209851 new data length: 8507result data length: 218358
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1585699461.0
+	match data lenght: 438151 new data length: 8734result data length: 446885
+Data match: MMSI 218706000 | match min time: 1585635328.0 new data time: 1585699495.0
+	match data lenght: 6252 new data length: 6725result data length: 12977
+Data match: MMSI 219015425 | match min time: 1585659251.0 new data time: 1585699232.0
+	match data lenght: 4248 new data length: 1533result data length: 5781
+Data match: MMSI 257205000 | match min time: 1585584936.0 new data time: 1585699429.0
+	match data lenght: 7429 new data length: 1246result data length: 8675
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1585699318.0
+	match data lenght: 801359 new data length: 8773result data length: 810132
+Data match: MMSI 220075000 | match min time: 1585115136.0 new data time: 1585699345.0
+	match data lenght: 44457 new data length: 8810result data length: 53267
+Data match: MMSI 636010697 | match min time: 1585551780.0 new data time: 1585699349.0
+	match data lenght: 11815 new data length: 188result data length: 12003
+Data match: MMSI 477845200 | match min time: 1585694047.0 new data time: 1585699472.0
+	match data lenght: 525 new data length: 342result data length: 867
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1585699497.0
+	match data lenght: 39247 new data length: 7962result data length: 47209
+Data match: MMSI 277346000 | match min time: 1585684407.0 new data time: 1585699545.0
+	match data lenght: 1518 new data length: 7429result data length: 8947
+Data match: MMSI 371806000 | match min time: 1585695246.0 new data time: 1585699565.0
+	match data lenght: 320 new data length: 8329result data length: 8649
+Data match: MMSI 265610040 | match min time: 1585450384.0 new data time: 1585700007.0
+	match data lenght: 14874 new data length: 11138result data length: 26012
+Data match: MMSI 219355000 | match min time: 1585631437.0 new data time: 1585778511.0
+	match data lenght: 2837 new data length: 59result data length: 2896
+Data match: MMSI 219025390 | match min time: 1585353950.0 new data time: 1585699256.0
+	match data lenght: 2836 new data length: 715result data length: 3551
+Data match: MMSI 219007414 | match min time: 1579882143.0 new data time: 1585699259.0
+	match data lenght: 114327 new data length: 684result data length: 115011
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1585699476.0
+	match data lenght: 81385 new data length: 8932result data length: 90317
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1585699263.0
+	match data lenght: 731879 new data length: 7724result data length: 739603
+Data match: MMSI 538005811 | match min time: 1585696782.0 new data time: 1585699302.0
+	match data lenght: 152 new data length: 6250result data length: 6402
+Data match: MMSI 236313000 | match min time: 1585652131.0 new data time: 1585699312.0
+	match data lenght: 4234 new data length: 8815result data length: 13049
+Data match: MMSI 238013000 | match min time: 1585662962.0 new data time: 1585699323.0
+	match data lenght: 3194 new data length: 8630result data length: 11824
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1585699263.0
+	match data lenght: 11123 new data length: 660result data length: 11783
+Data match: MMSI 235070283 | match min time: 1585482949.0 new data time: 1585699313.0
+	match data lenght: 3860 new data length: 562result data length: 4422
+Data match: MMSI 212636000 | match min time: 1585602297.0 new data time: 1585699478.0
+	match data lenght: 4682 new data length: 1502result data length: 6184
+Data match: MMSI 353221000 | match min time: 1585614808.0 new data time: 1585699521.0
+	match data lenght: 680 new data length: 702result data length: 1382
+Data match: MMSI 231356000 | match min time: 1585663224.0 new data time: 1585699272.0
+	match data lenght: 14666 new data length: 9876result data length: 24542
+Data match: MMSI 314238000 | match min time: 1585654818.0 new data time: 1585699426.0
+	match data lenght: 4401 new data length: 2840result data length: 7241
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1585699274.0
+	match data lenght: 107729 new data length: 7664result data length: 115393
+Data match: MMSI 209536000 | match min time: 1585654260.0 new data time: 1585699293.0
+	match data lenght: 8709 new data length: 990result data length: 9699
+Data match: MMSI 273316400 | match min time: 1585523298.0 new data time: 1585699339.0
+	match data lenght: 16511 new data length: 6977result data length: 23488
+Data match: MMSI 257477000 | match min time: 1585677409.0 new data time: 1585699379.0
+	match data lenght: 1819 new data length: 3128result data length: 4947
+Data match: MMSI 219000186 | match min time: 1582559901.0 new data time: 1585699428.0
+	match data lenght: 23051 new data length: 654result data length: 23705
+Data match: MMSI 266150000 | match min time: 1585590888.0 new data time: 1585699785.0
+	match data lenght: 6229 new data length: 4094result data length: 10323
+Data match: MMSI 377255000 | match min time: 1585627251.0 new data time: 1585699604.0
+	match data lenght: 2847 new data length: 625result data length: 3472
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1585699882.0
+	match data lenght: 25944 new data length: 338result data length: 26282
+Data match: MMSI 230138350 | match min time: 1585607315.0 new data time: 1585709555.0
+	match data lenght: 7742 new data length: 182result data length: 7924
+Data match: MMSI 371806000 | match min time: 1585695246.0 new data time: 1585785604.0
+	match data lenght: 8649 new data length: 6290result data length: 14939
+Data match: MMSI 220075000 | match min time: 1585115136.0 new data time: 1585785608.0
+	match data lenght: 53267 new data length: 8491result data length: 61758
+Data match: MMSI 352497000 | match min time: 1585756463.0 new data time: 1585785623.0
+	match data lenght: 3019 new data length: 8953result data length: 11972
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1585785809.0
+	match data lenght: 2936 new data length: 8710result data length: 11646
+Data match: MMSI 538006216 | match min time: 1585700313.0 new data time: 1585785865.0
+	match data lenght: 8409 new data length: 5765result data length: 14174
+Data match: MMSI 219355000 | match min time: 1585631437.0 new data time: 1585785877.0
+	match data lenght: 2896 new data length: 7198result data length: 10094
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1585785899.0
+	match data lenght: 47209 new data length: 7857result data length: 55066
+Data match: MMSI 277346000 | match min time: 1585684407.0 new data time: 1585785946.0
+	match data lenght: 8947 new data length: 2020result data length: 10967
+Data match: MMSI 538003334 | match min time: 1585749841.0 new data time: 1585786020.0
+	match data lenght: 3113 new data length: 4186result data length: 7299
+Data match: MMSI 265610040 | match min time: 1585450384.0 new data time: 1585787926.0
+	match data lenght: 26012 new data length: 10779result data length: 36791
+Data match: MMSI 219002838 | match min time: 1584174626.0 new data time: 1585785664.0
+	match data lenght: 167750 new data length: 8516result data length: 176266
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1585785724.0
+	match data lenght: 61994 new data length: 8915result data length: 70909
+Data match: MMSI 219751000 | match min time: 1585699384.0 new data time: 1585785789.0
+	match data lenght: 2967 new data length: 197result data length: 3164
+Data match: MMSI 219959000 | match min time: 1578170659.0 new data time: 1585785886.0
+	match data lenght: 776874 new data length: 31result data length: 776905
+Data match: MMSI 219063000 | match min time: 1585781958.0 new data time: 1585785918.0
+	match data lenght: 362 new data length: 8804result data length: 9166
+Data match: MMSI 219001588 | match min time: 1584294467.0 new data time: 1585785847.0
+	match data lenght: 189080 new data length: 3397result data length: 192477
+Data match: MMSI 219012073 | match min time: 1585180868.0 new data time: 1585785963.0
+	match data lenght: 62070 new data length: 8825result data length: 70895
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1585785617.0
+	match data lenght: 3531 new data length: 8924result data length: 12455
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1585785772.0
+	match data lenght: 218358 new data length: 11272result data length: 229630
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1585785863.0
+	match data lenght: 446885 new data length: 8785result data length: 455670
+Data match: MMSI 311000386 | match min time: 1585751657.0 new data time: 1585785679.0
+	match data lenght: 2167 new data length: 900result data length: 3067
+Data match: MMSI 259032000 | match min time: 1585768302.0 new data time: 1585785780.0
+	match data lenght: 1770 new data length: 2032result data length: 3802
+Data match: MMSI 257025000 | match min time: 1585772858.0 new data time: 1585785820.0
+	match data lenght: 1091 new data length: 4389result data length: 5480
+Data match: MMSI 220588000 | match min time: 1585759194.0 new data time: 1585791659.0
+	match data lenght: 1397 new data length: 896result data length: 2293
+Data match: MMSI 258514000 | match min time: 1585749252.0 new data time: 1585792841.0
+	match data lenght: 1959 new data length: 965result data length: 2924
+Data match: MMSI 219011207 | match min time: 1585756279.0 new data time: 1585795935.0
+	match data lenght: 1689 new data length: 1191result data length: 2880
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1585785630.0
+	match data lenght: 1083 new data length: 1784result data length: 2867
+Data match: MMSI 257088370 | match min time: 1585776495.0 new data time: 1585785706.0
+	match data lenght: 1216 new data length: 1192result data length: 2408
+Data match: MMSI 212255000 | match min time: 1585775734.0 new data time: 1585785738.0
+	match data lenght: 324 new data length: 2922result data length: 3246
+Data match: MMSI 255805880 | match min time: 1585779384.0 new data time: 1585785894.0
+	match data lenght: 457 new data length: 5014result data length: 5471
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1585786644.0
+	match data lenght: 26282 new data length: 307result data length: 26589
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1585788395.0
+	match data lenght: 2229 new data length: 2589result data length: 4818
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1585785630.0
+	match data lenght: 336199 new data length: 8075result data length: 344274
+Data match: MMSI 211399000 | match min time: 1585780483.0 new data time: 1585786269.0
+	match data lenght: 471 new data length: 1931result data length: 2402
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1585785721.0
+	match data lenght: 810132 new data length: 8803result data length: 818935
+Data match: MMSI 219347000 | match min time: 1585742653.0 new data time: 1585787653.0
+	match data lenght: 3641 new data length: 1294result data length: 4935
+Data match: MMSI 259631000 | match min time: 1585759623.0 new data time: 1585785725.0
+	match data lenght: 2869 new data length: 2019result data length: 4888
+Data match: MMSI 266465000 | match min time: 1585750782.0 new data time: 1585785807.0
+	match data lenght: 1090 new data length: 6297result data length: 7387
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1585785824.0
+	match data lenght: 11783 new data length: 4277result data length: 16060
+Data match: MMSI 353083000 | match min time: 1585731469.0 new data time: 1585785870.0
+	match data lenght: 3920 new data length: 1439result data length: 5359
+Data match: MMSI 353221000 | match min time: 1585614808.0 new data time: 1585785921.0
+	match data lenght: 1382 new data length: 709result data length: 2091
+Data match: MMSI 266220000 | match min time: 1585782581.0 new data time: 1585787623.0
+	match data lenght: 267 new data length: 4438result data length: 4705
+Data match: MMSI 244790677 | match min time: 1585777974.0 new data time: 1585785893.0
+	match data lenght: 1213 new data length: 1170result data length: 2383
+Data match: MMSI 219007414 | match min time: 1579882143.0 new data time: 1585785662.0
+	match data lenght: 115011 new data length: 704result data length: 115715
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1585785876.0
+	match data lenght: 90317 new data length: 8371result data length: 98688
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1585785664.0
+	match data lenght: 739603 new data length: 7891result data length: 747494
+Data match: MMSI 238013000 | match min time: 1585662962.0 new data time: 1585785764.0
+	match data lenght: 11824 new data length: 3758result data length: 15582
+Data match: MMSI 236313000 | match min time: 1585652131.0 new data time: 1585785852.0
+	match data lenght: 13049 new data length: 6476result data length: 19525
+Data match: MMSI 538005397 | match min time: 1585779013.0 new data time: 1585786212.0
+	match data lenght: 598 new data length: 8118result data length: 8716
+Data match: MMSI 538005811 | match min time: 1585696782.0 new data time: 1585787500.0
+	match data lenght: 6402 new data length: 136result data length: 6538
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1585785675.0
+	match data lenght: 115393 new data length: 7730result data length: 123123
+Data match: MMSI 219025390 | match min time: 1585353950.0 new data time: 1585785794.0
+	match data lenght: 3551 new data length: 710result data length: 4261
+Data match: MMSI 304677000 | match min time: 1585706457.0 new data time: 1585785713.0
+	match data lenght: 8239 new data length: 3233result data length: 11472
+Data match: MMSI 308218000 | match min time: 1585705509.0 new data time: 1585785937.0
+	match data lenght: 7967 new data length: 2813result data length: 10780
+Data match: MMSI 304374000 | match min time: 1585756544.0 new data time: 1585785718.0
+	match data lenght: 1908 new data length: 6802result data length: 8710
+Data match: MMSI 538006475 | match min time: 1585773885.0 new data time: 1585785765.0
+	match data lenght: 1741 new data length: 12718result data length: 14459
+Data match: MMSI 538008566 | match min time: 1585751298.0 new data time: 1585785860.0
+	match data lenght: 1978 new data length: 11923result data length: 13901
+Data match: MMSI 212882000 | match min time: 1585752919.0 new data time: 1585785723.0
+	match data lenght: 3565 new data length: 4977result data length: 8542
+Data match: MMSI 273316400 | match min time: 1585523298.0 new data time: 1585785740.0
+	match data lenght: 23488 new data length: 1114result data length: 24602
+Data match: MMSI 256600000 | match min time: 1585771964.0 new data time: 1585794065.0
+	match data lenght: 1896 new data length: 19592result data length: 21488
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1585785748.0
+	match data lenght: 27663 new data length: 4604result data length: 32267
+Data match: MMSI 236646000 | match min time: 1585707499.0 new data time: 1585785791.0
+	match data lenght: 7025 new data length: 127result data length: 7152
+Data match: MMSI 246321000 | match min time: 1585741173.0 new data time: 1585785842.0
+	match data lenght: 3991 new data length: 2858result data length: 6849
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1585788004.0
+	match data lenght: 10117 new data length: 88result data length: 10205
+Data match: MMSI 211399000 | match min time: 1585780402.0 new data time: 1585826598.0
+	match data lenght: 9 new data length: 5042result data length: 5051
+Data match: MMSI 219437000 | match min time: 1585744275.0 new data time: 1585785749.0
+	match data lenght: 5284 new data length: 2025result data length: 7309
+Data match: MMSI 219829000 | match min time: 1585737760.0 new data time: 1585785899.0
+	match data lenght: 5017 new data length: 222result data length: 5239
+Data match: MMSI 212636000 | match min time: 1585724031.0 new data time: 1585785807.0
+	match data lenght: 1585 new data length: 5797result data length: 7382
+Data match: MMSI 219000186 | match min time: 1582559901.0 new data time: 1585785945.0
+	match data lenght: 23705 new data length: 643result data length: 24348
+Data match: MMSI 219670000 | match min time: 1585845783.0 new data time: 1585872827.0
+	match data lenght: 5000 new data length: 2224result data length: 7224
+Data match: MMSI 244140000 | match min time: 1585870626.0 new data time: 1585873148.0
+	match data lenght: 59 new data length: 2300result data length: 2359
+Data match: MMSI 219330000 | match min time: 1585841263.0 new data time: 1585872109.0
+	match data lenght: 3200 new data length: 1411result data length: 4611
+Data match: MMSI 219025498 | match min time: 1585785742.0 new data time: 1585872144.0
+	match data lenght: 704 new data length: 694result data length: 1398
+Data match: MMSI 219003406 | match min time: 1585848698.0 new data time: 1585872202.0
+	match data lenght: 2384 new data length: 9870result data length: 12254
+Data match: MMSI 219012073 | match min time: 1585180868.0 new data time: 1585872008.0
+	match data lenght: 70895 new data length: 8859result data length: 79754
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1585872122.0
+	match data lenght: 818935 new data length: 8916result data length: 827851
+Data match: MMSI 219026406 | match min time: 1585795726.0 new data time: 1585872045.0
+	match data lenght: 8042 new data length: 4599result data length: 12641
+Data match: MMSI 219002838 | match min time: 1584174626.0 new data time: 1585872066.0
+	match data lenght: 176266 new data length: 8721result data length: 184987
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1585872126.0
+	match data lenght: 70909 new data length: 8529result data length: 79438
+Data match: MMSI 219063000 | match min time: 1585781958.0 new data time: 1585872320.0
+	match data lenght: 9166 new data length: 7829result data length: 16995
+Data match: MMSI 219000186 | match min time: 1582559901.0 new data time: 1585872468.0
+	match data lenght: 24348 new data length: 382result data length: 24730
+Data match: MMSI 352497000 | match min time: 1585756463.0 new data time: 1585872022.0
+	match data lenght: 11972 new data length: 5151result data length: 17123
+Data match: MMSI 316003980 | match min time: 1585814093.0 new data time: 1585872056.0
+	match data lenght: 4845 new data length: 5393result data length: 10238
+Data match: MMSI 371806000 | match min time: 1585695246.0 new data time: 1585872057.0
+	match data lenght: 14939 new data length: 315result data length: 15254
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1585872069.0
+	match data lenght: 11646 new data length: 2458result data length: 14104
+Data match: MMSI 246778000 | match min time: 1585812713.0 new data time: 1585872072.0
+	match data lenght: 5765 new data length: 4944result data length: 10709
+Data match: MMSI 265610040 | match min time: 1585450384.0 new data time: 1585872147.0
+	match data lenght: 36791 new data length: 5117result data length: 41908
+Data match: MMSI 236006000 | match min time: 1585802934.0 new data time: 1585872149.0
+	match data lenght: 2734 new data length: 3475result data length: 6209
+Data match: MMSI 219355000 | match min time: 1585631437.0 new data time: 1585872278.0
+	match data lenght: 10094 new data length: 339result data length: 10433
+Data match: MMSI 244810617 | match min time: 1585815403.0 new data time: 1585872348.0
+	match data lenght: 3313 new data length: 239result data length: 3552
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1585872507.0
+	match data lenght: 55066 new data length: 7824result data length: 62890
+Data match: MMSI 265874000 | match min time: 1585861324.0 new data time: 1585872023.0
+	match data lenght: 895 new data length: 2120result data length: 3015
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1585872325.0
+	match data lenght: 26589 new data length: 317result data length: 26906
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1585872329.0
+	match data lenght: 2867 new data length: 416result data length: 3283
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1585874078.0
+	match data lenght: 4818 new data length: 1311result data length: 6129
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1585872024.0
+	match data lenght: 344274 new data length: 8221result data length: 352495
+Data match: MMSI 211399000 | match min time: 1585780402.0 new data time: 1585872272.0
+	match data lenght: 5051 new data length: 2990result data length: 8041
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1585872321.0
+	match data lenght: 32267 new data length: 1864result data length: 34131
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1585896365.0
+	match data lenght: 10205 new data length: 102result data length: 10307
+Data match: MMSI 219025390 | match min time: 1585353950.0 new data time: 1585872055.0
+	match data lenght: 4261 new data length: 713result data length: 4974
+Data match: MMSI 219024597 | match min time: 1585822564.0 new data time: 1585872264.0
+	match data lenght: 5484 new data length: 5037result data length: 10521
+Data match: MMSI 314433000 | match min time: 1585867929.0 new data time: 1585872973.0
+	match data lenght: 213 new data length: 4957result data length: 5170
+Data match: MMSI 244180240 | match min time: 1585785666.0 new data time: 1585872066.0
+	match data lenght: 711 new data length: 388result data length: 1099
+Data match: MMSI 219309000 | match min time: 1585817678.0 new data time: 1585872038.0
+	match data lenght: 5456 new data length: 3419result data length: 8875
+Data match: MMSI 256600000 | match min time: 1585771964.0 new data time: 1585872043.0
+	match data lenght: 21488 new data length: 19959result data length: 41447
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1585872063.0
+	match data lenght: 16060 new data length: 3798result data length: 19858
+Data match: MMSI 220464000 | match min time: 1585832736.0 new data time: 1585872126.0
+	match data lenght: 5610 new data length: 2235result data length: 7845
+Data match: MMSI 266220000 | match min time: 1585782581.0 new data time: 1585872131.0
+	match data lenght: 4705 new data length: 5217result data length: 9922
+Data match: MMSI 249446000 | match min time: 1585820947.0 new data time: 1585872191.0
+	match data lenght: 3262 new data length: 4499result data length: 7761
+Data match: MMSI 353221000 | match min time: 1585614808.0 new data time: 1585872324.0
+	match data lenght: 2091 new data length: 698result data length: 2789
+Data match: MMSI 236111974 | match min time: 1585833362.0 new data time: 1585872972.0
+	match data lenght: 1249 new data length: 4805result data length: 6054
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1585872064.0
+	match data lenght: 747494 new data length: 7734result data length: 755228
+Data match: MMSI 538005397 | match min time: 1585779013.0 new data time: 1585872335.0
+	match data lenght: 8716 new data length: 5102result data length: 13818
+Data match: MMSI 236313000 | match min time: 1585652131.0 new data time: 1585893538.0
+	match data lenght: 19525 new data length: 502result data length: 20027
+Data match: MMSI 238013000 | match min time: 1585662962.0 new data time: 1585894472.0
+	match data lenght: 15582 new data length: 1681result data length: 17263
+Data match: MMSI 265760070 | match min time: 1585841349.0 new data time: 1585872309.0
+	match data lenght: 2565 new data length: 4048result data length: 6613
+Data match: MMSI 258656000 | match min time: 1585851537.0 new data time: 1585872070.0
+	match data lenght: 1849 new data length: 61result data length: 1910
+Data match: MMSI 246436000 | match min time: 1585833736.0 new data time: 1585872129.0
+	match data lenght: 1734 new data length: 786result data length: 2520
+Data match: MMSI 219007414 | match min time: 1579882143.0 new data time: 1585872073.0
+	match data lenght: 115715 new data length: 715result data length: 116430
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1585872276.0
+	match data lenght: 98688 new data length: 8580result data length: 107268
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1585872090.0
+	match data lenght: 8805 new data length: 8799result data length: 17604
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1585872265.0
+	match data lenght: 455670 new data length: 8883result data length: 464553
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1585872308.0
+	match data lenght: 229630 new data length: 10465result data length: 240095
+Data match: MMSI 218706000 | match min time: 1585785914.0 new data time: 1585872316.0
+	match data lenght: 713 new data length: 512result data length: 1225
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1585872355.0
+	match data lenght: 12455 new data length: 9248result data length: 21703
+Data match: MMSI 538006475 | match min time: 1585773885.0 new data time: 1585872164.0
+	match data lenght: 14459 new data length: 2231result data length: 16690
+Data match: MMSI 538008566 | match min time: 1585751298.0 new data time: 1585872277.0
+	match data lenght: 13901 new data length: 2670result data length: 16571
+Data match: MMSI 244130642 | match min time: 1585802738.0 new data time: 1585872220.0
+	match data lenght: 6885 new data length: 4442result data length: 11327
+Data match: MMSI 566577000 | match min time: 1585813576.0 new data time: 1585872256.0
+	match data lenght: 5464 new data length: 8820result data length: 14284
+Data match: MMSI 304010253 | match min time: 1585807067.0 new data time: 1585872339.0
+	match data lenght: 13722 new data length: 3867result data length: 17589
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1585872425.0
+	match data lenght: 123123 new data length: 7593result data length: 130716
+Data match: MMSI 219025498 | match min time: 1585785742.0 new data time: 1585958546.0
+	match data lenght: 1398 new data length: 237result data length: 1635
+Data match: MMSI 219003406 | match min time: 1585848698.0 new data time: 1585958604.0
+	match data lenght: 12254 new data length: 2334result data length: 14588
+Data match: MMSI 219012073 | match min time: 1585180868.0 new data time: 1585958408.0
+	match data lenght: 79754 new data length: 8861result data length: 88615
+Data match: MMSI 219002838 | match min time: 1584174626.0 new data time: 1585958468.0
+	match data lenght: 184987 new data length: 1688result data length: 186675
+Data match: MMSI 219675000 | match min time: 1585949833.0 new data time: 1585958485.0
+	match data lenght: 730 new data length: 2862result data length: 3592
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1585958528.0
+	match data lenght: 79438 new data length: 8323result data length: 87761
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1585958524.0
+	match data lenght: 827851 new data length: 8778result data length: 836629
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1585958421.0
+	match data lenght: 4100 new data length: 5991result data length: 10091
+Data match: MMSI 219007414 | match min time: 1579882143.0 new data time: 1585958481.0
+	match data lenght: 116430 new data length: 702result data length: 117132
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1585958676.0
+	match data lenght: 107268 new data length: 8833result data length: 116101
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1585958424.0
+	match data lenght: 352495 new data length: 9454result data length: 361949
+Data match: MMSI 211822000 | match min time: 1585892240.0 new data time: 1585958433.0
+	match data lenght: 6466 new data length: 4644result data length: 11110
+Data match: MMSI 230006000 | match min time: 1585951301.0 new data time: 1585958505.0
+	match data lenght: 1150 new data length: 3955result data length: 5105
+Data match: MMSI 304473000 | match min time: 1585915488.0 new data time: 1585958613.0
+	match data lenght: 3121 new data length: 698result data length: 3819
+Data match: MMSI 236263000 | match min time: 1585930485.0 new data time: 1585958627.0
+	match data lenght: 1710 new data length: 1137result data length: 2847
+Data match: MMSI 218715000 | match min time: 1585911812.0 new data time: 1585958647.0
+	match data lenght: 5089 new data length: 1393result data length: 6482
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1585959082.0
+	match data lenght: 26906 new data length: 281result data length: 27187
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1585959451.0
+	match data lenght: 3283 new data length: 227result data length: 3510
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1585961918.0
+	match data lenght: 6129 new data length: 2889result data length: 9018
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1585958719.0
+	match data lenght: 8717 new data length: 5791result data length: 14508
+Data match: MMSI 219001253 | match min time: 1585928891.0 new data time: 1585958451.0
+	match data lenght: 235 new data length: 6808result data length: 7043
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1585958896.0
+	match data lenght: 34131 new data length: 4669result data length: 38800
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1585961165.0
+	match data lenght: 10307 new data length: 267result data length: 10574
+Data match: MMSI 316003980 | match min time: 1585814093.0 new data time: 1585958459.0
+	match data lenght: 10238 new data length: 298result data length: 10536
+Data match: MMSI 538002804 | match min time: 1585889415.0 new data time: 1585958472.0
+	match data lenght: 6739 new data length: 6994result data length: 13733
+Data match: MMSI 246778000 | match min time: 1585812713.0 new data time: 1585958516.0
+	match data lenght: 10709 new data length: 714result data length: 11423
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1585958549.0
+	match data lenght: 62890 new data length: 8066result data length: 70956
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1585958553.0
+	match data lenght: 14104 new data length: 700result data length: 14804
+Data match: MMSI 265610040 | match min time: 1585450384.0 new data time: 1585958571.0
+	match data lenght: 41908 new data length: 791result data length: 42699
+Data match: MMSI 245258000 | match min time: 1585903711.0 new data time: 1585958460.0
+	match data lenght: 5474 new data length: 3230result data length: 8704
+Data match: MMSI 566577000 | match min time: 1585813576.0 new data time: 1585958656.0
+	match data lenght: 14284 new data length: 5914result data length: 20198
+Data match: MMSI 244180240 | match min time: 1585785666.0 new data time: 1585964204.0
+	match data lenght: 1099 new data length: 521result data length: 1620
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1585958477.0
+	match data lenght: 130716 new data length: 7592result data length: 138308
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1585958490.0
+	match data lenght: 17604 new data length: 8806result data length: 26410
+Data match: MMSI 257358000 | match min time: 1585940770.0 new data time: 1585958492.0
+	match data lenght: 1874 new data length: 5527result data length: 7401
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1585958602.0
+	match data lenght: 755228 new data length: 7774result data length: 763002
+Data match: MMSI 304489000 | match min time: 1585877135.0 new data time: 1585958497.0
+	match data lenght: 7937 new data length: 7581result data length: 15518
+Data match: MMSI 205689000 | match min time: 1585928969.0 new data time: 1585958627.0
+	match data lenght: 1215 new data length: 1866result data length: 3081
+Data match: MMSI 255806081 | match min time: 1585889648.0 new data time: 1585958501.0
+	match data lenght: 11040 new data length: 1662result data length: 12702
+Data match: MMSI 219025390 | match min time: 1585353950.0 new data time: 1585958568.0
+	match data lenght: 4974 new data length: 708result data length: 5682
+Data match: MMSI 311000752 | match min time: 1585958168.0 new data time: 1585958536.0
+	match data lenght: 23 new data length: 5055result data length: 5078
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1585958555.0
+	match data lenght: 19858 new data length: 641result data length: 20499
+Data match: MMSI 236111974 | match min time: 1585833362.0 new data time: 1585958702.0
+	match data lenght: 6054 new data length: 531result data length: 6585
+Data match: MMSI 353221000 | match min time: 1585614808.0 new data time: 1585958722.0
+	match data lenght: 2789 new data length: 457result data length: 3246
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1585958667.0
+	match data lenght: 464553 new data length: 6673result data length: 471226
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1585958757.0
+	match data lenght: 21703 new data length: 4478result data length: 26181
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1585958861.0
+	match data lenght: 240095 new data length: 8698result data length: 248793
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586044802.0
+	match data lenght: 10091 new data length: 2079result data length: 12170
+Data match: MMSI 219007414 | match min time: 1579882143.0 new data time: 1586044884.0
+	match data lenght: 117132 new data length: 171result data length: 117303
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586045076.0
+	match data lenght: 116101 new data length: 9206result data length: 125307
+Data match: MMSI 236446000 | match min time: 1585990731.0 new data time: 1586045091.0
+	match data lenght: 4508 new data length: 2682result data length: 7190
+Data match: MMSI 256956000 | match min time: 1586011190.0 new data time: 1586045520.0
+	match data lenght: 3217 new data length: 9139result data length: 12356
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586045118.0
+	match data lenght: 8528 new data length: 6166result data length: 14694
+Data match: MMSI 314500000 | match min time: 1586014437.0 new data time: 1586044807.0
+	match data lenght: 3834 new data length: 14011result data length: 17845
+Data match: MMSI 246843000 | match min time: 1585980324.0 new data time: 1586044998.0
+	match data lenght: 6357 new data length: 6594result data length: 12951
+Data match: MMSI 219012073 | match min time: 1585180868.0 new data time: 1586044810.0
+	match data lenght: 88615 new data length: 2270result data length: 90885
+Data match: MMSI 220461000 | match min time: 1586012022.0 new data time: 1586045143.0
+	match data lenght: 2034 new data length: 2138result data length: 4172
+Data match: MMSI 219010989 | match min time: 1585958750.0 new data time: 1586055385.0
+	match data lenght: 1476 new data length: 2297result data length: 3773
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1586044930.0
+	match data lenght: 87761 new data length: 2194result data length: 89955
+Data match: MMSI 219751000 | match min time: 1585958590.0 new data time: 1586044993.0
+	match data lenght: 2254 new data length: 1310result data length: 3564
+Data match: MMSI 477252900 | match min time: 1586015689.0 new data time: 1586044852.0
+	match data lenght: 2812 new data length: 9422result data length: 12234
+Data match: MMSI 246778000 | match min time: 1585812713.0 new data time: 1586044916.0
+	match data lenght: 11423 new data length: 166result data length: 11589
+Data match: MMSI 538002804 | match min time: 1585889415.0 new data time: 1586044940.0
+	match data lenght: 13733 new data length: 17result data length: 13750
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586044951.0
+	match data lenght: 70956 new data length: 7568result data length: 78524
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586044955.0
+	match data lenght: 14804 new data length: 706result data length: 15510
+Data match: MMSI 219058000 | match min time: 1585975528.0 new data time: 1586045008.0
+	match data lenght: 7294 new data length: 6614result data length: 13908
+Data match: MMSI 247187700 | match min time: 1586000769.0 new data time: 1586045035.0
+	match data lenght: 6079 new data length: 2572result data length: 8651
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586045156.0
+	match data lenght: 4460 new data length: 8095result data length: 12555
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586044827.0
+	match data lenght: 361949 new data length: 9121result data length: 371070
+Data match: MMSI 304559000 | match min time: 1586030081.0 new data time: 1586044847.0
+	match data lenght: 1239 new data length: 3608result data length: 4847
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1586044905.0
+	match data lenght: 14508 new data length: 5264result data length: 19772
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586044926.0
+	match data lenght: 836629 new data length: 8046result data length: 844675
+Data match: MMSI 231774000 | match min time: 1586006987.0 new data time: 1586045148.0
+	match data lenght: 6000 new data length: 5639result data length: 11639
+Data match: MMSI 305286000 | match min time: 1586034934.0 new data time: 1586045020.0
+	match data lenght: 835 new data length: 3902result data length: 4737
+Data match: MMSI 230927000 | match min time: 1586034579.0 new data time: 1586045037.0
+	match data lenght: 1399 new data length: 3427result data length: 4826
+Data match: MMSI 304473000 | match min time: 1585915488.0 new data time: 1586045117.0
+	match data lenght: 3819 new data length: 504result data length: 4323
+Data match: MMSI 265874000 | match min time: 1585991447.0 new data time: 1586045130.0
+	match data lenght: 1708 new data length: 1521result data length: 3229
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1586045132.0
+	match data lenght: 3510 new data length: 539result data length: 4049
+Data match: MMSI 236263000 | match min time: 1585930485.0 new data time: 1586045156.0
+	match data lenght: 2847 new data length: 497result data length: 3344
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586045442.0
+	match data lenght: 9018 new data length: 4857result data length: 13875
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586046205.0
+	match data lenght: 27187 new data length: 354result data length: 27541
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586048070.0
+	match data lenght: 2 new data length: 47result data length: 49
+Data match: MMSI 341365000 | match min time: 1586039806.0 new data time: 1586045208.0
+	match data lenght: 91 new data length: 5647result data length: 5738
+Data match: MMSI 230666000 | match min time: 1585998429.0 new data time: 1586044871.0
+	match data lenght: 4383 new data length: 5772result data length: 10155
+Data match: MMSI 244830182 | match min time: 1586022610.0 new data time: 1586044930.0
+	match data lenght: 1915 new data length: 2318result data length: 4233
+Data match: MMSI 219025390 | match min time: 1585353950.0 new data time: 1586045138.0
+	match data lenght: 5682 new data length: 180result data length: 5862
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586045046.0
+	match data lenght: 10574 new data length: 350result data length: 10924
+Data match: MMSI 211236290 | match min time: 1585977202.0 new data time: 1586048805.0
+	match data lenght: 68 new data length: 2716result data length: 2784
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586058152.0
+	match data lenght: 38800 new data length: 5044result data length: 43844
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586044875.0
+	match data lenght: 138308 new data length: 7640result data length: 145948
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586044892.0
+	match data lenght: 26410 new data length: 8746result data length: 35156
+Data match: MMSI 304374000 | match min time: 1586031586.0 new data time: 1586044911.0
+	match data lenght: 1901 new data length: 8025result data length: 9926
+Data match: MMSI 245258000 | match min time: 1585903711.0 new data time: 1586044992.0
+	match data lenght: 8704 new data length: 3232result data length: 11936
+Data match: MMSI 220500000 | match min time: 1586038898.0 new data time: 1586045014.0
+	match data lenght: 468 new data length: 7316result data length: 7784
+Data match: MMSI 211409100 | match min time: 1585973627.0 new data time: 1586045014.0
+	match data lenght: 6571 new data length: 10002result data length: 16573
+Data match: MMSI 636018222 | match min time: 1585998971.0 new data time: 1586066292.0
+	match data lenght: 285 new data length: 276result data length: 561
+Data match: MMSI 219005059 | match min time: 1585977111.0 new data time: 1586045107.0
+	match data lenght: 5457 new data length: 3774result data length: 9231
+Data match: MMSI 219001253 | match min time: 1585928891.0 new data time: 1586045145.0
+	match data lenght: 7043 new data length: 3845result data length: 10888
+Data match: MMSI 265760070 | match min time: 1585958925.0 new data time: 1586045051.0
+	match data lenght: 7881 new data length: 6203result data length: 14084
+Data match: MMSI 372002000 | match min time: 1585987104.0 new data time: 1586045065.0
+	match data lenght: 7361 new data length: 2102result data length: 9463
+Data match: MMSI 220474000 | match min time: 1586018667.0 new data time: 1586044988.0
+	match data lenght: 1267 new data length: 4896result data length: 6163
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586045041.0
+	match data lenght: 248793 new data length: 8750result data length: 257543
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586045070.0
+	match data lenght: 471226 new data length: 9031result data length: 480257
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586045151.0
+	match data lenght: 26181 new data length: 8670result data length: 34851
+Data match: MMSI 266457000 | match min time: 1585972687.0 new data time: 1586044986.0
+	match data lenght: 11447 new data length: 3861result data length: 15308
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586045020.0
+	match data lenght: 763002 new data length: 7140result data length: 770142
+Data match: MMSI 306832000 | match min time: 1586014986.0 new data time: 1586045274.0
+	match data lenght: 2726 new data length: 4772result data length: 7498
+Data match: MMSI 245741000 | match min time: 1586001419.0 new data time: 1586045340.0
+	match data lenght: 2605 new data length: 1945result data length: 4550
+Data match: MMSI 311059100 | match min time: 1586027070.0 new data time: 1586045439.0
+	match data lenght: 152 new data length: 2001result data length: 2153
+Data match: MMSI 210445000 | match min time: 1585981710.0 new data time: 1586045458.0
+	match data lenght: 5830 new data length: 1698result data length: 7528
+Data match: MMSI 236111974 | match min time: 1585833362.0 new data time: 1586045104.0
+	match data lenght: 6585 new data length: 581result data length: 7166
+Data match: MMSI 265512660 | match min time: 1586024951.0 new data time: 1586045129.0
+	match data lenght: 2033 new data length: 4927result data length: 6960
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1586045583.0
+	match data lenght: 20499 new data length: 643result data length: 21142
+Data match: MMSI 219018009 | match min time: 1586008125.0 new data time: 1586094762.0
+	match data lenght: 642 new data length: 629result data length: 1271
+Data match: MMSI 219019933 | match min time: 1586012150.0 new data time: 1586095460.0
+	match data lenght: 134 new data length: 147result data length: 281
+Data match: MMSI 235114048 | match min time: 1586010781.0 new data time: 1586097292.0
+	match data lenght: 1493 new data length: 830result data length: 2323
+Data match: MMSI 219024900 | match min time: 1586015363.0 new data time: 1586101530.0
+	match data lenght: 639 new data length: 89result data length: 728
+Data match: MMSI 219347000 | match min time: 1586089261.0 new data time: 1586131240.0
+	match data lenght: 2673 new data length: 2022result data length: 4695
+Data match: MMSI 231201000 | match min time: 1586122660.0 new data time: 1586131311.0
+	match data lenght: 685 new data length: 1981result data length: 2666
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586131329.0
+	match data lenght: 844675 new data length: 8357result data length: 853032
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586131356.0
+	match data lenght: 14694 new data length: 4905result data length: 19599
+Data match: MMSI 220623000 | match min time: 1586045073.0 new data time: 1586131475.0
+	match data lenght: 15237 new data length: 13976result data length: 29213
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1586132412.0
+	match data lenght: 89955 new data length: 7048result data length: 97003
+Data match: MMSI 219922000 | match min time: 1586045124.0 new data time: 1586155646.0
+	match data lenght: 3018 new data length: 2417result data length: 5435
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586131225.0
+	match data lenght: 257543 new data length: 10424result data length: 267967
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586131472.0
+	match data lenght: 480257 new data length: 9201result data length: 489458
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586131548.0
+	match data lenght: 34851 new data length: 8647result data length: 43498
+Data match: MMSI 209536000 | match min time: 1586108198.0 new data time: 1586131228.0
+	match data lenght: 2491 new data length: 1653result data length: 4144
+Data match: MMSI 518435000 | match min time: 1586101567.0 new data time: 1586131377.0
+	match data lenght: 1629 new data length: 5259result data length: 6888
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586131229.0
+	match data lenght: 371070 new data length: 8349result data length: 379419
+Data match: MMSI 304585000 | match min time: 1586126558.0 new data time: 1586131239.0
+	match data lenght: 180 new data length: 3944result data length: 4124
+Data match: MMSI 376819000 | match min time: 1586050351.0 new data time: 1586131670.0
+	match data lenght: 7984 new data length: 2081result data length: 10065
+Data match: MMSI 477252900 | match min time: 1586015689.0 new data time: 1586131273.0
+	match data lenght: 12234 new data length: 2620result data length: 14854
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586131353.0
+	match data lenght: 78524 new data length: 7649result data length: 86173
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586131356.0
+	match data lenght: 15510 new data length: 702result data length: 16212
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586131471.0
+	match data lenght: 12555 new data length: 8485result data length: 21040
+Data match: MMSI 230625000 | match min time: 1586085438.0 new data time: 1586131520.0
+	match data lenght: 3473 new data length: 4189result data length: 7662
+Data match: MMSI 266352000 | match min time: 1586090422.0 new data time: 1586131529.0
+	match data lenght: 3098 new data length: 3616result data length: 6714
+Data match: MMSI 257024000 | match min time: 1586113333.0 new data time: 1586131337.0
+	match data lenght: 802 new data length: 3537result data length: 4339
+Data match: MMSI 220446000 | match min time: 1586124950.0 new data time: 1586131430.0
+	match data lenght: 221 new data length: 2071result data length: 2292
+Data match: MMSI 219244000 | match min time: 1586121714.0 new data time: 1586131458.0
+	match data lenght: 912 new data length: 1985result data length: 2897
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1586137287.0
+	match data lenght: 19772 new data length: 5416result data length: 25188
+Data match: MMSI 257723000 | match min time: 1586106681.0 new data time: 1586138794.0
+	match data lenght: 604 new data length: 1435result data length: 2039
+Data match: MMSI 231794000 | match min time: 1586094153.0 new data time: 1586131253.0
+	match data lenght: 2905 new data length: 903result data length: 3808
+Data match: MMSI 314292000 | match min time: 1586060794.0 new data time: 1586131455.0
+	match data lenght: 7772 new data length: 1639result data length: 9411
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586131274.0
+	match data lenght: 145948 new data length: 7105result data length: 153053
+Data match: MMSI 246484000 | match min time: 1586085775.0 new data time: 1586131274.0
+	match data lenght: 4031 new data length: 1446result data length: 5477
+Data match: MMSI 256600000 | match min time: 1586063851.0 new data time: 1586131283.0
+	match data lenght: 5786 new data length: 9027result data length: 14813
+Data match: MMSI 244150276 | match min time: 1586103697.0 new data time: 1586131415.0
+	match data lenght: 2317 new data length: 5562result data length: 7879
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586131294.0
+	match data lenght: 35156 new data length: 8759result data length: 43915
+Data match: MMSI 305559000 | match min time: 1586128704.0 new data time: 1586131396.0
+	match data lenght: 21 new data length: 661result data length: 682
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586131483.0
+	match data lenght: 13875 new data length: 3997result data length: 17872
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586131523.0
+	match data lenght: 27541 new data length: 340result data length: 27881
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1586131535.0
+	match data lenght: 4049 new data length: 610result data length: 4659
+Data match: MMSI 230651000 | match min time: 1586114614.0 new data time: 1586131542.0
+	match data lenght: 1608 new data length: 3701result data length: 5309
+Data match: MMSI 244090800 | match min time: 1586063778.0 new data time: 1586131555.0
+	match data lenght: 9682 new data length: 2924result data length: 12606
+Data match: MMSI 220018000 | match min time: 1586114312.0 new data time: 1586132337.0
+	match data lenght: 1741 new data length: 331result data length: 2072
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586138999.0
+	match data lenght: 49 new data length: 67result data length: 116
+Data match: MMSI 211125170 | match min time: 1586069531.0 new data time: 1586145855.0
+	match data lenght: 4 new data length: 6result data length: 10
+Data match: MMSI 246134000 | match min time: 1586110285.0 new data time: 1586146017.0
+	match data lenght: 585 new data length: 1144result data length: 1729
+Data match: MMSI 341365000 | match min time: 1586039806.0 new data time: 1586131293.0
+	match data lenght: 5738 new data length: 1581result data length: 7319
+Data match: MMSI 266150000 | match min time: 1586112258.0 new data time: 1586132513.0
+	match data lenght: 1620 new data length: 2920result data length: 4540
+Data match: MMSI 220474000 | match min time: 1586100270.0 new data time: 1586131634.0
+	match data lenght: 3256 new data length: 6280result data length: 9536
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586131327.0
+	match data lenght: 12170 new data length: 718result data length: 12888
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586131476.0
+	match data lenght: 125307 new data length: 9029result data length: 134336
+Data match: MMSI 265411000 | match min time: 1586113356.0 new data time: 1586131385.0
+	match data lenght: 2016 new data length: 4593result data length: 6609
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586131422.0
+	match data lenght: 43844 new data length: 7222result data length: 51066
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586131446.0
+	match data lenght: 10924 new data length: 285result data length: 11209
+Data match: MMSI 211222710 | match min time: 1586045240.0 new data time: 1586132002.0
+	match data lenght: 422 new data length: 275result data length: 697
+Data match: MMSI 211236290 | match min time: 1585977202.0 new data time: 1586133046.0
+	match data lenght: 2784 new data length: 1414result data length: 4198
+Data match: MMSI 211212700 | match min time: 1586046736.0 new data time: 1586154161.0
+	match data lenght: 84 new data length: 5result data length: 89
+Data match: MMSI 256243000 | match min time: 1585248934.0 new data time: 1586131355.0
+	match data lenght: 21142 new data length: 966result data length: 22108
+Data match: MMSI 219437000 | match min time: 1586070109.0 new data time: 1586131414.0
+	match data lenght: 9013 new data length: 1854result data length: 10867
+Data match: MMSI 236111974 | match min time: 1585833362.0 new data time: 1586131506.0
+	match data lenght: 7166 new data length: 489result data length: 7655
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586139937.0
+	match data lenght: 3127 new data length: 3817result data length: 6944
+Data match: MMSI 308803000 | match min time: 1586092481.0 new data time: 1586131381.0
+	match data lenght: 5912 new data length: 13286result data length: 19198
+Data match: MMSI 218098000 | match min time: 1586069825.0 new data time: 1586131484.0
+	match data lenght: 1287 new data length: 7767result data length: 9054
+Data match: MMSI 305804000 | match min time: 1586065127.0 new data time: 1586131438.0
+	match data lenght: 6377 new data length: 2846result data length: 9223
+Data match: MMSI 249446000 | match min time: 1586099482.0 new data time: 1586131523.0
+	match data lenght: 3098 new data length: 4608result data length: 7706
+Data match: MMSI 259721000 | match min time: 1586077850.0 new data time: 1586131543.0
+	match data lenght: 5151 new data length: 9795result data length: 14946
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586131791.0
+	match data lenght: 770142 new data length: 7198result data length: 777340
+Data match: MMSI 219024900 | match min time: 1586015363.0 new data time: 1586186680.0
+	match data lenght: 728 new data length: 929result data length: 1657
+Data match: MMSI 220500000 | match min time: 1586038898.0 new data time: 1586131776.0
+	match data lenght: 7784 new data length: 137result data length: 7921
+Data match: MMSI 211409100 | match min time: 1585973627.0 new data time: 1586132918.0
+	match data lenght: 16573 new data length: 2482result data length: 19055
+Data match: MMSI 211589500 | match min time: 1586091324.0 new data time: 1586139627.0
+	match data lenght: 93 new data length: 38result data length: 131
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586217698.0
+	match data lenght: 43915 new data length: 8777result data length: 52692
+Data match: MMSI 219015579 | match min time: 1586161909.0 new data time: 1586217714.0
+	match data lenght: 5908 new data length: 79result data length: 5987
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586218034.0
+	match data lenght: 19599 new data length: 6384result data length: 25983
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586217730.0
+	match data lenght: 853032 new data length: 8787result data length: 861819
+Data match: MMSI 219347000 | match min time: 1586089261.0 new data time: 1586218230.0
+	match data lenght: 4695 new data length: 3199result data length: 7894
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586217943.0
+	match data lenght: 3558 new data length: 4346result data length: 7904
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586217627.0
+	match data lenght: 379419 new data length: 8253result data length: 387672
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586217630.0
+	match data lenght: 51066 new data length: 5210result data length: 56276
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586217846.0
+	match data lenght: 11209 new data length: 334result data length: 11543
+Data match: MMSI 277344000 | match min time: 1586174416.0 new data time: 1586218075.0
+	match data lenght: 3310 new data length: 3679result data length: 6989
+Data match: MMSI 211236290 | match min time: 1585977202.0 new data time: 1586225276.0
+	match data lenght: 4198 new data length: 1410result data length: 5608
+Data match: MMSI 211264530 | match min time: 1586157074.0 new data time: 1586228690.0
+	match data lenght: 1345 new data length: 1940result data length: 3285
+Data match: MMSI 211212700 | match min time: 1586046736.0 new data time: 1586234194.0
+	match data lenght: 89 new data length: 60result data length: 149
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586239314.0
+	match data lenght: 18 new data length: 2018result data length: 2036
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1586217655.0
+	match data lenght: 25188 new data length: 5459result data length: 30647
+Data match: MMSI 219011867 | match min time: 1586131392.0 new data time: 1586217813.0
+	match data lenght: 9405 new data length: 6916result data length: 16321
+Data match: MMSI 219001695 | match min time: 1586131495.0 new data time: 1586217883.0
+	match data lenght: 13565 new data length: 9826result data length: 23391
+Data match: MMSI 220228000 | match min time: 1586131527.0 new data time: 1586218288.0
+	match data lenght: 9428 new data length: 6202result data length: 15630
+Data match: MMSI 244850097 | match min time: 1586172306.0 new data time: 1586218447.0
+	match data lenght: 1863 new data length: 6985result data length: 8848
+Data match: MMSI 211410690 | match min time: 1586171124.0 new data time: 1586217638.0
+	match data lenght: 5154 new data length: 7437result data length: 12591
+Data match: MMSI 312351000 | match min time: 1586197951.0 new data time: 1586217751.0
+	match data lenght: 1461 new data length: 2879result data length: 4340
+Data match: MMSI 219014851 | match min time: 1586131243.0 new data time: 1586217645.0
+	match data lenght: 8052 new data length: 8982result data length: 17034
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1586217735.0
+	match data lenght: 97003 new data length: 1649result data length: 98652
+Data match: MMSI 219001181 | match min time: 1586131432.0 new data time: 1586217832.0
+	match data lenght: 6814 new data length: 8409result data length: 15223
+Data match: MMSI 220623000 | match min time: 1586045073.0 new data time: 1586217877.0
+	match data lenght: 29213 new data length: 8837result data length: 38050
+Data match: MMSI 219862000 | match min time: 1586131547.0 new data time: 1586217950.0
+	match data lenght: 9512 new data length: 3231result data length: 12743
+Data match: MMSI 219421000 | match min time: 1586131215.0 new data time: 1586217977.0
+	match data lenght: 8931 new data length: 10274result data length: 19205
+Data match: MMSI 219922000 | match min time: 1586045124.0 new data time: 1586218288.0
+	match data lenght: 5435 new data length: 5880result data length: 11315
+Data match: MMSI 257039490 | match min time: 1586211531.0 new data time: 1586217656.0
+	match data lenght: 438 new data length: 1854result data length: 2292
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586217821.0
+	match data lenght: 777340 new data length: 7293result data length: 784633
+Data match: MMSI 538005404 | match min time: 1586193876.0 new data time: 1586217864.0
+	match data lenght: 2239 new data length: 9295result data length: 11534
+Data match: MMSI 353221000 | match min time: 1586172201.0 new data time: 1586217898.0
+	match data lenght: 6772 new data length: 5002result data length: 11774
+Data match: MMSI 259721000 | match min time: 1586077850.0 new data time: 1586218288.0
+	match data lenght: 14946 new data length: 2953result data length: 17899
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586217672.0
+	match data lenght: 153053 new data length: 6960result data length: 160013
+Data match: MMSI 209938000 | match min time: 1586161860.0 new data time: 1586217672.0
+	match data lenght: 2684 new data length: 1401result data length: 4085
+Data match: MMSI 305559000 | match min time: 1586128704.0 new data time: 1586217796.0
+	match data lenght: 682 new data length: 646result data length: 1328
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586217924.0
+	match data lenght: 27881 new data length: 369result data length: 28250
+Data match: MMSI 636092923 | match min time: 1585768711.0 new data time: 1586218297.0
+	match data lenght: 4659 new data length: 477result data length: 5136
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586218965.0
+	match data lenght: 17872 new data length: 4664result data length: 22536
+Data match: MMSI 246134000 | match min time: 1586110285.0 new data time: 1586221766.0
+	match data lenght: 1729 new data length: 325result data length: 2054
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586222360.0
+	match data lenght: 116 new data length: 124result data length: 240
+Data match: MMSI 211436320 | match min time: 1586143002.0 new data time: 1586231564.0
+	match data lenght: 29 new data length: 95result data length: 124
+Data match: MMSI 211125170 | match min time: 1586069531.0 new data time: 1586243057.0
+	match data lenght: 10 new data length: 59result data length: 69
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586217756.0
+	match data lenght: 86173 new data length: 7863result data length: 94036
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586217759.0
+	match data lenght: 16212 new data length: 1356result data length: 17568
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586217771.0
+	match data lenght: 21040 new data length: 8618result data length: 29658
+Data match: MMSI 249171000 | match min time: 1586189448.0 new data time: 1586217888.0
+	match data lenght: 2605 new data length: 3141result data length: 5746
+Data match: MMSI 538007932 | match min time: 1586178708.0 new data time: 1586217947.0
+	match data lenght: 5014 new data length: 5202result data length: 10216
+Data match: MMSI 304585000 | match min time: 1586126558.0 new data time: 1586217726.0
+	match data lenght: 4124 new data length: 1276result data length: 5400
+Data match: MMSI 244180240 | match min time: 1586159076.0 new data time: 1586217787.0
+	match data lenght: 6012 new data length: 2532result data length: 8544
+Data match: MMSI 314180000 | match min time: 1586171610.0 new data time: 1586217755.0
+	match data lenght: 4481 new data length: 4009result data length: 8490
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586217784.0
+	match data lenght: 43498 new data length: 8738result data length: 52236
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586217873.0
+	match data lenght: 489458 new data length: 3241result data length: 492699
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586218133.0
+	match data lenght: 267967 new data length: 10404result data length: 278371
+Data match: MMSI 256600000 | match min time: 1586063851.0 new data time: 1586217838.0
+	match data lenght: 14813 new data length: 7743result data length: 22556
+Data match: MMSI 219355000 | match min time: 1586175090.0 new data time: 1586217876.0
+	match data lenght: 4589 new data length: 2201result data length: 6790
+Data match: MMSI 266150000 | match min time: 1586112258.0 new data time: 1586239795.0
+	match data lenght: 4540 new data length: 1825result data length: 6365
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586217876.0
+	match data lenght: 134336 new data length: 8747result data length: 143083
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586217935.0
+	match data lenght: 12888 new data length: 706result data length: 13594
+Data match: MMSI 636017577 | match min time: 1586212167.0 new data time: 1586217928.0
+	match data lenght: 727 new data length: 14593result data length: 15320
+Data match: MMSI 229678000 | match min time: 1586153774.0 new data time: 1586232721.0
+	match data lenght: 274 new data length: 83result data length: 357
+Data match: MMSI 308803000 | match min time: 1586092481.0 new data time: 1586235836.0
+	match data lenght: 19198 new data length: 101result data length: 19299
+Data match: MMSI 218098000 | match min time: 1586069825.0 new data time: 1586239049.0
+	match data lenght: 9054 new data length: 19result data length: 9073
+Data match: MMSI 255805884 | match min time: 1586200529.0 new data time: 1586217940.0
+	match data lenght: 1569 new data length: 2016result data length: 3585
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586218595.0
+	match data lenght: 6944 new data length: 3070result data length: 10014
+Data match: MMSI 304274000 | match min time: 1586173266.0 new data time: 1586217988.0
+	match data lenght: 1796 new data length: 1552result data length: 3348
+Data match: MMSI 211589500 | match min time: 1586091324.0 new data time: 1586221810.0
+	match data lenght: 131 new data length: 202result data length: 333
+Data match: MMSI 538003688 | match min time: 1586158326.0 new data time: 1586227989.0
+	match data lenght: 5 new data length: 144result data length: 149
+Data match: MMSI 244710425 | match min time: 1586209039.0 new data time: 1586233551.0
+	match data lenght: 8 new data length: 41result data length: 49
+Data match: MMSI 219018009 | match min time: 1586181372.0 new data time: 1586266750.0
+	match data lenght: 923 new data length: 831result data length: 1754
+Data match: MMSI 219024900 | match min time: 1586015363.0 new data time: 1586273485.0
+	match data lenght: 1657 new data length: 651result data length: 2308
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586304098.0
+	match data lenght: 52692 new data length: 8809result data length: 61501
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586304438.0
+	match data lenght: 25983 new data length: 7046result data length: 33029
+Data match: MMSI 244770722 | match min time: 1586246167.0 new data time: 1586304196.0
+	match data lenght: 6046 new data length: 4062result data length: 10108
+Data match: MMSI 236111791 | match min time: 1586289800.0 new data time: 1586304203.0
+	match data lenght: 389 new data length: 1849result data length: 2238
+Data match: MMSI 244850097 | match min time: 1586172306.0 new data time: 1586304245.0
+	match data lenght: 8848 new data length: 8767result data length: 17615
+Data match: MMSI 220228000 | match min time: 1586131527.0 new data time: 1586304332.0
+	match data lenght: 15630 new data length: 1691result data length: 17321
+Data match: MMSI 219001695 | match min time: 1586131495.0 new data time: 1586307013.0
+	match data lenght: 23391 new data length: 1174result data length: 24565
+Data match: MMSI 219113000 | match min time: 1586250853.0 new data time: 1586307390.0
+	match data lenght: 3613 new data length: 831result data length: 4444
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1586308136.0
+	match data lenght: 30647 new data length: 4929result data length: 35576
+Data match: MMSI 220588000 | match min time: 1586272448.0 new data time: 1586308297.0
+	match data lenght: 1725 new data length: 980result data length: 2705
+Data match: MMSI 219011867 | match min time: 1586131392.0 new data time: 1586311703.0
+	match data lenght: 16321 new data length: 444result data length: 16765
+Data match: MMSI 219010516 | match min time: 1586302138.0 new data time: 1586327732.0
+	match data lenght: 15 new data length: 725result data length: 740
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586304094.0
+	match data lenght: 29658 new data length: 8620result data length: 38278
+Data match: MMSI 219025390 | match min time: 1586239939.0 new data time: 1586304140.0
+	match data lenght: 8110 new data length: 6163result data length: 14273
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586304157.0
+	match data lenght: 94036 new data length: 8367result data length: 102403
+Data match: MMSI 314437000 | match min time: 1586237211.0 new data time: 1586304174.0
+	match data lenght: 5940 new data length: 2226result data length: 8166
+Data match: MMSI 538008054 | match min time: 1586273785.0 new data time: 1586304224.0
+	match data lenght: 2883 new data length: 8522result data length: 11405
+Data match: MMSI 266460000 | match min time: 1586254930.0 new data time: 1586304251.0
+	match data lenght: 6031 new data length: 3574result data length: 9605
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586304267.0
+	match data lenght: 17568 new data length: 1076result data length: 18644
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586304133.0
+	match data lenght: 861819 new data length: 8737result data length: 870556
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586304251.0
+	match data lenght: 7121 new data length: 9000result data length: 16121
+Data match: MMSI 219421000 | match min time: 1586131215.0 new data time: 1586304019.0
+	match data lenght: 19205 new data length: 8139result data length: 27344
+Data match: MMSI 219014851 | match min time: 1586131243.0 new data time: 1586304047.0
+	match data lenght: 17034 new data length: 2174result data length: 19208
+Data match: MMSI 219002838 | match min time: 1586218034.0 new data time: 1586304076.0
+	match data lenght: 10139 new data length: 9512result data length: 19651
+Data match: MMSI 219751000 | match min time: 1586285116.0 new data time: 1586304199.0
+	match data lenght: 1895 new data length: 8861result data length: 10756
+Data match: MMSI 219026406 | match min time: 1586295937.0 new data time: 1586304226.0
+	match data lenght: 708 new data length: 5686result data length: 6394
+Data match: MMSI 219001181 | match min time: 1586131432.0 new data time: 1586304233.0
+	match data lenght: 15223 new data length: 2238result data length: 17461
+Data match: MMSI 219922000 | match min time: 1586045124.0 new data time: 1586304690.0
+	match data lenght: 11315 new data length: 916result data length: 12231
+Data match: MMSI 219536000 | match min time: 1584576095.0 new data time: 1586306296.0
+	match data lenght: 98652 new data length: 1638result data length: 100290
+Data match: MMSI 304374000 | match min time: 1586296458.0 new data time: 1586304021.0
+	match data lenght: 378 new data length: 7397result data length: 7775
+Data match: MMSI 212037000 | match min time: 1586291138.0 new data time: 1586304099.0
+	match data lenght: 1600 new data length: 14058result data length: 15658
+Data match: MMSI 246227000 | match min time: 1586275456.0 new data time: 1586304289.0
+	match data lenght: 227 new data length: 5341result data length: 5568
+Data match: MMSI 244780424 | match min time: 1586274390.0 new data time: 1586304312.0
+	match data lenght: 2223 new data length: 8916result data length: 11139
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586305063.0
+	match data lenght: 7904 new data length: 7152result data length: 15056
+Data match: MMSI 218292000 | match min time: 1586270029.0 new data time: 1586304028.0
+	match data lenght: 3372 new data length: 3072result data length: 6444
+Data match: MMSI 314238000 | match min time: 1586288640.0 new data time: 1586304147.0
+	match data lenght: 716 new data length: 2972result data length: 3688
+Data match: MMSI 253454000 | match min time: 1586222218.0 new data time: 1586305098.0
+	match data lenght: 45 new data length: 1426result data length: 1471
+Data match: MMSI 236476000 | match min time: 1586231259.0 new data time: 1586306141.0
+	match data lenght: 47 new data length: 80result data length: 127
+Data match: MMSI 244710425 | match min time: 1586209039.0 new data time: 1586306727.0
+	match data lenght: 49 new data length: 156result data length: 205
+Data match: MMSI 538003688 | match min time: 1586158326.0 new data time: 1586309161.0
+	match data lenght: 149 new data length: 38result data length: 187
+Data match: MMSI 211589500 | match min time: 1586091324.0 new data time: 1586313369.0
+	match data lenght: 333 new data length: 3result data length: 336
+Data match: MMSI 253690000 | match min time: 1586260510.0 new data time: 1586318111.0
+	match data lenght: 2551 new data length: 33result data length: 2584
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586304029.0
+	match data lenght: 387672 new data length: 8194result data length: 395866
+Data match: MMSI 209536000 | match min time: 1586264951.0 new data time: 1586304035.0
+	match data lenght: 4482 new data length: 1734result data length: 6216
+Data match: MMSI 231837000 | match min time: 1586238638.0 new data time: 1586304157.0
+	match data lenght: 6594 new data length: 1233result data length: 7827
+Data match: MMSI 220002000 | match min time: 1586302727.0 new data time: 1586304520.0
+	match data lenght: 85 new data length: 6721result data length: 6806
+Data match: MMSI 236263000 | match min time: 1586217670.0 new data time: 1586304210.0
+	match data lenght: 719 new data length: 716result data length: 1435
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586304115.0
+	match data lenght: 52236 new data length: 8744result data length: 60980
+Data match: MMSI 375103000 | match min time: 1586298537.0 new data time: 1586304306.0
+	match data lenght: 64 new data length: 4910result data length: 4974
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586304308.0
+	match data lenght: 278371 new data length: 6058result data length: 284429
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586349985.0
+	match data lenght: 492699 new data length: 4094result data length: 496793
+Data match: MMSI 244790677 | match min time: 1586218245.0 new data time: 1586304219.0
+	match data lenght: 3135 new data length: 84result data length: 3219
+Data match: MMSI 244870327 | match min time: 1586299673.0 new data time: 1586304353.0
+	match data lenght: 309 new data length: 6280result data length: 6589
+Data match: MMSI 245859000 | match min time: 1586296911.0 new data time: 1586305195.0
+	match data lenght: 130 new data length: 1351result data length: 1481
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586304356.0
+	match data lenght: 13594 new data length: 711result data length: 14305
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586304636.0
+	match data lenght: 143083 new data length: 8324result data length: 151407
+Data match: MMSI 210474000 | match min time: 1586299422.0 new data time: 1586304111.0
+	match data lenght: 366 new data length: 5120result data length: 5486
+Data match: MMSI 305559000 | match min time: 1586128704.0 new data time: 1586304196.0
+	match data lenght: 1328 new data length: 650result data length: 1978
+Data match: MMSI 235011600 | match min time: 1586230766.0 new data time: 1586304231.0
+	match data lenght: 4801 new data length: 206result data length: 5007
+Data match: MMSI 220018000 | match min time: 1586271430.0 new data time: 1586304247.0
+	match data lenght: 4161 new data length: 262result data length: 4423
+Data match: MMSI 209114000 | match min time: 1586235851.0 new data time: 1586304284.0
+	match data lenght: 5823 new data length: 3397result data length: 9220
+Data match: MMSI 230941700 | match min time: 1586243527.0 new data time: 1586304286.0
+	match data lenght: 2466 new data length: 2222result data length: 4688
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586304992.0
+	match data lenght: 240 new data length: 122result data length: 362
+Data match: MMSI 211436320 | match min time: 1586143002.0 new data time: 1586305006.0
+	match data lenght: 124 new data length: 72result data length: 196
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586305007.0
+	match data lenght: 22536 new data length: 4515result data length: 27051
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586305041.0
+	match data lenght: 28250 new data length: 359result data length: 28609
+Data match: MMSI 304334000 | match min time: 1586246359.0 new data time: 1586311913.0
+	match data lenght: 31 new data length: 76result data length: 107
+Data match: MMSI 211125170 | match min time: 1586069531.0 new data time: 1586316497.0
+	match data lenght: 69 new data length: 26result data length: 95
+Data match: MMSI 211216490 | match min time: 1586223091.0 new data time: 1586332268.0
+	match data lenght: 358 new data length: 365result data length: 723
+Data match: MMSI 211298240 | match min time: 1586243377.0 new data time: 1586336044.0
+	match data lenght: 696 new data length: 303result data length: 999
+Data match: MMSI 211800820 | match min time: 1586247020.0 new data time: 1586337018.0
+	match data lenght: 35 new data length: 25result data length: 60
+Data match: MMSI 211223950 | match min time: 1586243993.0 new data time: 1586384394.0
+	match data lenght: 12 new data length: 11result data length: 23
+Data match: MMSI 212636000 | match min time: 1586246096.0 new data time: 1586304354.0
+	match data lenght: 3701 new data length: 917result data length: 4618
+Data match: MMSI 255806008 | match min time: 1586301325.0 new data time: 1586304695.0
+	match data lenght: 103 new data length: 8034result data length: 8137
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586304997.0
+	match data lenght: 10014 new data length: 4736result data length: 14750
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586304136.0
+	match data lenght: 56276 new data length: 4562result data length: 60838
+Data match: MMSI 211264530 | match min time: 1586157074.0 new data time: 1586304453.0
+	match data lenght: 3285 new data length: 3098result data length: 6383
+Data match: MMSI 305575000 | match min time: 1586285429.0 new data time: 1586304488.0
+	match data lenght: 2792 new data length: 6001result data length: 8793
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586304607.0
+	match data lenght: 11543 new data length: 338result data length: 11881
+Data match: MMSI 211212700 | match min time: 1586046736.0 new data time: 1586304858.0
+	match data lenght: 149 new data length: 37result data length: 186
+Data match: MMSI 211236290 | match min time: 1585977202.0 new data time: 1586307357.0
+	match data lenght: 5608 new data length: 2789result data length: 8397
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586311676.0
+	match data lenght: 2036 new data length: 6317result data length: 8353
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586304237.0
+	match data lenght: 784633 new data length: 7391result data length: 792024
+Data match: MMSI 538005404 | match min time: 1586193876.0 new data time: 1586304267.0
+	match data lenght: 11534 new data length: 5697result data length: 17231
+Data match: MMSI 265760070 | match min time: 1586217852.0 new data time: 1586304255.0
+	match data lenght: 7647 new data length: 1712result data length: 9359
+Data match: MMSI 636092923 | match min time: 1586282660.0 new data time: 1586304332.0
+	match data lenght: 2158 new data length: 5415result data length: 7573
+Data match: MMSI 265610040 | match min time: 1586218101.0 new data time: 1586304353.0
+	match data lenght: 2816 new data length: 1039result data length: 3855
+Data match: MMSI 266150000 | match min time: 1586112258.0 new data time: 1586305314.0
+	match data lenght: 6365 new data length: 1762result data length: 8127
+Data match: MMSI 636017577 | match min time: 1586212167.0 new data time: 1586304330.0
+	match data lenght: 15320 new data length: 8791result data length: 24111
+Data match: MMSI 229678000 | match min time: 1586153774.0 new data time: 1586308835.0
+	match data lenght: 357 new data length: 216result data length: 573
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586304434.0
+	match data lenght: 160013 new data length: 7052result data length: 167065
+Data match: MMSI 211787120 | match min time: 1586243151.0 new data time: 1586331470.0
+	match data lenght: 786 new data length: 157result data length: 943
+Data match: MMSI 219018009 | match min time: 1586181372.0 new data time: 1586355654.0
+	match data lenght: 1754 new data length: 651result data length: 2405
+Data match: MMSI 219024900 | match min time: 1586015363.0 new data time: 1586358783.0
+	match data lenght: 2308 new data length: 1379result data length: 3687
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586390501.0
+	match data lenght: 61501 new data length: 8785result data length: 70286
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586390414.0
+	match data lenght: 33029 new data length: 6636result data length: 39665
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586390515.0
+	match data lenght: 60980 new data length: 8725result data length: 69705
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586390666.0
+	match data lenght: 496793 new data length: 8731result data length: 505524
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586390842.0
+	match data lenght: 284429 new data length: 7375result data length: 291804
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586390535.0
+	match data lenght: 870556 new data length: 8681result data length: 879237
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586390654.0
+	match data lenght: 16121 new data length: 8112result data length: 24233
+Data match: MMSI 266352000 | match min time: 1586305341.0 new data time: 1586391424.0
+	match data lenght: 3403 new data length: 2676result data length: 6079
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586390414.0
+	match data lenght: 18644 new data length: 1251result data length: 19895
+Data match: MMSI 538008054 | match min time: 1586273785.0 new data time: 1586390478.0
+	match data lenght: 11405 new data length: 2684result data length: 14089
+Data match: MMSI 259737000 | match min time: 1586360915.0 new data time: 1586390510.0
+	match data lenght: 2997 new data length: 4452result data length: 7449
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586390555.0
+	match data lenght: 38278 new data length: 8638result data length: 46916
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586390560.0
+	match data lenght: 102403 new data length: 7967result data length: 110370
+Data match: MMSI 565355000 | match min time: 1586343207.0 new data time: 1586390569.0
+	match data lenght: 7670 new data length: 8100result data length: 15770
+Data match: MMSI 219025390 | match min time: 1586239939.0 new data time: 1586390707.0
+	match data lenght: 14273 new data length: 6255result data length: 20528
+Data match: MMSI 230941700 | match min time: 1586372041.0 new data time: 1586390415.0
+	match data lenght: 1584 new data length: 4024result data length: 5608
+Data match: MMSI 245258000 | match min time: 1586309651.0 new data time: 1586390475.0
+	match data lenght: 4876 new data length: 3269result data length: 8145
+Data match: MMSI 212037000 | match min time: 1586291138.0 new data time: 1586390501.0
+	match data lenght: 15658 new data length: 4918result data length: 20576
+Data match: MMSI 244780424 | match min time: 1586274390.0 new data time: 1586390635.0
+	match data lenght: 11139 new data length: 5795result data length: 16934
+Data match: MMSI 246227000 | match min time: 1586275456.0 new data time: 1586390780.0
+	match data lenght: 5568 new data length: 920result data length: 6488
+Data match: MMSI 219750000 | match min time: 1586346918.0 new data time: 1586391032.0
+	match data lenght: 4765 new data length: 4144result data length: 8909
+Data match: MMSI 219751000 | match min time: 1586285116.0 new data time: 1586390601.0
+	match data lenght: 10756 new data length: 280result data length: 11036
+Data match: MMSI 219002838 | match min time: 1586218034.0 new data time: 1586390838.0
+	match data lenght: 19651 new data length: 1116result data length: 20767
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586390743.0
+	match data lenght: 15056 new data length: 3559result data length: 18615
+Data match: MMSI 219022165 | match min time: 1586304282.0 new data time: 1586391404.0
+	match data lenght: 7260 new data length: 1632result data length: 8892
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586390430.0
+	match data lenght: 395866 new data length: 8421result data length: 404287
+Data match: MMSI 305559000 | match min time: 1586128704.0 new data time: 1586390596.0
+	match data lenght: 1978 new data length: 1260result data length: 3238
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586390868.0
+	match data lenght: 362 new data length: 100result data length: 462
+Data match: MMSI 211436320 | match min time: 1586143002.0 new data time: 1586391048.0
+	match data lenght: 196 new data length: 73result data length: 269
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586391050.0
+	match data lenght: 27051 new data length: 5146result data length: 32197
+Data match: MMSI 211298240 | match min time: 1586243377.0 new data time: 1586391212.0
+	match data lenght: 999 new data length: 542result data length: 1541
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586392164.0
+	match data lenght: 28609 new data length: 419result data length: 29028
+Data match: MMSI 211800820 | match min time: 1586247020.0 new data time: 1586392300.0
+	match data lenght: 60 new data length: 57result data length: 117
+Data match: MMSI 211125170 | match min time: 1586069531.0 new data time: 1586392819.0
+	match data lenght: 95 new data length: 60result data length: 155
+Data match: MMSI 211223950 | match min time: 1586243993.0 new data time: 1586394381.0
+	match data lenght: 23 new data length: 11result data length: 34
+Data match: MMSI 236652000 | match min time: 1586379384.0 new data time: 1586390544.0
+	match data lenght: 605 new data length: 1847result data length: 2452
+Data match: MMSI 219387000 | match min time: 1585872163.0 new data time: 1586390671.0
+	match data lenght: 35576 new data length: 2760result data length: 38336
+Data match: MMSI 244850097 | match min time: 1586172306.0 new data time: 1586390758.0
+	match data lenght: 17615 new data length: 3786result data length: 21401
+Data match: MMSI 220002000 | match min time: 1586302727.0 new data time: 1586390655.0
+	match data lenght: 6806 new data length: 1258result data length: 8064
+Data match: MMSI 211264530 | match min time: 1586157074.0 new data time: 1586390727.0
+	match data lenght: 6383 new data length: 97result data length: 6480
+Data match: MMSI 211442520 | match min time: 1586388231.0 new data time: 1586390751.0
+	match data lenght: 158 new data length: 7441result data length: 7599
+Data match: MMSI 211236290 | match min time: 1585977202.0 new data time: 1586390948.0
+	match data lenght: 8397 new data length: 1444result data length: 9841
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586391368.0
+	match data lenght: 11881 new data length: 253result data length: 12134
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586398994.0
+	match data lenght: 8353 new data length: 3905result data length: 12258
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586420724.0
+	match data lenght: 60838 new data length: 3191result data length: 64029
+Data match: MMSI 244870327 | match min time: 1586299673.0 new data time: 1586414777.0
+	match data lenght: 6589 new data length: 52result data length: 6641
+Data match: MMSI 257088370 | match min time: 1586361106.0 new data time: 1586391033.0
+	match data lenght: 2212 new data length: 6673result data length: 8885
+Data match: MMSI 255806008 | match min time: 1586301325.0 new data time: 1586390508.0
+	match data lenght: 8137 new data length: 1363result data length: 9500
+Data match: MMSI 314180000 | match min time: 1586359131.0 new data time: 1586390511.0
+	match data lenght: 3454 new data length: 3026result data length: 6480
+Data match: MMSI 219234000 | match min time: 1586352540.0 new data time: 1586390747.0
+	match data lenght: 6302 new data length: 1619result data length: 7921
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586399051.0
+	match data lenght: 14750 new data length: 3278result data length: 18028
+Data match: MMSI 375156000 | match min time: 1586352296.0 new data time: 1586390524.0
+	match data lenght: 4093 new data length: 208result data length: 4301
+Data match: MMSI 375103000 | match min time: 1586362480.0 new data time: 1586390568.0
+	match data lenght: 2651 new data length: 6612result data length: 9263
+Data match: MMSI 377085000 | match min time: 1586319685.0 new data time: 1586390637.0
+	match data lenght: 7330 new data length: 87result data length: 7417
+Data match: MMSI 266150000 | match min time: 1586112258.0 new data time: 1586390638.0
+	match data lenght: 8127 new data length: 288result data length: 8415
+Data match: MMSI 265760070 | match min time: 1586217852.0 new data time: 1586426900.0
+	match data lenght: 9359 new data length: 5189result data length: 14548
+Data match: MMSI 219017582 | match min time: 1586346169.0 new data time: 1586461012.0
+	match data lenght: 510 new data length: 143result data length: 653
+Data match: MMSI 256495000 | match min time: 1586343064.0 new data time: 1586390546.0
+	match data lenght: 4906 new data length: 9165result data length: 14071
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586390989.0
+	match data lenght: 792024 new data length: 7465result data length: 799489
+Data match: MMSI 538005409 | match min time: 1586386352.0 new data time: 1586391034.0
+	match data lenght: 374 new data length: 9392result data length: 9766
+Data match: MMSI 255805557 | match min time: 1586389495.0 new data time: 1586390576.0
+	match data lenght: 13 new data length: 285result data length: 298
+Data match: MMSI 212636000 | match min time: 1586360017.0 new data time: 1586390628.0
+	match data lenght: 3313 new data length: 5827result data length: 9140
+Data match: MMSI 304010253 | match min time: 1586367312.0 new data time: 1586390752.0
+	match data lenght: 1859 new data length: 6667result data length: 8526
+Data match: MMSI 218292000 | match min time: 1586270029.0 new data time: 1586390995.0
+	match data lenght: 6444 new data length: 2result data length: 6446
+Data match: MMSI 236263000 | match min time: 1586217670.0 new data time: 1586390747.0
+	match data lenght: 1435 new data length: 702result data length: 2137
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586390606.0
+	match data lenght: 14305 new data length: 714result data length: 15019
+Data match: MMSI 259416000 | match min time: 1586305275.0 new data time: 1586390642.0
+	match data lenght: 8467 new data length: 4936result data length: 13403
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586390676.0
+	match data lenght: 151407 new data length: 8171result data length: 159578
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586391193.0
+	match data lenght: 167065 new data length: 7300result data length: 174365
+Data match: MMSI 636017577 | match min time: 1586212167.0 new data time: 1586467049.0
+	match data lenght: 24111 new data length: 1result data length: 24112
+Data match: MMSI 230006000 | match min time: 1586460015.0 new data time: 1586476801.0
+	match data lenght: 1268 new data length: 3978result data length: 5246
+Data match: MMSI 219313000 | match min time: 1586470400.0 new data time: 1586476917.0
+	match data lenght: 358 new data length: 8894result data length: 9252
+Data match: MMSI 265874000 | match min time: 1586460941.0 new data time: 1586476925.0
+	match data lenght: 1926 new data length: 1108result data length: 3034
+Data match: MMSI 305559000 | match min time: 1586128704.0 new data time: 1586476996.0
+	match data lenght: 3238 new data length: 3094result data length: 6332
+Data match: MMSI 230642000 | match min time: 1586390527.0 new data time: 1586477052.0
+	match data lenght: 547 new data length: 144result data length: 691
+Data match: MMSI 230138350 | match min time: 1586441918.0 new data time: 1586477855.0
+	match data lenght: 3198 new data length: 3194result data length: 6392
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586480691.0
+	match data lenght: 32197 new data length: 3202result data length: 35399
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586480724.0
+	match data lenght: 29028 new data length: 282result data length: 29310
+Data match: MMSI 209114000 | match min time: 1586390576.0 new data time: 1586480879.0
+	match data lenght: 298 new data length: 231result data length: 529
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586543145.0
+	match data lenght: 462 new data length: 65result data length: 527
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586476903.0
+	match data lenght: 70286 new data length: 8753result data length: 79039
+Data match: MMSI 246188000 | match min time: 1586465094.0 new data time: 1586476975.0
+	match data lenght: 659 new data length: 8590result data length: 9249
+Data match: MMSI 246684000 | match min time: 1586437273.0 new data time: 1586476809.0
+	match data lenght: 3840 new data length: 6978result data length: 10818
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586477059.0
+	match data lenght: 799489 new data length: 7799result data length: 807288
+Data match: MMSI 538005409 | match min time: 1586386352.0 new data time: 1586477074.0
+	match data lenght: 9766 new data length: 5351result data length: 15117
+Data match: MMSI 256495000 | match min time: 1586343064.0 new data time: 1586477089.0
+	match data lenght: 14071 new data length: 3330result data length: 17401
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586476914.0
+	match data lenght: 69705 new data length: 8632result data length: 78337
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586477018.0
+	match data lenght: 291804 new data length: 7063result data length: 298867
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586477068.0
+	match data lenght: 505524 new data length: 8513result data length: 514037
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586476937.0
+	match data lenght: 879237 new data length: 8657result data length: 887894
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586477056.0
+	match data lenght: 24233 new data length: 9178result data length: 33411
+Data match: MMSI 236342000 | match min time: 1586442468.0 new data time: 1586477089.0
+	match data lenght: 1317 new data length: 5640result data length: 6957
+Data match: MMSI 266352000 | match min time: 1586305341.0 new data time: 1586482911.0
+	match data lenght: 6079 new data length: 1179result data length: 7258
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586476823.0
+	match data lenght: 404287 new data length: 10495result data length: 414782
+Data match: MMSI 305729000 | match min time: 1586405123.0 new data time: 1586476914.0
+	match data lenght: 1996 new data length: 638result data length: 2634
+Data match: MMSI 257438000 | match min time: 1586455397.0 new data time: 1586476997.0
+	match data lenght: 1438 new data length: 372result data length: 1810
+Data match: MMSI 219113000 | match min time: 1586442828.0 new data time: 1586478886.0
+	match data lenght: 1466 new data length: 1677result data length: 3143
+Data match: MMSI 220588000 | match min time: 1586443178.0 new data time: 1586480620.0
+	match data lenght: 32 new data length: 1344result data length: 1376
+Data match: MMSI 220623000 | match min time: 1586399468.0 new data time: 1586484214.0
+	match data lenght: 3583 new data length: 2695result data length: 6278
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586477143.0
+	match data lenght: 18615 new data length: 7383result data length: 25998
+Data match: MMSI 235070283 | match min time: 1586466120.0 new data time: 1586477086.0
+	match data lenght: 570 new data length: 5487result data length: 6057
+Data match: MMSI 219018272 | match min time: 1586455669.0 new data time: 1586476855.0
+	match data lenght: 2303 new data length: 1075result data length: 3378
+Data match: MMSI 266120000 | match min time: 1586476144.0 new data time: 1586476864.0
+	match data lenght: 18 new data length: 5579result data length: 5597
+Data match: MMSI 219025390 | match min time: 1586455421.0 new data time: 1586477064.0
+	match data lenght: 2261 new data length: 2406result data length: 4667
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586477214.0
+	match data lenght: 18028 new data length: 3403result data length: 21431
+Data match: MMSI 255806081 | match min time: 1586470390.0 new data time: 1586476871.0
+	match data lenght: 461 new data length: 8745result data length: 9206
+Data match: MMSI 241229000 | match min time: 1586475767.0 new data time: 1586476872.0
+	match data lenght: 106 new data length: 6477result data length: 6583
+Data match: MMSI 258809000 | match min time: 1586406009.0 new data time: 1586477476.0
+	match data lenght: 2459 new data length: 746result data length: 3205
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586476889.0
+	match data lenght: 6054 new data length: 8608result data length: 14662
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586476991.0
+	match data lenght: 46916 new data length: 8405result data length: 55321
+Data match: MMSI 219025976 | match min time: 1586390626.0 new data time: 1586477029.0
+	match data lenght: 9415 new data length: 7966result data length: 17381
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586477095.0
+	match data lenght: 19895 new data length: 714result data length: 20609
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586477681.0
+	match data lenght: 110370 new data length: 7978result data length: 118348
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586477096.0
+	match data lenght: 39665 new data length: 6551result data length: 46216
+Data match: MMSI 212821000 | match min time: 1586445945.0 new data time: 1586476905.0
+	match data lenght: 3170 new data length: 2303result data length: 5473
+Data match: MMSI 255806168 | match min time: 1586447638.0 new data time: 1586476918.0
+	match data lenght: 2535 new data length: 1764result data length: 4299
+Data match: MMSI 265760070 | match min time: 1586217852.0 new data time: 1586477293.0
+	match data lenght: 14548 new data length: 7592result data length: 22140
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586477057.0
+	match data lenght: 64029 new data length: 2876result data length: 66905
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586477116.0
+	match data lenght: 12258 new data length: 4031result data length: 16289
+Data match: MMSI 211442520 | match min time: 1586388231.0 new data time: 1586477489.0
+	match data lenght: 7599 new data length: 4379result data length: 11978
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586477552.0
+	match data lenght: 12134 new data length: 216result data length: 12350
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586477076.0
+	match data lenght: 159578 new data length: 7805result data length: 167383
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586477126.0
+	match data lenght: 15019 new data length: 707result data length: 15726
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586477232.0
+	match data lenght: 174365 new data length: 6810result data length: 181175
+Data match: MMSI 219024900 | match min time: 1586445639.0 new data time: 1586532114.0
+	match data lenght: 889 new data length: 653result data length: 1542
+Data match: MMSI 219018009 | match min time: 1586443165.0 new data time: 1586532631.0
+	match data lenght: 1031 new data length: 192result data length: 1223
+Data match: MMSI 229678000 | match min time: 1586396598.0 new data time: 1586488874.0
+	match data lenght: 34 new data length: 43result data length: 77
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586563204.0
+	match data lenght: 46216 new data length: 5683result data length: 51899
+Data match: MMSI 265760070 | match min time: 1586217852.0 new data time: 1586563207.0
+	match data lenght: 22140 new data length: 7436result data length: 29576
+Data match: MMSI 255806168 | match min time: 1586447638.0 new data time: 1586563319.0
+	match data lenght: 4299 new data length: 709result data length: 5008
+Data match: MMSI 219355000 | match min time: 1586510623.0 new data time: 1586563477.0
+	match data lenght: 4468 new data length: 479result data length: 4947
+Data match: MMSI 265514840 | match min time: 1586561662.0 new data time: 1586575359.0
+	match data lenght: 4 new data length: 18result data length: 22
+Data match: MMSI 314500000 | match min time: 1586485668.0 new data time: 1586563209.0
+	match data lenght: 13819 new data length: 2538result data length: 16357
+Data match: MMSI 314419000 | match min time: 1586494760.0 new data time: 1586565004.0
+	match data lenght: 259 new data length: 67result data length: 326
+Data match: MMSI 354260000 | match min time: 1586490978.0 new data time: 1586565935.0
+	match data lenght: 95 new data length: 208result data length: 303
+Data match: MMSI 367136710 | match min time: 1586555745.0 new data time: 1586568433.0
+	match data lenght: 535 new data length: 2573result data length: 3108
+Data match: MMSI 538008322 | match min time: 1586546931.0 new data time: 1586563373.0
+	match data lenght: 1547 new data length: 9930result data length: 11477
+Data match: MMSI 265874000 | match min time: 1586493350.0 new data time: 1586563343.0
+	match data lenght: 4125 new data length: 1706result data length: 5831
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586563339.0
+	match data lenght: 887894 new data length: 8733result data length: 896627
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586563458.0
+	match data lenght: 33411 new data length: 8931result data length: 42342
+Data match: MMSI 235113904 | match min time: 1586553741.0 new data time: 1586563483.0
+	match data lenght: 1297 new data length: 4952result data length: 6249
+Data match: MMSI 231852000 | match min time: 1586562510.0 new data time: 1586564309.0
+	match data lenght: 57 new data length: 1391result data length: 1448
+Data match: MMSI 266352000 | match min time: 1586305341.0 new data time: 1586572957.0
+	match data lenght: 7258 new data length: 382result data length: 7640
+Data match: MMSI 209731000 | match min time: 1586531193.0 new data time: 1586563222.0
+	match data lenght: 2815 new data length: 8907result data length: 11722
+Data match: MMSI 236646000 | match min time: 1586527801.0 new data time: 1586563365.0
+	match data lenght: 2086 new data length: 4864result data length: 6950
+Data match: MMSI 218849000 | match min time: 1586547384.0 new data time: 1586563249.0
+	match data lenght: 460 new data length: 707result data length: 1167
+Data match: MMSI 257025000 | match min time: 1586550783.0 new data time: 1586563385.0
+	match data lenght: 988 new data length: 3831result data length: 4819
+Data match: MMSI 219000949 | match min time: 1586544426.0 new data time: 1586563505.0
+	match data lenght: 247 new data length: 7633result data length: 7880
+Data match: MMSI 305537000 | match min time: 1586545536.0 new data time: 1586563536.0
+	match data lenght: 346 new data length: 1873result data length: 2219
+Data match: MMSI 311102000 | match min time: 1586544749.0 new data time: 1586564814.0
+	match data lenght: 1298 new data length: 2758result data length: 4056
+Data match: MMSI 257723000 | match min time: 1586541673.0 new data time: 1586575662.0
+	match data lenght: 1707 new data length: 627result data length: 2334
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586563227.0
+	match data lenght: 414782 new data length: 8299result data length: 423081
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586563543.0
+	match data lenght: 25998 new data length: 7723result data length: 33721
+Data match: MMSI 220018000 | match min time: 1586536928.0 new data time: 1586563252.0
+	match data lenght: 2682 new data length: 8949result data length: 11631
+Data match: MMSI 244176000 | match min time: 1586528989.0 new data time: 1586563928.0
+	match data lenght: 2384 new data length: 2003result data length: 4387
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586563264.0
+	match data lenght: 4560 new data length: 2588result data length: 7148
+Data match: MMSI 261000580 | match min time: 1586497375.0 new data time: 1586563342.0
+	match data lenght: 4584 new data length: 2897result data length: 7481
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586563348.0
+	match data lenght: 527 new data length: 231result data length: 758
+Data match: MMSI 209114000 | match min time: 1586390576.0 new data time: 1586563357.0
+	match data lenght: 529 new data length: 402result data length: 931
+Data match: MMSI 230007000 | match min time: 1586533471.0 new data time: 1586563376.0
+	match data lenght: 4284 new data length: 2481result data length: 6765
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586563493.0
+	match data lenght: 35399 new data length: 5927result data length: 41326
+Data match: MMSI 219313000 | match min time: 1586470400.0 new data time: 1586563537.0
+	match data lenght: 9252 new data length: 2242result data length: 11494
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586563883.0
+	match data lenght: 29310 new data length: 416result data length: 29726
+Data match: MMSI 255806081 | match min time: 1586470390.0 new data time: 1586563273.0
+	match data lenght: 9206 new data length: 960result data length: 10166
+Data match: MMSI 245864000 | match min time: 1586516567.0 new data time: 1586563312.0
+	match data lenght: 3776 new data length: 2444result data length: 6220
+Data match: MMSI 265610040 | match min time: 1586538934.0 new data time: 1586563449.0
+	match data lenght: 2295 new data length: 3595result data length: 5890
+Data match: MMSI 671135000 | match min time: 1586562194.0 new data time: 1586563275.0
+	match data lenght: 51 new data length: 3340result data length: 3391
+Data match: MMSI 219025976 | match min time: 1586390626.0 new data time: 1586563447.0
+	match data lenght: 17381 new data length: 8007result data length: 25388
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586563497.0
+	match data lenght: 20609 new data length: 715result data length: 21324
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586563509.0
+	match data lenght: 14662 new data length: 8574result data length: 23236
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586563542.0
+	match data lenght: 118348 new data length: 8270result data length: 126618
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586563754.0
+	match data lenght: 55321 new data length: 8061result data length: 63382
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586563782.0
+	match data lenght: 3623 new data length: 710result data length: 4333
+Data match: MMSI 220623000 | match min time: 1586399468.0 new data time: 1586567806.0
+	match data lenght: 6278 new data length: 6045result data length: 12323
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586645784.0
+	match data lenght: 231 new data length: 309result data length: 540
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586563304.0
+	match data lenght: 79039 new data length: 8751result data length: 87790
+Data match: MMSI 246188000 | match min time: 1586465094.0 new data time: 1586563462.0
+	match data lenght: 9249 new data length: 649result data length: 9898
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586563354.0
+	match data lenght: 66905 new data length: 3598result data length: 70503
+Data match: MMSI 265411000 | match min time: 1586527653.0 new data time: 1586563709.0
+	match data lenght: 4787 new data length: 3796result data length: 8583
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586564500.0
+	match data lenght: 12350 new data length: 335result data length: 12685
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586576121.0
+	match data lenght: 16289 new data length: 3817result data length: 20106
+Data match: MMSI 245739000 | match min time: 1586499612.0 new data time: 1586563364.0
+	match data lenght: 5839 new data length: 8499result data length: 14338
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586563807.0
+	match data lenght: 807288 new data length: 7564result data length: 814852
+Data match: MMSI 246684000 | match min time: 1586437273.0 new data time: 1586563931.0
+	match data lenght: 10818 new data length: 1954result data length: 12772
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586563375.0
+	match data lenght: 15726 new data length: 714result data length: 16440
+Data match: MMSI 266473000 | match min time: 1586485329.0 new data time: 1586563449.0
+	match data lenght: 7257 new data length: 2709result data length: 9966
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586563476.0
+	match data lenght: 167383 new data length: 7680result data length: 175063
+Data match: MMSI 266120000 | match min time: 1586476144.0 new data time: 1586563379.0
+	match data lenght: 5597 new data length: 664result data length: 6261
+Data match: MMSI 215074000 | match min time: 1586483837.0 new data time: 1586563397.0
+	match data lenght: 7435 new data length: 2596result data length: 10031
+Data match: MMSI 236446000 | match min time: 1586521731.0 new data time: 1586563491.0
+	match data lenght: 3849 new data length: 5187result data length: 9036
+Data match: MMSI 219018272 | match min time: 1586455669.0 new data time: 1586563529.0
+	match data lenght: 3378 new data length: 631result data length: 4009
+Data match: MMSI 255801670 | match min time: 1586508827.0 new data time: 1586563547.0
+	match data lenght: 4947 new data length: 8771result data length: 13718
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586563555.0
+	match data lenght: 21431 new data length: 1825result data length: 23256
+Data match: MMSI 249446000 | match min time: 1586547026.0 new data time: 1586563945.0
+	match data lenght: 1215 new data length: 7810result data length: 9025
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586563470.0
+	match data lenght: 514037 new data length: 4644result data length: 518681
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586563506.0
+	match data lenght: 78337 new data length: 8535result data length: 86872
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586563559.0
+	match data lenght: 298867 new data length: 7175result data length: 306042
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586563637.0
+	match data lenght: 181175 new data length: 6457result data length: 187632
+Data match: MMSI 229678000 | match min time: 1586396598.0 new data time: 1586564088.0
+	match data lenght: 77 new data length: 168result data length: 245
+Data match: MMSI 219024900 | match min time: 1586445639.0 new data time: 1586618421.0
+	match data lenght: 1542 new data length: 843result data length: 2385
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586649733.0
+	match data lenght: 306042 new data length: 4965result data length: 311007
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586649872.0
+	match data lenght: 518681 new data length: 9109result data length: 527790
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586649932.0
+	match data lenght: 86872 new data length: 8681result data length: 95553
+Data match: MMSI 220018000 | match min time: 1586536928.0 new data time: 1586649602.0
+	match data lenght: 11631 new data length: 4848result data length: 16479
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586649624.0
+	match data lenght: 51899 new data length: 7319result data length: 59218
+Data match: MMSI 277543000 | match min time: 1586629404.0 new data time: 1586649913.0
+	match data lenght: 3174 new data length: 6749result data length: 9923
+Data match: MMSI 259631000 | match min time: 1586642711.0 new data time: 1586649915.0
+	match data lenght: 704 new data length: 1050result data length: 1754
+Data match: MMSI 265760070 | match min time: 1586217852.0 new data time: 1586649609.0
+	match data lenght: 29576 new data length: 3399result data length: 32975
+Data match: MMSI 255806168 | match min time: 1586447638.0 new data time: 1586649721.0
+	match data lenght: 5008 new data length: 708result data length: 5716
+Data match: MMSI 219076000 | match min time: 1586615080.0 new data time: 1586649783.0
+	match data lenght: 1831 new data length: 1082result data length: 2913
+Data match: MMSI 231801000 | match min time: 1586621191.0 new data time: 1586681009.0
+	match data lenght: 608 new data length: 1109result data length: 1717
+Data match: MMSI 219296000 | match min time: 1586611935.0 new data time: 1586649696.0
+	match data lenght: 4710 new data length: 18265result data length: 22975
+Data match: MMSI 305537000 | match min time: 1586545536.0 new data time: 1586649726.0
+	match data lenght: 2219 new data length: 695result data length: 2914
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1586649803.0
+	match data lenght: 9092 new data length: 10160result data length: 19252
+Data match: MMSI 219000949 | match min time: 1586544426.0 new data time: 1586649907.0
+	match data lenght: 7880 new data length: 3992result data length: 11872
+Data match: MMSI 304094000 | match min time: 1586597760.0 new data time: 1586649958.0
+	match data lenght: 3190 new data length: 680result data length: 3870
+Data match: MMSI 219387000 | match min time: 1586563465.0 new data time: 1586651316.0
+	match data lenght: 4878 new data length: 5521result data length: 10399
+Data match: MMSI 257438000 | match min time: 1586605650.0 new data time: 1586654719.0
+	match data lenght: 3699 new data length: 1254result data length: 4953
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586649741.0
+	match data lenght: 896627 new data length: 8772result data length: 905399
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586649859.0
+	match data lenght: 42342 new data length: 9041result data length: 51383
+Data match: MMSI 266352000 | match min time: 1586305341.0 new data time: 1586691097.0
+	match data lenght: 7640 new data length: 669result data length: 8309
+Data match: MMSI 219002838 | match min time: 1586563642.0 new data time: 1586649684.0
+	match data lenght: 11306 new data length: 8015result data length: 19321
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586649745.0
+	match data lenght: 540 new data length: 8312result data length: 8852
+Data match: MMSI 220623000 | match min time: 1586399468.0 new data time: 1586656077.0
+	match data lenght: 12323 new data length: 4272result data length: 16595
+Data match: MMSI 219751000 | match min time: 1586602284.0 new data time: 1586663845.0
+	match data lenght: 115 new data length: 4918result data length: 5033
+Data match: MMSI 219922000 | match min time: 1586575425.0 new data time: 1586666062.0
+	match data lenght: 2264 new data length: 1728result data length: 3992
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586649628.0
+	match data lenght: 423081 new data length: 9110result data length: 432191
+Data match: MMSI 266120000 | match min time: 1586476144.0 new data time: 1586649821.0
+	match data lenght: 6261 new data length: 607result data length: 6868
+Data match: MMSI 219018272 | match min time: 1586455669.0 new data time: 1586649863.0
+	match data lenght: 4009 new data length: 863result data length: 4872
+Data match: MMSI 255801670 | match min time: 1586508827.0 new data time: 1586649947.0
+	match data lenght: 13718 new data length: 5397result data length: 19115
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586649957.0
+	match data lenght: 23256 new data length: 1515result data length: 24771
+Data match: MMSI 249446000 | match min time: 1586547026.0 new data time: 1586650636.0
+	match data lenght: 9025 new data length: 3191result data length: 12216
+Data match: MMSI 220461000 | match min time: 1586131543.0 new data time: 1586649943.0
+	match data lenght: 33721 new data length: 4717result data length: 38438
+Data match: MMSI 209731000 | match min time: 1586531193.0 new data time: 1586649640.0
+	match data lenght: 11722 new data length: 5058result data length: 16780
+Data match: MMSI 209525000 | match min time: 1586623169.0 new data time: 1586649644.0
+	match data lenght: 2436 new data length: 9248result data length: 11684
+Data match: MMSI 261000580 | match min time: 1586610261.0 new data time: 1586649918.0
+	match data lenght: 2743 new data length: 5040result data length: 7783
+Data match: MMSI 375103000 | match min time: 1586645906.0 new data time: 1586649874.0
+	match data lenght: 142 new data length: 12048result data length: 12190
+Data match: MMSI 538008322 | match min time: 1586546931.0 new data time: 1586649751.0
+	match data lenght: 11477 new data length: 1973result data length: 13450
+Data match: MMSI 311059100 | match min time: 1586612608.0 new data time: 1586649657.0
+	match data lenght: 2162 new data length: 424result data length: 2586
+Data match: MMSI 245739000 | match min time: 1586499612.0 new data time: 1586649678.0
+	match data lenght: 14338 new data length: 2425result data length: 16763
+Data match: MMSI 538006707 | match min time: 1586582367.0 new data time: 1586649692.0
+	match data lenght: 7275 new data length: 9995result data length: 17270
+Data match: MMSI 229668000 | match min time: 1586606542.0 new data time: 1586649741.0
+	match data lenght: 4437 new data length: 4520result data length: 8957
+Data match: MMSI 246855000 | match min time: 1586582714.0 new data time: 1586649788.0
+	match data lenght: 5960 new data length: 8658result data length: 14618
+Data match: MMSI 258792000 | match min time: 1586581380.0 new data time: 1586649800.0
+	match data lenght: 6339 new data length: 8884result data length: 15223
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586649861.0
+	match data lenght: 814852 new data length: 7890result data length: 822742
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586649706.0
+	match data lenght: 87790 new data length: 8783result data length: 96573
+Data match: MMSI 273544330 | match min time: 1586563957.0 new data time: 1586649731.0
+	match data lenght: 3082 new data length: 1056result data length: 4138
+Data match: MMSI 241422000 | match min time: 1586629584.0 new data time: 1586649744.0
+	match data lenght: 1808 new data length: 160result data length: 1968
+Data match: MMSI 538006475 | match min time: 1586566964.0 new data time: 1586649764.0
+	match data lenght: 7588 new data length: 6409result data length: 13997
+Data match: MMSI 219340000 | match min time: 1586000516.0 new data time: 1586649795.0
+	match data lenght: 63382 new data length: 7723result data length: 71105
+Data match: MMSI 277346000 | match min time: 1586623164.0 new data time: 1586649806.0
+	match data lenght: 2518 new data length: 8354result data length: 10872
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586649824.0
+	match data lenght: 4333 new data length: 717result data length: 5050
+Data match: MMSI 277547000 | match min time: 1586626020.0 new data time: 1586649838.0
+	match data lenght: 2277 new data length: 8910result data length: 11187
+Data match: MMSI 219025976 | match min time: 1586390626.0 new data time: 1586649844.0
+	match data lenght: 25388 new data length: 2961result data length: 28349
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586649862.0
+	match data lenght: 23236 new data length: 9118result data length: 32354
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586649900.0
+	match data lenght: 21324 new data length: 714result data length: 22038
+Data match: MMSI 277354000 | match min time: 1586627536.0 new data time: 1586649914.0
+	match data lenght: 2183 new data length: 8881result data length: 11064
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586649944.0
+	match data lenght: 126618 new data length: 8294result data length: 134912
+Data match: MMSI 277029000 | match min time: 1586624029.0 new data time: 1586649958.0
+	match data lenght: 2514 new data length: 8826result data length: 11340
+Data match: MMSI 671135000 | match min time: 1586562194.0 new data time: 1586650213.0
+	match data lenght: 3391 new data length: 703result data length: 4094
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586649711.0
+	match data lenght: 187632 new data length: 6980result data length: 194612
+Data match: MMSI 265874000 | match min time: 1586581524.0 new data time: 1586649712.0
+	match data lenght: 1836 new data length: 1581result data length: 3417
+Data match: MMSI 246555000 | match min time: 1586602191.0 new data time: 1586649787.0
+	match data lenght: 3892 new data length: 2121result data length: 6013
+Data match: MMSI 230927000 | match min time: 1586636859.0 new data time: 1586649839.0
+	match data lenght: 1802 new data length: 3800result data length: 5602
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586649924.0
+	match data lenght: 29726 new data length: 415result data length: 30141
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586650254.0
+	match data lenght: 41326 new data length: 5230result data length: 46556
+Data match: MMSI 211800820 | match min time: 1586581033.0 new data time: 1586650907.0
+	match data lenght: 22 new data length: 50result data length: 72
+Data match: MMSI 209114000 | match min time: 1586390576.0 new data time: 1586651597.0
+	match data lenght: 931 new data length: 325result data length: 1256
+Data match: MMSI 211436320 | match min time: 1586570332.0 new data time: 1586651694.0
+	match data lenght: 94 new data length: 67result data length: 161
+Data match: MMSI 211638130 | match min time: 1586041841.0 new data time: 1586651761.0
+	match data lenght: 758 new data length: 146result data length: 904
+Data match: MMSI 211298240 | match min time: 1586576556.0 new data time: 1586652999.0
+	match data lenght: 139 new data length: 625result data length: 764
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586681529.0
+	match data lenght: 7148 new data length: 1534result data length: 8682
+Data match: MMSI 211236290 | match min time: 1586577793.0 new data time: 1586649794.0
+	match data lenght: 3314 new data length: 2303result data length: 5617
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586649849.0
+	match data lenght: 12685 new data length: 275result data length: 12960
+Data match: MMSI 211222710 | match min time: 1586569625.0 new data time: 1586649907.0
+	match data lenght: 363 new data length: 303result data length: 666
+Data match: MMSI 211264530 | match min time: 1586588439.0 new data time: 1586650150.0
+	match data lenght: 137 new data length: 120result data length: 257
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586653161.0
+	match data lenght: 20106 new data length: 5913result data length: 26019
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586684269.0
+	match data lenght: 70503 new data length: 1956result data length: 72459
+Data match: MMSI 304374000 | match min time: 1586601531.0 new data time: 1586649793.0
+	match data lenght: 4062 new data length: 5094result data length: 9156
+Data match: MMSI 563054200 | match min time: 1586583591.0 new data time: 1586649831.0
+	match data lenght: 7082 new data length: 6012result data length: 13094
+Data match: MMSI 354260000 | match min time: 1586490978.0 new data time: 1586663137.0
+	match data lenght: 303 new data length: 201result data length: 504
+Data match: MMSI 209217000 | match min time: 1586632618.0 new data time: 1586665018.0
+	match data lenght: 85 new data length: 342result data length: 427
+Data match: MMSI 314419000 | match min time: 1586494760.0 new data time: 1586673586.0
+	match data lenght: 326 new data length: 90result data length: 416
+Data match: MMSI 255805980 | match min time: 1586584767.0 new data time: 1586717128.0
+	match data lenght: 1016 new data length: 4result data length: 1020
+Data match: MMSI 255806008 | match min time: 1586569173.0 new data time: 1586649794.0
+	match data lenght: 7409 new data length: 2376result data length: 9785
+Data match: MMSI 311995000 | match min time: 1586600623.0 new data time: 1586649968.0
+	match data lenght: 7875 new data length: 12209result data length: 20084
+Data match: MMSI 229678000 | match min time: 1586396598.0 new data time: 1586663937.0
+	match data lenght: 245 new data length: 109result data length: 354
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586649796.0
+	match data lenght: 16440 new data length: 712result data length: 17152
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586649876.0
+	match data lenght: 175063 new data length: 8387result data length: 183450
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586736147.0
+	match data lenght: 8852 new data length: 8447result data length: 17299
+Data match: MMSI 219751000 | match min time: 1586602284.0 new data time: 1586736207.0
+	match data lenght: 5033 new data length: 10760result data length: 15793
+Data match: MMSI 219922000 | match min time: 1586575425.0 new data time: 1586785916.0
+	match data lenght: 3992 new data length: 1561result data length: 5553
+Data match: MMSI 352388000 | match min time: 1586695656.0 new data time: 1586736035.0
+	match data lenght: 3798 new data length: 9165result data length: 12963
+Data match: MMSI 261054050 | match min time: 1586675554.0 new data time: 1586736043.0
+	match data lenght: 6195 new data length: 1518result data length: 7713
+Data match: MMSI 273544330 | match min time: 1586563957.0 new data time: 1586736087.0
+	match data lenght: 4138 new data length: 6613result data length: 10751
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586736177.0
+	match data lenght: 32354 new data length: 4354result data length: 36708
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586736226.0
+	match data lenght: 5050 new data length: 717result data length: 5767
+Data match: MMSI 277547000 | match min time: 1586626020.0 new data time: 1586736239.0
+	match data lenght: 11187 new data length: 838result data length: 12025
+Data match: MMSI 671135000 | match min time: 1586562194.0 new data time: 1586736293.0
+	match data lenght: 4094 new data length: 303result data length: 4397
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586736301.0
+	match data lenght: 22038 new data length: 715result data length: 22753
+Data match: MMSI 277354000 | match min time: 1586627536.0 new data time: 1586736316.0
+	match data lenght: 11064 new data length: 1052result data length: 12116
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586736346.0
+	match data lenght: 134912 new data length: 8355result data length: 143267
+Data match: MMSI 538006475 | match min time: 1586566964.0 new data time: 1586736524.0
+	match data lenght: 13997 new data length: 57result data length: 14054
+Data match: MMSI 261497000 | match min time: 1586705738.0 new data time: 1586737059.0
+	match data lenght: 2729 new data length: 8813result data length: 11542
+Data match: MMSI 266339000 | match min time: 1586677048.0 new data time: 1586767121.0
+	match data lenght: 130 new data length: 5206result data length: 5336
+Data match: MMSI 314238000 | match min time: 1586681221.0 new data time: 1586736015.0
+	match data lenght: 4816 new data length: 6314result data length: 11130
+Data match: MMSI 219449000 | match min time: 1586732826.0 new data time: 1586736068.0
+	match data lenght: 172 new data length: 1039result data length: 1211
+Data match: MMSI 219013179 | match min time: 1586735394.0 new data time: 1586736114.0
+	match data lenght: 116 new data length: 1928result data length: 2044
+Data match: MMSI 305537000 | match min time: 1586545536.0 new data time: 1586736128.0
+	match data lenght: 2914 new data length: 687result data length: 3601
+Data match: MMSI 311000386 | match min time: 1586701708.0 new data time: 1586736197.0
+	match data lenght: 1736 new data length: 195result data length: 1931
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1586736206.0
+	match data lenght: 19252 new data length: 8370result data length: 27622
+Data match: MMSI 219387000 | match min time: 1586563465.0 new data time: 1586736280.0
+	match data lenght: 10399 new data length: 899result data length: 11298
+Data match: MMSI 219296000 | match min time: 1586611935.0 new data time: 1586736301.0
+	match data lenght: 22975 new data length: 14375result data length: 37350
+Data match: MMSI 235362000 | match min time: 1586716197.0 new data time: 1586736316.0
+	match data lenght: 1986 new data length: 5549result data length: 7535
+Data match: MMSI 304094000 | match min time: 1586597760.0 new data time: 1586736359.0
+	match data lenght: 3870 new data length: 666result data length: 4536
+Data match: MMSI 219043000 | match min time: 1586692441.0 new data time: 1586744921.0
+	match data lenght: 3098 new data length: 5258result data length: 8356
+Data match: MMSI 220588000 | match min time: 1586718272.0 new data time: 1586748534.0
+	match data lenght: 788 new data length: 1019result data length: 1807
+Data match: MMSI 258514000 | match min time: 1586719141.0 new data time: 1586755518.0
+	match data lenght: 1522 new data length: 1116result data length: 2638
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586736143.0
+	match data lenght: 905399 new data length: 8694result data length: 914093
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586736264.0
+	match data lenght: 51383 new data length: 8901result data length: 60284
+Data match: MMSI 266352000 | match min time: 1586305341.0 new data time: 1586737200.0
+	match data lenght: 8309 new data length: 487result data length: 8796
+Data match: MMSI 565429000 | match min time: 1586702544.0 new data time: 1586736024.0
+	match data lenght: 2997 new data length: 8681result data length: 11678
+Data match: MMSI 538006707 | match min time: 1586582367.0 new data time: 1586736094.0
+	match data lenght: 17270 new data length: 3578result data length: 20848
+Data match: MMSI 258792000 | match min time: 1586581380.0 new data time: 1586736202.0
+	match data lenght: 15223 new data length: 2777result data length: 18000
+Data match: MMSI 246855000 | match min time: 1586582714.0 new data time: 1586736297.0
+	match data lenght: 14618 new data length: 8014result data length: 22632
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586736628.0
+	match data lenght: 822742 new data length: 7785result data length: 830527
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586736026.0
+	match data lenght: 432191 new data length: 8101result data length: 440292
+Data match: MMSI 219022165 | match min time: 1586661410.0 new data time: 1586737369.0
+	match data lenght: 5020 new data length: 7746result data length: 12766
+Data match: MMSI 219076000 | match min time: 1586615080.0 new data time: 1586736041.0
+	match data lenght: 2913 new data length: 162result data length: 3075
+Data match: MMSI 375103000 | match min time: 1586735692.0 new data time: 1586736052.0
+	match data lenght: 8 new data length: 622result data length: 630
+Data match: MMSI 255806168 | match min time: 1586447638.0 new data time: 1586736123.0
+	match data lenght: 5716 new data length: 307result data length: 6023
+Data match: MMSI 311995000 | match min time: 1586600623.0 new data time: 1586736052.0
+	match data lenght: 20084 new data length: 1224result data length: 21308
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586736415.0
+	match data lenght: 59218 new data length: 7890result data length: 67108
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586736082.0
+	match data lenght: 72459 new data length: 4890result data length: 77349
+Data match: MMSI 218779000 | match min time: 1586734060.0 new data time: 1586736190.0
+	match data lenght: 186 new data length: 1943result data length: 2129
+Data match: MMSI 265413000 | match min time: 1586700598.0 new data time: 1586736294.0
+	match data lenght: 3290 new data length: 3992result data length: 7282
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586736970.0
+	match data lenght: 12960 new data length: 87result data length: 13047
+Data match: MMSI 211222710 | match min time: 1586569625.0 new data time: 1586737029.0
+	match data lenght: 666 new data length: 129result data length: 795
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586738482.0
+	match data lenght: 26019 new data length: 3949result data length: 29968
+Data match: MMSI 211236290 | match min time: 1586577793.0 new data time: 1586813505.0
+	match data lenght: 5617 new data length: 107result data length: 5724
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586736105.0
+	match data lenght: 194612 new data length: 7484result data length: 202096
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586736109.0
+	match data lenght: 96573 new data length: 8786result data length: 105359
+Data match: MMSI 209114000 | match min time: 1586390576.0 new data time: 1586736596.0
+	match data lenght: 1256 new data length: 99result data length: 1355
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586736657.0
+	match data lenght: 46556 new data length: 1403result data length: 47959
+Data match: MMSI 211360780 | match min time: 1580208634.0 new data time: 1586736684.0
+	match data lenght: 30141 new data length: 43result data length: 30184
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586736684.0
+	match data lenght: 8682 new data length: 695result data length: 9377
+Data match: MMSI 212519000 | match min time: 1586660273.0 new data time: 1586757462.0
+	match data lenght: 5941 new data length: 76result data length: 6017
+Data match: MMSI 370461000 | match min time: 1586683064.0 new data time: 1586789265.0
+	match data lenght: 5 new data length: 3026result data length: 3031
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586736275.0
+	match data lenght: 527790 new data length: 8983result data length: 536773
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586736276.0
+	match data lenght: 311007 new data length: 7476result data length: 318483
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586736334.0
+	match data lenght: 95553 new data length: 8663result data length: 104216
+Data match: MMSI 249446000 | match min time: 1586547026.0 new data time: 1586736247.0
+	match data lenght: 12216 new data length: 849result data length: 13065
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586746560.0
+	match data lenght: 24771 new data length: 790result data length: 25561
+Data match: MMSI 219015425 | match min time: 1586720364.0 new data time: 1586751833.0
+	match data lenght: 1443 new data length: 611result data length: 2054
+Data match: MMSI 304081024 | match min time: 1586712612.0 new data time: 1586736228.0
+	match data lenght: 3691 new data length: 5333result data length: 9024
+Data match: MMSI 218098000 | match min time: 1586705615.0 new data time: 1586736266.0
+	match data lenght: 5266 new data length: 1673result data length: 6939
+Data match: MMSI 236111951 | match min time: 1586684857.0 new data time: 1586736336.0
+	match data lenght: 6617 new data length: 1748result data length: 8365
+Data match: MMSI 246499000 | match min time: 1586718903.0 new data time: 1586738353.0
+	match data lenght: 312 new data length: 5266result data length: 5578
+Data match: MMSI 304374000 | match min time: 1586601531.0 new data time: 1586736242.0
+	match data lenght: 9156 new data length: 1862result data length: 11018
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586736276.0
+	match data lenght: 183450 new data length: 7935result data length: 191385
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586736321.0
+	match data lenght: 17152 new data length: 710result data length: 17862
+Data match: MMSI 209525000 | match min time: 1586623169.0 new data time: 1586736325.0
+	match data lenght: 11684 new data length: 474result data length: 12158
+Data match: MMSI 256243000 | match min time: 1586769622.0 new data time: 1586822539.0
+	match data lenght: 5106 new data length: 1691result data length: 6797
+Data match: MMSI 219014278 | match min time: 1586803687.0 new data time: 1586822429.0
+	match data lenght: 1973 new data length: 747result data length: 2720
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586822615.0
+	match data lenght: 67108 new data length: 8181result data length: 75289
+Data match: MMSI 211234480 | match min time: 1586803678.0 new data time: 1586822406.0
+	match data lenght: 1769 new data length: 5422result data length: 7191
+Data match: MMSI 273544330 | match min time: 1586563957.0 new data time: 1586822410.0
+	match data lenght: 10751 new data length: 267result data length: 11018
+Data match: MMSI 636018517 | match min time: 1586766589.0 new data time: 1586822537.0
+	match data lenght: 6480 new data length: 5081result data length: 11561
+Data match: MMSI 266339000 | match min time: 1586677048.0 new data time: 1586822563.0
+	match data lenght: 5336 new data length: 3214result data length: 8550
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586822575.0
+	match data lenght: 22753 new data length: 711result data length: 23464
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586822628.0
+	match data lenght: 5767 new data length: 716result data length: 6483
+Data match: MMSI 352388000 | match min time: 1586695656.0 new data time: 1586822736.0
+	match data lenght: 12963 new data length: 1166result data length: 14129
+Data match: MMSI 261497000 | match min time: 1586705738.0 new data time: 1586822742.0
+	match data lenght: 11542 new data length: 2185result data length: 13727
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586823468.0
+	match data lenght: 143267 new data length: 8270result data length: 151537
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586874384.0
+	match data lenght: 36708 new data length: 363result data length: 37071
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586822549.0
+	match data lenght: 17299 new data length: 8404result data length: 25703
+Data match: MMSI 219751000 | match min time: 1586602284.0 new data time: 1586822610.0
+	match data lenght: 15793 new data length: 8633result data length: 24426
+Data match: MMSI 246518000 | match min time: 1586810369.0 new data time: 1586822611.0
+	match data lenght: 996 new data length: 2842result data length: 3838
+Data match: MMSI 219026406 | match min time: 1586755335.0 new data time: 1586822670.0
+	match data lenght: 5717 new data length: 5983result data length: 11700
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586822423.0
+	match data lenght: 440292 new data length: 8175result data length: 448467
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586822546.0
+	match data lenght: 914093 new data length: 8662result data length: 922755
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586822664.0
+	match data lenght: 60284 new data length: 3211result data length: 63495
+Data match: MMSI 257319000 | match min time: 1586742740.0 new data time: 1586822708.0
+	match data lenght: 3426 new data length: 1835result data length: 5261
+Data match: MMSI 305537000 | match min time: 1586545536.0 new data time: 1586822530.0
+	match data lenght: 3601 new data length: 690result data length: 4291
+Data match: MMSI 235362000 | match min time: 1586716197.0 new data time: 1586822716.0
+	match data lenght: 7535 new data length: 1740result data length: 9275
+Data match: MMSI 304094000 | match min time: 1586597760.0 new data time: 1586822760.0
+	match data lenght: 4536 new data length: 675result data length: 5211
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1586822967.0
+	match data lenght: 27622 new data length: 7864result data length: 35486
+Data match: MMSI 565429000 | match min time: 1586702544.0 new data time: 1586822424.0
+	match data lenght: 11678 new data length: 6968result data length: 18646
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586822678.0
+	match data lenght: 830527 new data length: 7792result data length: 838319
+Data match: MMSI 246555000 | match min time: 1586788551.0 new data time: 1586822703.0
+	match data lenght: 2892 new data length: 239result data length: 3131
+Data match: MMSI 236407000 | match min time: 1586769472.0 new data time: 1586822753.0
+	match data lenght: 5075 new data length: 8797result data length: 13872
+Data match: MMSI 219022165 | match min time: 1586661410.0 new data time: 1586822693.0
+	match data lenght: 12766 new data length: 6656result data length: 19422
+Data match: MMSI 314238000 | match min time: 1586681221.0 new data time: 1586822699.0
+	match data lenght: 11130 new data length: 312result data length: 11442
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586822470.0
+	match data lenght: 318483 new data length: 7837result data length: 326320
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586822676.0
+	match data lenght: 536773 new data length: 8699result data length: 545472
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586822738.0
+	match data lenght: 104216 new data length: 8603result data length: 112819
+Data match: MMSI 255806275 | match min time: 1586781810.0 new data time: 1586822491.0
+	match data lenght: 3912 new data length: 5337result data length: 9249
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586822510.0
+	match data lenght: 105359 new data length: 8784result data length: 114143
+Data match: MMSI 266266000 | match min time: 1586747836.0 new data time: 1586822939.0
+	match data lenght: 7748 new data length: 82result data length: 7830
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586862162.0
+	match data lenght: 25561 new data length: 202result data length: 25763
+Data match: MMSI 211749880 | match min time: 1586812135.0 new data time: 1586822580.0
+	match data lenght: 736 new data length: 424result data length: 1160
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586822725.0
+	match data lenght: 9377 new data length: 694result data length: 10071
+Data match: MMSI 370461000 | match min time: 1586683064.0 new data time: 1586822743.0
+	match data lenght: 3031 new data length: 5954result data length: 8985
+Data match: MMSI 209114000 | match min time: 1586390576.0 new data time: 1586825654.0
+	match data lenght: 1355 new data length: 16result data length: 1371
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586829900.0
+	match data lenght: 47959 new data length: 1015result data length: 48974
+Data match: MMSI 212519000 | match min time: 1586660273.0 new data time: 1586856110.0
+	match data lenght: 6017 new data length: 19result data length: 6036
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586822574.0
+	match data lenght: 17862 new data length: 716result data length: 18578
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586822676.0
+	match data lenght: 191385 new data length: 8267result data length: 199652
+Data match: MMSI 538008566 | match min time: 1586802787.0 new data time: 1586822587.0
+	match data lenght: 1953 new data length: 6035result data length: 7988
+Data match: MMSI 219355000 | match min time: 1586804392.0 new data time: 1586822678.0
+	match data lenght: 1830 new data length: 3282result data length: 5112
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586822589.0
+	match data lenght: 77349 new data length: 4150result data length: 81499
+Data match: MMSI 311000142 | match min time: 1586779440.0 new data time: 1586822719.0
+	match data lenght: 4636 new data length: 9063result data length: 13699
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586822727.0
+	match data lenght: 29968 new data length: 4065result data length: 34033
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586823010.0
+	match data lenght: 13047 new data length: 140result data length: 13187
+Data match: MMSI 211222710 | match min time: 1586569625.0 new data time: 1586823071.0
+	match data lenght: 795 new data length: 161result data length: 956
+Data match: MMSI 211236290 | match min time: 1586577793.0 new data time: 1586824306.0
+	match data lenght: 5724 new data length: 1263result data length: 6987
+Data match: MMSI 209671000 | match min time: 1586761581.0 new data time: 1586822646.0
+	match data lenght: 5949 new data length: 4272result data length: 10221
+Data match: MMSI 265874000 | match min time: 1586808609.0 new data time: 1586822665.0
+	match data lenght: 1399 new data length: 1664result data length: 3063
+Data match: MMSI 236111951 | match min time: 1586791719.0 new data time: 1586822746.0
+	match data lenght: 2873 new data length: 2825result data length: 5698
+Data match: MMSI 305850000 | match min time: 1586782314.0 new data time: 1586905944.0
+	match data lenght: 519 new data length: 1result data length: 520
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586822870.0
+	match data lenght: 202096 new data length: 7424result data length: 209520
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586908913.0
+	match data lenght: 114143 new data length: 8743result data length: 122886
+Data match: MMSI 219015425 | match min time: 1586897951.0 new data time: 1586909140.0
+	match data lenght: 978 new data length: 485result data length: 1463
+Data match: MMSI 259631000 | match min time: 1586902349.0 new data time: 1586908832.0
+	match data lenght: 640 new data length: 1915result data length: 2555
+Data match: MMSI 209139000 | match min time: 1586891317.0 new data time: 1586908989.0
+	match data lenght: 1644 new data length: 3819result data length: 5463
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586909094.0
+	match data lenght: 75289 new data length: 9099result data length: 84388
+Data match: MMSI 265724260 | match min time: 1586893093.0 new data time: 1586908936.0
+	match data lenght: 1215 new data length: 5182result data length: 6397
+Data match: MMSI 304094000 | match min time: 1586597760.0 new data time: 1586908807.0
+	match data lenght: 5211 new data length: 888result data length: 6099
+Data match: MMSI 305537000 | match min time: 1586545536.0 new data time: 1586908933.0
+	match data lenght: 4291 new data length: 608result data length: 4899
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1586909011.0
+	match data lenght: 35486 new data length: 7610result data length: 43096
+Data match: MMSI 258429000 | match min time: 1586883153.0 new data time: 1586911927.0
+	match data lenght: 1453 new data length: 1214result data length: 2667
+Data match: MMSI 219167000 | match min time: 1586868350.0 new data time: 1586920820.0
+	match data lenght: 3054 new data length: 982result data length: 4036
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586908951.0
+	match data lenght: 25703 new data length: 8094result data length: 33797
+Data match: MMSI 246518000 | match min time: 1586810369.0 new data time: 1586908961.0
+	match data lenght: 3838 new data length: 558result data length: 4396
+Data match: MMSI 219751000 | match min time: 1586602284.0 new data time: 1586909012.0
+	match data lenght: 24426 new data length: 8998result data length: 33424
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586909030.0
+	match data lenght: 6483 new data length: 703result data length: 7186
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586909093.0
+	match data lenght: 23464 new data length: 709result data length: 24173
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586909115.0
+	match data lenght: 151537 new data length: 8378result data length: 159915
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1586969189.0
+	match data lenght: 37071 new data length: 100result data length: 37171
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586908947.0
+	match data lenght: 922755 new data length: 8716result data length: 931471
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586909065.0
+	match data lenght: 63495 new data length: 9396result data length: 72891
+Data match: MMSI 219347000 | match min time: 1586822535.0 new data time: 1586949329.0
+	match data lenght: 3807 new data length: 2974result data length: 6781
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586908831.0
+	match data lenght: 448467 new data length: 8322result data length: 456789
+Data match: MMSI 220461000 | match min time: 1586822743.0 new data time: 1586909863.0
+	match data lenght: 1596 new data length: 7778result data length: 9374
+Data match: MMSI 377444000 | match min time: 1586864581.0 new data time: 1586908885.0
+	match data lenght: 3950 new data length: 2498result data length: 6448
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586908896.0
+	match data lenght: 81499 new data length: 9300result data length: 90799
+Data match: MMSI 311000142 | match min time: 1586779440.0 new data time: 1586909082.0
+	match data lenght: 13699 new data length: 589result data length: 14288
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586911609.0
+	match data lenght: 34033 new data length: 3021result data length: 37054
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1586941811.0
+	match data lenght: 13187 new data length: 76result data length: 13263
+Data match: MMSI 246605000 | match min time: 1586867973.0 new data time: 1586908948.0
+	match data lenght: 1777 new data length: 638result data length: 2415
+Data match: MMSI 265760070 | match min time: 1586824632.0 new data time: 1586929502.0
+	match data lenght: 1556 new data length: 4100result data length: 5656
+Data match: MMSI 266150000 | match min time: 1586866680.0 new data time: 1586981470.0
+	match data lenght: 137 new data length: 1616result data length: 1753
+Data match: MMSI 212636000 | match min time: 1586898149.0 new data time: 1586908950.0
+	match data lenght: 73 new data length: 4313result data length: 4386
+Data match: MMSI 314500000 | match min time: 1586904209.0 new data time: 1586916186.0
+	match data lenght: 42 new data length: 4result data length: 46
+Data match: MMSI 231356000 | match min time: 1586879166.0 new data time: 1586909568.0
+	match data lenght: 11760 new data length: 14029result data length: 25789
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586908989.0
+	match data lenght: 18578 new data length: 713result data length: 19291
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586909076.0
+	match data lenght: 199652 new data length: 8213result data length: 207865
+Data match: MMSI 219786000 | match min time: 1586882340.0 new data time: 1586909011.0
+	match data lenght: 2218 new data length: 734result data length: 2952
+Data match: MMSI 265874000 | match min time: 1586895968.0 new data time: 1586909057.0
+	match data lenght: 1398 new data length: 1808result data length: 3206
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586909122.0
+	match data lenght: 10071 new data length: 732result data length: 10803
+Data match: MMSI 370461000 | match min time: 1586683064.0 new data time: 1586909145.0
+	match data lenght: 8985 new data length: 697result data length: 9682
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586910986.0
+	match data lenght: 48974 new data length: 304result data length: 49278
+Data match: MMSI 218800000 | match min time: 1586906437.0 new data time: 1586933805.0
+	match data lenght: 2 new data length: 3846result data length: 3848
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586909011.0
+	match data lenght: 326320 new data length: 4517result data length: 330837
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586909079.0
+	match data lenght: 545472 new data length: 8721result data length: 554193
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586909139.0
+	match data lenght: 112819 new data length: 8619result data length: 121438
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1586950886.0
+	match data lenght: 25763 new data length: 32result data length: 25795
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586909079.0
+	match data lenght: 838319 new data length: 7724result data length: 846043
+Data match: MMSI 236407000 | match min time: 1586769472.0 new data time: 1586909134.0
+	match data lenght: 13872 new data length: 5889result data length: 19761
+Data match: MMSI 257555000 | match min time: 1586863715.0 new data time: 1586909145.0
+	match data lenght: 4366 new data length: 9388result data length: 13754
+Data match: MMSI 209577000 | match min time: 1586880536.0 new data time: 1586909148.0
+	match data lenght: 1323 new data length: 4318result data length: 5641
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586909620.0
+	match data lenght: 209520 new data length: 6877result data length: 216397
+Data match: MMSI 220550000 | match min time: 1586952823.0 new data time: 1586995400.0
+	match data lenght: 5653 new data length: 1082result data length: 6735
+Data match: MMSI 219862000 | match min time: 1586908810.0 new data time: 1586995207.0
+	match data lenght: 9565 new data length: 1043result data length: 10608
+Data match: MMSI 219421000 | match min time: 1586908832.0 new data time: 1586995235.0
+	match data lenght: 3231 new data length: 1407result data length: 4638
+Data match: MMSI 219014851 | match min time: 1586908861.0 new data time: 1586995263.0
+	match data lenght: 9613 new data length: 4639result data length: 14252
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1586995353.0
+	match data lenght: 33797 new data length: 8396result data length: 42193
+Data match: MMSI 219751000 | match min time: 1586602284.0 new data time: 1586995414.0
+	match data lenght: 33424 new data length: 777result data length: 34201
+Data match: MMSI 219001181 | match min time: 1586909035.0 new data time: 1586995432.0
+	match data lenght: 9528 new data length: 435result data length: 9963
+Data match: MMSI 220623000 | match min time: 1586909094.0 new data time: 1586995496.0
+	match data lenght: 16443 new data length: 15176result data length: 31619
+Data match: MMSI 249076000 | match min time: 1586975388.0 new data time: 1586995215.0
+	match data lenght: 1794 new data length: 7257result data length: 9051
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1586995224.0
+	match data lenght: 456789 new data length: 8180result data length: 464969
+Data match: MMSI 219234000 | match min time: 1586948008.0 new data time: 1586995227.0
+	match data lenght: 6681 new data length: 1591result data length: 8272
+Data match: MMSI 219437000 | match min time: 1586942655.0 new data time: 1586995301.0
+	match data lenght: 7397 new data length: 2003result data length: 9400
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1587010947.0
+	match data lenght: 25795 new data length: 4640result data length: 30435
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1586995349.0
+	match data lenght: 931471 new data length: 8580result data length: 940051
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1586995469.0
+	match data lenght: 72891 new data length: 9010result data length: 81901
+Data match: MMSI 257377000 | match min time: 1586986737.0 new data time: 1586996098.0
+	match data lenght: 1132 new data length: 824result data length: 1956
+Data match: MMSI 219001695 | match min time: 1586909086.0 new data time: 1586995488.0
+	match data lenght: 19521 new data length: 11538result data length: 31059
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1586995773.0
+	match data lenght: 43096 new data length: 7986result data length: 51082
+Data match: MMSI 220228000 | match min time: 1586909504.0 new data time: 1586996786.0
+	match data lenght: 5380 new data length: 1438result data length: 6818
+Data match: MMSI 219616000 | match min time: 1586947121.0 new data time: 1587011643.0
+	match data lenght: 4389 new data length: 904result data length: 5293
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1586995241.0
+	match data lenght: 84388 new data length: 8088result data length: 92476
+Data match: MMSI 258681000 | match min time: 1586949014.0 new data time: 1586995839.0
+	match data lenght: 1702 new data length: 7697result data length: 9399
+Data match: MMSI 220461000 | match min time: 1586822743.0 new data time: 1586995543.0
+	match data lenght: 9374 new data length: 4737result data length: 14111
+Data match: MMSI 212636000 | match min time: 1586898149.0 new data time: 1586995256.0
+	match data lenght: 4386 new data length: 8697result data length: 13083
+Data match: MMSI 212503000 | match min time: 1586948990.0 new data time: 1586995270.0
+	match data lenght: 5188 new data length: 4195result data length: 9383
+Data match: MMSI 249624000 | match min time: 1586962936.0 new data time: 1586996775.0
+	match data lenght: 362 new data length: 66result data length: 428
+Data match: MMSI 255801670 | match min time: 1586916704.0 new data time: 1587007425.0
+	match data lenght: 5830 new data length: 287result data length: 6117
+Data match: MMSI 244063000 | match min time: 1586917539.0 new data time: 1586995325.0
+	match data lenght: 11706 new data length: 4826result data length: 16532
+Data match: MMSI 246605000 | match min time: 1586867973.0 new data time: 1586995355.0
+	match data lenght: 2415 new data length: 624result data length: 3039
+Data match: MMSI 265760070 | match min time: 1586824632.0 new data time: 1586996603.0
+	match data lenght: 5656 new data length: 2125result data length: 7781
+Data match: MMSI 538090511 | match min time: 1586959881.0 new data time: 1587022700.0
+	match data lenght: 899 new data length: 1144result data length: 2043
+Data match: MMSI 636019134 | match min time: 1586976893.0 new data time: 1586995273.0
+	match data lenght: 1837 new data length: 5405result data length: 7242
+Data match: MMSI 304374000 | match min time: 1586937627.0 new data time: 1586995294.0
+	match data lenght: 4460 new data length: 5515result data length: 9975
+Data match: MMSI 355254000 | match min time: 1586966323.0 new data time: 1586998062.0
+	match data lenght: 37 new data length: 8919result data length: 8956
+Data match: MMSI 244089000 | match min time: 1586986016.0 new data time: 1586995381.0
+	match data lenght: 945 new data length: 5434result data length: 6379
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1586995303.0
+	match data lenght: 216397 new data length: 7060result data length: 223457
+Data match: MMSI 265425000 | match min time: 1586992061.0 new data time: 1586995306.0
+	match data lenght: 273 new data length: 4501result data length: 4774
+Data match: MMSI 244130641 | match min time: 1586968675.0 new data time: 1586995315.0
+	match data lenght: 2321 new data length: 896result data length: 3217
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1586995522.0
+	match data lenght: 10803 new data length: 748result data length: 11551
+Data match: MMSI 370461000 | match min time: 1586683064.0 new data time: 1586995546.0
+	match data lenght: 9682 new data length: 680result data length: 10362
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1586998109.0
+	match data lenght: 49278 new data length: 352result data length: 49630
+Data match: MMSI 218800000 | match min time: 1586906437.0 new data time: 1587004997.0
+	match data lenght: 3848 new data length: 69result data length: 3917
+Data match: MMSI 211638130 | match min time: 1586976328.0 new data time: 1587051749.0
+	match data lenght: 15 new data length: 63result data length: 78
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1586995314.0
+	match data lenght: 122886 new data length: 8740result data length: 131626
+Data match: MMSI 219159000 | match min time: 1586980493.0 new data time: 1586995545.0
+	match data lenght: 1658 new data length: 1764result data length: 3422
+Data match: MMSI 257555000 | match min time: 1586863715.0 new data time: 1586995328.0
+	match data lenght: 13754 new data length: 5886result data length: 19640
+Data match: MMSI 229678000 | match min time: 1586949797.0 new data time: 1587001350.0
+	match data lenght: 115 new data length: 14result data length: 129
+Data match: MMSI 219340000 | match min time: 1586943219.0 new data time: 1586995418.0
+	match data lenght: 2665 new data length: 7170result data length: 9835
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1586995432.0
+	match data lenght: 7186 new data length: 705result data length: 7891
+Data match: MMSI 309987000 | match min time: 1586944862.0 new data time: 1586995492.0
+	match data lenght: 1104 new data length: 4963result data length: 6067
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1586995494.0
+	match data lenght: 24173 new data length: 705result data length: 24878
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1586995518.0
+	match data lenght: 159915 new data length: 7930result data length: 167845
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1587059683.0
+	match data lenght: 37171 new data length: 45result data length: 37216
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1586995340.0
+	match data lenght: 90799 new data length: 4782result data length: 95581
+Data match: MMSI 244530000 | match min time: 1586959813.0 new data time: 1586995454.0
+	match data lenght: 3705 new data length: 2869result data length: 6574
+Data match: MMSI 211222710 | match min time: 1586910601.0 new data time: 1586996410.0
+	match data lenght: 237 new data length: 314result data length: 551
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1586999810.0
+	match data lenght: 37054 new data length: 3641result data length: 40695
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1587003011.0
+	match data lenght: 13263 new data length: 189result data length: 13452
+Data match: MMSI 211264530 | match min time: 1586944985.0 new data time: 1587070207.0
+	match data lenght: 4 new data length: 1result data length: 5
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1586995481.0
+	match data lenght: 554193 new data length: 8896result data length: 563089
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1586995539.0
+	match data lenght: 121438 new data length: 8697result data length: 130135
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1586995548.0
+	match data lenght: 330837 new data length: 5318result data length: 336155
+Data match: MMSI 220507000 | match min time: 1586975441.0 new data time: 1586995602.0
+	match data lenght: 892 new data length: 2047result data length: 2939
+Data match: MMSI 273310900 | match min time: 1586929470.0 new data time: 1586995444.0
+	match data lenght: 3752 new data length: 1480result data length: 5232
+Data match: MMSI 304050000 | match min time: 1586961342.0 new data time: 1586995558.0
+	match data lenght: 3316 new data length: 4813result data length: 8129
+Data match: MMSI 219024883 | match min time: 1586964207.0 new data time: 1586995470.0
+	match data lenght: 2969 new data length: 5350result data length: 8319
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1586995476.0
+	match data lenght: 207865 new data length: 8929result data length: 216794
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1586995513.0
+	match data lenght: 19291 new data length: 689result data length: 19980
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1586995479.0
+	match data lenght: 846043 new data length: 7589result data length: 853632
+Data match: MMSI 246639000 | match min time: 1587070599.0 new data time: 1587081779.0
+	match data lenght: 807 new data length: 2206result data length: 3013
+Data match: MMSI 257438000 | match min time: 1587029066.0 new data time: 1587081627.0
+	match data lenght: 2907 new data length: 205result data length: 3112
+Data match: MMSI 219011867 | match min time: 1586563404.0 new data time: 1587081815.0
+	match data lenght: 51082 new data length: 8349result data length: 59431
+Data match: MMSI 246058000 | match min time: 1586995438.0 new data time: 1587086388.0
+	match data lenght: 4301 new data length: 796result data length: 5097
+Data match: MMSI 377739000 | match min time: 1587062207.0 new data time: 1587101150.0
+	match data lenght: 12 new data length: 1116result data length: 1128
+Data match: MMSI 219536000 | match min time: 1586534542.0 new data time: 1587081755.0
+	match data lenght: 42193 new data length: 2124result data length: 44317
+Data match: MMSI 220623000 | match min time: 1586909094.0 new data time: 1587082258.0
+	match data lenght: 31619 new data length: 14854result data length: 46473
+Data match: MMSI 211182380 | match min time: 1582195703.0 new data time: 1587081623.0
+	match data lenght: 464969 new data length: 8431result data length: 473400
+Data match: MMSI 377587000 | match min time: 1587076313.0 new data time: 1587081716.0
+	match data lenght: 385 new data length: 6215result data length: 6600
+Data match: MMSI 219024000 | match min time: 1577836856.0 new data time: 1587081751.0
+	match data lenght: 940051 new data length: 8728result data length: 948779
+Data match: MMSI 219731000 | match min time: 1586217702.0 new data time: 1587081868.0
+	match data lenght: 81901 new data length: 9241result data length: 91142
+Data match: MMSI 219000734 | match min time: 1585785689.0 new data time: 1587081716.0
+	match data lenght: 131626 new data length: 8733result data length: 140359
+Data match: MMSI 220550000 | match min time: 1587011524.0 new data time: 1587081644.0
+	match data lenght: 5971 new data length: 2928result data length: 8899
+Data match: MMSI 244830430 | match min time: 1585904505.0 new data time: 1587081776.0
+	match data lenght: 19980 new data length: 712result data length: 20692
+Data match: MMSI 219002493 | match min time: 1584800809.0 new data time: 1587081876.0
+	match data lenght: 216794 new data length: 8737result data length: 225531
+Data match: MMSI 219650000 | match min time: 1584144048.0 new data time: 1587081724.0
+	match data lenght: 336155 new data length: 6369result data length: 342524
+Data match: MMSI 219743000 | match min time: 1581519674.0 new data time: 1587081883.0
+	match data lenght: 563089 new data length: 9883result data length: 572972
+Data match: MMSI 219765000 | match min time: 1585765824.0 new data time: 1587081937.0
+	match data lenght: 130135 new data length: 8745result data length: 138880
+Data match: MMSI 219330000 | match min time: 1585958704.0 new data time: 1587081826.0
+	match data lenght: 92476 new data length: 8206result data length: 100682
+Data match: MMSI 219340000 | match min time: 1586943219.0 new data time: 1587081689.0
+	match data lenght: 9835 new data length: 3457result data length: 13292
+Data match: MMSI 211238930 | match min time: 1587036687.0 new data time: 1587081690.0
+	match data lenght: 6739 new data length: 5507result data length: 12246
+Data match: MMSI 373067000 | match min time: 1586489086.0 new data time: 1587081834.0
+	match data lenght: 7891 new data length: 709result data length: 8600
+Data match: MMSI 309987000 | match min time: 1586944862.0 new data time: 1587081856.0
+	match data lenght: 6067 new data length: 712result data length: 6779
+Data match: MMSI 538008327 | match min time: 1585750169.0 new data time: 1587081897.0
+	match data lenght: 24878 new data length: 709result data length: 25587
+Data match: MMSI 219013539 | match min time: 1585267391.0 new data time: 1587081920.0
+	match data lenght: 167845 new data length: 7699result data length: 175544
+Data match: MMSI 229323000 | match min time: 1587058663.0 new data time: 1587082064.0
+	match data lenght: 196 new data length: 5609result data length: 5805
+Data match: MMSI 220075000 | match min time: 1586424171.0 new data time: 1587126576.0
+	match data lenght: 37216 new data length: 132result data length: 37348
+Data match: MMSI 220514000 | match min time: 1587072692.0 new data time: 1587081693.0
+	match data lenght: 1077 new data length: 7354result data length: 8431
+Data match: MMSI 305509000 | match min time: 1587036626.0 new data time: 1587081717.0
+	match data lenght: 3324 new data length: 1723result data length: 5047
+Data match: MMSI 376481000 | match min time: 1587028893.0 new data time: 1587081745.0
+	match data lenght: 5754 new data length: 1698result data length: 7452
+Data match: MMSI 304094000 | match min time: 1587077823.0 new data time: 1587081804.0
+	match data lenght: 33 new data length: 5465result data length: 5498
+Data match: MMSI 265874000 | match min time: 1587072755.0 new data time: 1587081884.0
+	match data lenght: 799 new data length: 2260result data length: 3059
+Data match: MMSI 351199000 | match min time: 1586505925.0 new data time: 1587081921.0
+	match data lenght: 11551 new data length: 686result data length: 12237
+Data match: MMSI 211226140 | match min time: 1585707033.0 new data time: 1587081989.0
+	match data lenght: 49630 new data length: 504result data length: 50134
+Data match: MMSI 211638130 | match min time: 1586976328.0 new data time: 1587082062.0
+	match data lenght: 78 new data length: 343result data length: 421
+Data match: MMSI 370461000 | match min time: 1586683064.0 new data time: 1587082306.0
+	match data lenght: 10362 new data length: 658result data length: 11020
+Data match: MMSI 355254000 | match min time: 1586966323.0 new data time: 1587081701.0
+	match data lenght: 8956 new data length: 14599result data length: 23555
+Data match: MMSI 236205000 | match min time: 1587057025.0 new data time: 1587081902.0
+	match data lenght: 2170 new data length: 8529result data length: 10699
+Data match: MMSI 244089000 | match min time: 1586986016.0 new data time: 1587081717.0
+	match data lenght: 6379 new data length: 260result data length: 6639
+Data match: MMSI 211629870 | match min time: 1583934388.0 new data time: 1587081713.0
+	match data lenght: 223457 new data length: 6127result data length: 229584
+Data match: MMSI 219022165 | match min time: 1586995498.0 new data time: 1587082258.0
+	match data lenght: 8766 new data length: 6953result data length: 15719
+Data match: MMSI 220461000 | match min time: 1586822743.0 new data time: 1587082303.0
+	match data lenght: 14111 new data length: 6248result data length: 20359
+Data match: MMSI 246499000 | match min time: 1587045442.0 new data time: 1587081805.0
+	match data lenght: 3687 new data length: 2303result data length: 5990
+Data match: MMSI 377664000 | match min time: 1587080047.0 new data time: 1587081851.0
+	match data lenght: 102 new data length: 7019result data length: 7121
+Data match: MMSI 220638000 | match min time: 1587078526.0 new data time: 1587081767.0
+	match data lenght: 273 new data length: 10429result data length: 10702
+Data match: MMSI 304010253 | match min time: 1587049132.0 new data time: 1587081946.0
+	match data lenght: 3844 new data length: 7488result data length: 11332
+Data match: MMSI 249624000 | match min time: 1586962936.0 new data time: 1587082097.0
+	match data lenght: 428 new data length: 10result data length: 438
+Data match: MMSI 636019134 | match min time: 1587052456.0 new data time: 1587081850.0
+	match data lenght: 1616 new data length: 3747result data length: 5363
+Data match: MMSI 246605000 | match min time: 1586867973.0 new data time: 1587082111.0
+	match data lenght: 3039 new data length: 619result data length: 3658
+Data match: MMSI 219017582 | match min time: 1587037382.0 new data time: 1587122307.0
+	match data lenght: 270 new data length: 3979result data length: 4249
+Data match: MMSI 265760070 | match min time: 1586824632.0 new data time: 1587127666.0
+	match data lenght: 7781 new data length: 3698result data length: 11479
+Data match: MMSI 211219990 | match min time: 1585267471.0 new data time: 1587081894.0
+	match data lenght: 95581 new data length: 7745result data length: 103326
+Data match: MMSI 211222710 | match min time: 1586910601.0 new data time: 1587081898.0
+	match data lenght: 551 new data length: 80result data length: 631
+Data match: MMSI 246376000 | match min time: 1587076156.0 new data time: 1587082277.0
+	match data lenght: 307 new data length: 7843result data length: 8150
+Data match: MMSI 255806306 | match min time: 1585139641.0 new data time: 1587084372.0
+	match data lenght: 13452 new data length: 220result data length: 13672
+Data match: MMSI 211533590 | match min time: 1586140866.0 new data time: 1587090891.0
+	match data lenght: 40695 new data length: 3488result data length: 44183
+Data match: MMSI 211236290 | match min time: 1587067904.0 new data time: 1587115066.0
+	match data lenght: 81 new data length: 629result data length: 710
+Data match: MMSI 211264530 | match min time: 1586944985.0 new data time: 1587116396.0
+	match data lenght: 5 new data length: 31result data length: 36
+Data match: MMSI 266212000 | match min time: 1587070457.0 new data time: 1587081937.0
+	match data lenght: 231 new data length: 104result data length: 335
+Data match: MMSI 219015153 | match min time: 1586087789.0 new data time: 1587082760.0
+	match data lenght: 30435 new data length: 4995result data length: 35430
+Data match: MMSI 219000333 | match min time: 1577836806.0 new data time: 1587082250.0
+	match data lenght: 853632 new data length: 7345result data length: 860977
+Data match: MMSI 229678000 | match min time: 1586949797.0 new data time: 1587155599.0
+	match data lenght: 129 new data length: 982result data length: 1111
