@@ -23,8 +23,8 @@ torch.set_printoptions(precision=10)
 
 class TrainingCheckpoint:
     def __init__(self, path: str, model_path: str, start_time: str, epoch: int, num_epochs: int,
-                 learning_rate: float, loss_history: Tuple[List[float], List[float]], optimizer: torch.optim.Adam,
-                 is_optimum: bool) -> None:
+                 learning_rate: float, loss_history: Tuple[List[float], List[float]],
+                 optimizer: Union[torch.optim.Adam, torch.optim.AdamW], is_optimum: bool) -> None:
         self.path = path
         self.model_path = model_path
         self.start_time = start_time
@@ -49,18 +49,32 @@ class TrainingCheckpoint:
         }, self.path)
 
     @staticmethod
-    def load(path: str, device) -> Tuple['TrainingCheckpoint', InceptionTimeModel]:
+    def load(path: str, device, new_lr: float = None,
+             new_num_epochs: int = None) -> Tuple['TrainingCheckpoint', InceptionTimeModel]:
         print(f"Loading training checkpoint from {path}")
         checkpoint = torch.load(path, device)
+        if new_lr is not None:
+            print(f"Updated learning rate: {new_lr}")
+        if new_num_epochs is not None:
+            epoch = checkpoint["epoch"]
+            if new_num_epochs > int(epoch):
+                print(f"Updated number of epochs from {epoch} to {new_num_epochs}")
+            else:
+                raise ValueError(f"Invalid argument: 'new_num_epochs' ({new_num_epochs}) must be larger than "
+                                 f"currently trained epochs ({epoch})")
+        num_epochs = new_num_epochs if new_num_epochs is not None else checkpoint["num_epochs"]
+        lr = new_lr if new_lr is not None else checkpoint["learning_rate"]
         model = InceptionTimeModel.load(checkpoint["model_path"], device)  # .to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=checkpoint["learning_rate"])
+        # TODO: optimizer
+        # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         tc = TrainingCheckpoint(path=checkpoint["path"],
                                 model_path=checkpoint["model_path"],
                                 start_time=checkpoint["start_time"],
                                 epoch=checkpoint["epoch"],
-                                num_epochs=checkpoint["num_epochs"],
-                                learning_rate=checkpoint["learning_rate"],
+                                num_epochs=num_epochs,
+                                learning_rate=lr,
                                 loss_history=checkpoint["loss_history"],
                                 is_optimum=checkpoint["is_optimum"],
                                 optimizer=optimizer)
@@ -75,17 +89,23 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
         raise ValueError("No port data available")
 
     for _, port in pm.ports.items():
-        train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=5, learning_rate=.0001, pm=pm,
+        train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=100, learning_rate=.0004, pm=pm,
               resume_checkpoint=False, debug=debug)
 
 
-# lr = .0001  --> some jumps
+# lr = 0.0004 batch size 128 window 200 --> very slow
+# lr = 0.0003 batch size 64 window 200 -->
+# lr = .0001  --> some jumps, but pretty good results with batch-size 32
 # lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
-# lr = .00005 --> ?
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00005,
+# lr = .00005 --> seems to be still too slow, similar to above
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .0003,
           pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False) -> None:
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
+    # set device: use gpu if available
+    # more options: https://pytorch.org/docs/stable/notes/cuda.html
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # torch.autograd.set_detect_anomaly(True)
     if pm is None:
         pm = PortManager()
@@ -104,13 +124,8 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         train_logger.write(f"Training skipped: Unable to find port based on port_name {port_name}")
         return
 
-    # set device: use gpu if available
-    # more options: https://pytorch.org/docs/stable/notes/cuda.html
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training {port.name}-model. Device: {device}")
-
-    batch_size = 32
-    window_width = 100
+    batch_size = 64
+    window_width = 128
     dataset_dir = os.path.join(data_dir, "routes", port.name)
     dataset_config_path = os.path.join(dataset_dir, "default_dataset_config.pkl")
 
@@ -135,9 +150,9 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     # eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=None, drop_last=False, pin_memory=True,
-                                               num_workers=1)
+                                               num_workers=2)
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=None, drop_last=False,
-                                                  pin_memory=True, num_workers=1)
+                                                  pin_memory=True, num_workers=2)
 
     # if len(loader) == 0:
     #     raise ValueError(f"Unable to load data from directory {loader.data_dir}\n"
@@ -160,16 +175,24 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         num_epochs = tc.num_epochs
         learning_rate = tc.learning_rate
         loss_history = tc.loss_history
-        optimizer: torch.optim.Adam = tc.optimizer
+        # TODO: optimizer
+        optimizer = tc.optimizer
     else:
         model = InceptionTimeModel(num_inception_blocks=2, in_channels=input_dim, out_channels=32,
                                    bottleneck_channels=16, use_residual=True, output_dim=output_dim).to(device)
         # test what happens if using "weight_decay" e.g. with 1e-4
-        optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        # TODO: optimizer
+        # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+    print(f"loaded loss history:\n{loss_history}")
 
     # model.to(device)
     # print(f"model:\n{model}")
-    print(f"Starting training from directory {dataset_dir} on {len(train_loader)} training examples")
+    print(f".:'`!`':. TRAINING FOR PORT {port_name} STARTED .:'`!`':.")
+    print(f"- - Epochs {num_epochs} </> Training examples {len(train_loader)} </> Learning rate {learning_rate} - -")
+    print(f"- - Window width {window_width} </> Batch size {batch_size} - -")
+    print(f"- - Number of model's parameters {num_total_trainable_parameters(model)} device {device} - -")
     # print(f"First training example: \n{train_loader[0]}")
     train_logger.write(f"{port.name}-model\n"
                        f"Number of epochs: {num_epochs}\n"
@@ -181,10 +204,10 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     # training loop
     for epoch in range(start_epoch, num_epochs):
         # train model
+        print(f"->->->->-> Epoch ({epoch + 1}/{num_epochs}) <-<-<-<-<-<-")
         avg_train_loss = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
                                     loader=train_loader, debug=debug, debug_logger=debug_logger)
         loss_history[0].append(avg_train_loss)
-        print(f"epoch: {epoch} avg train loss: {avg_train_loss}")
 
         # validate model
         avg_validation_loss = validate_loop(criterion=criterion, device=device, model=model, optimizer=optimizer,
@@ -202,7 +225,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
                                  epoch=epoch, num_epochs=num_epochs, learning_rate=learning_rate,
                                  loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch)
-        print(f"epoch: {epoch + 1} avg val loss: {avg_validation_loss}")
+        print(f">>>> Avg losses - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
     # conclude training
     end_datetime = datetime.now()
@@ -230,7 +253,10 @@ def conclude_training(loss_history: Tuple[List[float], List[float]], end: dateti
 def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
     loss = 0
     model.train()
-    for batch_idx, (inputs, target) in enumerate(tqdm(loader)):
+    for batch_idx, (inputs, target) in enumerate(tqdm(loader, desc="Training-loop progress")):
+        # start = datetime.now()
+        # end = datetime.now()
+        # print(f"data loading took {end.microsecond - start.microsecond} microseconds")
         inputs = inputs.to(device)
         target = target.to(device)
         # print(f"train tensor:\n{train_data.shape}")
@@ -278,7 +304,8 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
 
 def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, epoch: int, num_epochs: int,
                              learning_rate: float, loss_history: Tuple[List[float], List[float]],
-                             optimizer: torch.optim.Adam, is_optimum: bool, is_transfer: bool = False) -> None:
+                             optimizer: Union[torch.optim.Adam, torch.optim.AdamW],
+                             is_optimum: bool, is_transfer: bool = False) -> None:
     current_time = as_str(datetime.now())
     model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time,
                                                            is_checkpoint=False if is_optimum else True,
@@ -321,11 +348,28 @@ def remove_previous_checkpoint(model_dir: str, port: Port, start_time: str, curr
 
 def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, InceptionTimeModel]:
     file_path, checkpoint_type = find_latest_checkpoint_file_path(model_dir)
+    lr, num_epochs = None, None
     if checkpoint_type == "model":
         inp = input(f"Latest checkpoint is of type 'model' at {file_path}\nEnter 'Y' to continue")
         if inp not in ["y", "Y"]:
-            raise ValueError(f"Training stopped by user! Undesired latest checkpoint of type 'model' at {file_path}")
-    tc, model = TrainingCheckpoint.load(file_path, device)
+            raise ValueError(f"Recovering aborted! Undesired latest checkpoint of type 'model' at {file_path}")
+        lr = input(f"Type in new learning rate if desired. Press ENTER to skip")
+        if lr is not None and lr not in ["", "n", "N"]:
+            try:
+                lr = float(lr)
+            except ValueError:
+                raise ValueError(f"Unable to cast entered learning rate '{lr}' to float")
+        else:
+            lr = None
+        num_epochs = input(f"Type in new number of epochs. Press ENTER to skip")
+        if num_epochs is not None and num_epochs not in ["", "n", "N"]:
+            try:
+                num_epochs = int(num_epochs)
+            except ValueError:
+                raise ValueError(f"Unable to cast entered number of epochs '{num_epochs}' to int")
+        else:
+            num_epochs = None
+    tc, model = TrainingCheckpoint.load(file_path, device, new_lr=lr, new_num_epochs=num_epochs)
     return tc, model
 
 
@@ -352,8 +396,9 @@ def main(args) -> None:
     if args.command == "train_port":
         if not args.port_name:
             raise ValueError(f"No port name found! Use '--port_name=' to train specific model")
-        print(f"Training single model for port {args.port_name}")
-        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=args.resume_checkpoint)
+        print(f"Attempting to train single model for port name '{args.port_name}'")
+        resume = True if args.resume_checkpoint in ["True", "true", "Y", "y"] else False
+        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=resume)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 

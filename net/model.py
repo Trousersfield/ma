@@ -105,8 +105,6 @@ class InceptionTimeModel(nn.Module):
     @staticmethod
     def _dense_channels(in_channels: int, num_of_blocks: int) -> List[int]:
         chs = np.arange(num_of_blocks + 1)
-        print(f"num_of_blocks: {num_of_blocks}")
-        print(f"chs: {chs}")
         return in_channels // (2 ** chs)
 
     @staticmethod

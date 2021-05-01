@@ -119,8 +119,11 @@ class TransferManager:
 
         model = InceptionTimeModel.load(p_transfer.base_model_path, device=device)
         model.freeze_inception()
-        optimizer: torch.optim.Adam = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
-                                                       lr=p_transfer.learning_rate)
+        # TODO: optimizer
+        # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+        #                                                lr=p_transfer.learning_rate)
+        optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),
+                                      lr=p_transfer.learning_rate)
 
         # data, target = train_dataset[0]
         # input_dim = data.size(-1)

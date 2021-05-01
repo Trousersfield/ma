@@ -3,13 +3,17 @@ import numpy as np
 import os
 import torch
 
+from datetime import datetime
 from torch.utils.data import Dataset
 from typing import List, Tuple
+from tqdm import tqdm
 
 from port import Port, PortManager
 from util import npy_file_len
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
+
+# torch.set_printoptions(precision=10)
 
 
 class RoutesDirectoryDataset(Dataset):
@@ -32,7 +36,7 @@ class RoutesDirectoryDataset(Dataset):
         self.route_file_paths = list(map(lambda file_name: os.path.join(data_dir, file_name),
                                          filter(lambda file_name: file_name.startswith("data_"), os.listdir(data_dir))))
         self.offsets = []
-        self.size = sum(map(self._count_data_length, self.route_file_paths))
+        self.size = sum(tqdm(map(self._count_data_length, self.route_file_paths), desc=f"Counting data in files"))
         if end is None:
             self.end = self.size
         else:
@@ -40,7 +44,7 @@ class RoutesDirectoryDataset(Dataset):
             self.end = end
         print(f"start: {self.start} end: {self.end}")
         assert self.start < self.end
-        self.data = list(map(self._read_file, self.route_file_paths))
+        self.data = list(tqdm(map(self._read_file, self.route_file_paths), desc=f"Loading {kind}-data"))
         self.access_matrix = self._generate_access_matrix()
         if shuffled_data_indices is None:
             self.shuffled_data_indices = self._shuffle_data_indices()
@@ -66,24 +70,45 @@ class RoutesDirectoryDataset(Dataset):
             end = len(self.access_matrix - 1)
         file_vectors = self.access_matrix[start:end, :]
         # print(f"file vectors:\n{file_vectors}")
-
-        data_tensors: List[torch.Tensor] = []
-        target_tensors: List[torch.Tensor] = []
+        data_idx = file_vectors[0][0]
+        file_start = file_vectors[0][1]
+        # data_tensors: List[torch.Tensor] = []
+        # target_tensors: List[torch.Tensor] = []
         # print(f"file vectors: {file_vectors}")
-        for file_vector in file_vectors:
-            # generate index-based access vector to extract window from data with offset
-            # print(f"offset: {self.offsets[file_vector[0]]}")
-            index_vector = (self.window_vector + file_vector[1])
-            # print(f"index vector:\n{index_vector}")
-            # print(f"data size: {self.data[file_vector[0]].shape}")
-            window = self.data[file_vector[0]][index_vector][0]
-            # print(f"window:\n{window}")
-            # print(f"data type: {window.dtype}")
-            # data_tensors.append(torch.from_numpy(np.array(window[:, :-1])).float())
-            # target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
+        #
+        # start = datetime.now()
+        # for file_vector in file_vectors:
+        #     # generate index-based access vector to extract window from data with offset
+        #     # print(f"offset: {self.offsets[file_vector[0]]}")
+        #     index_vector = (self.window_vector + file_vector[1])
+        #     # print(f"index vector:\n{index_vector}")
+        #     # print(f"data size: {self.data[file_vector[0]].shape}")
+        #     window = self.data[file_vector[0]][index_vector][0]
+        #     # print(f"window:\n{window}")
+        #     # print(f"data type: {window.dtype}")
+        #     data_tensors.append(torch.from_numpy(window[:, :-1]).float())
+        #     # print(f"target: {window[-1][window[-1].shape[0] - 1]}")
+        #     target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
+        # end = datetime.now()
+        # print(f"old method took {end.microsecond - start.microsecond} microseconds")
+        #
+        # data = torch.stack(data_tensors, dim=0)
+        # target = torch.stack(target_tensors, dim=0)
+        # # print(f"window:\n{window}")
+        # print(f"data:\n{data.shape}")
+        # print(f"target:\n{target.shape}")
+
+        data_tensors = []
+        target_tensors = []
+
+        # start = datetime.now()
+        for i in range(self.batch_size):
+            window = self.data[data_idx][file_start + i:file_start + self.window_width + i]
             data_tensors.append(torch.from_numpy(window[:, :-1]).float())
             # print(f"target: {window[-1][window[-1].shape[0] - 1]}")
             target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
+        # end = datetime.now()
+        # print(f"new method took {end.microsecond - start.microsecond} microseconds")
 
         data = torch.stack(data_tensors, dim=0)
         target = torch.stack(target_tensors, dim=0)
@@ -92,20 +117,20 @@ class RoutesDirectoryDataset(Dataset):
         # print(f"target:\n{target.shape}")
         return data, target
 
+    def _batches(self, data_idx, start) -> Tuple[torch.Tensor, torch.Tensor]:
+        for i in range(self.batch_size):
+            window = self.data[data_idx][start + i:start + self.window_width + i]
+            yield torch.from_numpy(window[:, :-1]).float(), \
+                torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float()
+
     def _count_data_length(self, file_path: str) -> int:
         data_len = npy_file_len(file_path) - self.window_width + 1
         # print(f"num raw rows: {data_len}")
         if data_len < 1:
             data_len = 0
-        # print(f"num rows with batch size ({self.batch_size}): {int(math.ceil(data_len / self.batch_size))}")
-        # DO NOT round up to also get last data-points, even though the batch is smaller than intended
-        # instead round down to get the exact size of the dataset
-        # TODO: offset data at beginning by number of entries that are lost at the end
         # trade-off: keep data at the end a series rather than at beginning
         num_batches, offset = divmod(data_len, self.batch_size)
         self.offsets.append(offset)
-        # print(f"file index {len(self.offsets) - 1} data len: {data_len} num batches: {num_batches}  offset: {offset}")
-        # return int(data_len / self.batch_size)
         return num_batches
 
     @staticmethod
@@ -117,7 +142,7 @@ class RoutesDirectoryDataset(Dataset):
     def load_from_config(config_path: str, kind: str = None, start: int = None,
                          end: int = None) -> 'RoutesDirectoryDataset':
         if os.path.exists(config_path):
-            print(f"Loading dataset from config {config_path}")
+            # print(f"Loading dataset from config {config_path}")
             config = torch.load(config_path)
             dataset = RoutesDirectoryDataset(data_dir=config["data_dir"],
                                              kind=config["kind"] if kind is None else kind,
@@ -152,7 +177,7 @@ class RoutesDirectoryDataset(Dataset):
         :return: 2-dim array of indices
         """
         access_matrix = np.array([[-1, -1]])
-        for index, data in enumerate(self.data):
+        for index, data in enumerate(tqdm(self.data, desc="Generating access matrix")):
             # data_len = data.shape[0] - self.window_width + 1
             data_len = data.shape[0] - self.window_width + 1  # - self.offsets[index]
             # print(f"file ({index}) source data len: {data.shape[0]} after window ({self.window_width}) "
