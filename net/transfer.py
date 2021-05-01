@@ -13,7 +13,7 @@ from logger import Logger
 from net.model import InceptionTimeModel
 from net.trainer import train_loop, validate_loop, make_train_step, make_training_checkpoint, conclude_training
 from port import Port, PortManager
-from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file
+from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file, verify_output_dir
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -70,9 +70,10 @@ class TransferResult:
 
 
 class TransferManager:
-    def __init__(self, config_path: str, data_dir: str):
+    def __init__(self, config_path: str, routes_dir: str, output_dir: str):
         self.config_path = config_path
-        self.data_dir = data_dir
+        self.routes_dir = routes_dir
+        self.output_dir = output_dir
         self.pm = PortManager()
         self.pm.load()
         if len(self.pm.ports.keys()) < 1:
@@ -180,32 +181,36 @@ class TransferManager:
             raise FileNotFoundError(f"No transfer definition file found at '{transfer_definition_path}'. "
                                     f"Make sure to generate definitions are generated.")
 
-    def _generate_transfers(self, transfer_latest_model: bool = True) -> List[TransferDefinition]:
+    def _generate_transfers(self, base_model_file_name: str = None) -> List[TransferDefinition]:
         config = read_json(self.config_path)
         transfers: List[TransferDefinition] = []
 
         for transfer_def in config:
             base_port = self.pm.find_port(transfer_def["base_port"])
+            base_port_trainings = self.pm.load_trainings(base_port, self.output_dir)
+
+            print(f"trainings for port {base_port.name}:\n{base_port_trainings}")
+            if len(base_port_trainings) == 0:
+                print(f"No training found for port '{base_port.name}'")
+                continue
+
+            base_ti = base_port_trainings[-1]
+            print(f"base training iteration:\n{base_ti}")
             for target_port_name in transfer_def["target_ports"]:
                 target_port = self.pm.find_port(target_port_name)
-
-                if transfer_latest_model:
-                    base_model_path = base_port.trainings[-1].model_path
-                    target_data_dir = os.path.join(self.data_dir, target_port.name)
-                    target_model_dir = os.path.split(base_model_path)[0]
-                    out_dir = os.path.join(target_model_dir, os.pardir)
-                    if not os.path.exists(target_model_dir):
-                        os.makedirs(target_model_dir)
-
-                    td = TransferDefinition(base_port_name=base_port.name,
-                                            base_model_path=base_model_path,
-                                            target_port_name=target_port.name,
-                                            target_data_dir=target_data_dir,
-                                            target_model_dir=target_model_dir,
-                                            target_output_data_dir=os.path.join(out_dir, "data", target_port.name),
-                                            target_plot_dir=os.path.join(out_dir, "plot", target_port.name),
-                                            target_log_dir=os.path.join(out_dir, "log", target_port.name))
-                    transfers.append(td)
+                if target_port is None:
+                    raise ValueError(f"Unable to transfer from port '{base_port.name}'. "
+                                     f"No port for '{target_port_name}' found")
+                verify_output_dir(self.output_dir, target_port.name)
+                td = TransferDefinition(base_port_name=base_port.name,
+                                        base_model_path=base_ti.model_path,
+                                        target_port_name=target_port.name,
+                                        target_data_dir=os.path.join(self.routes_dir, target_port.name),
+                                        target_model_dir=os.path.join(self.output_dir, "model", target_port.name),
+                                        target_output_data_dir=os.path.join(self.output_dir, "data", target_port.name),
+                                        target_plot_dir=os.path.join(self.output_dir, "plot", target_port.name),
+                                        target_log_dir=os.path.join(self.output_dir, "log", target_port.name))
+                transfers.append(td)
         return transfers
 
     def _find_transfer(self, port: Port) -> TransferDefinition:
@@ -224,14 +229,14 @@ def read_json(path: str) -> json:
 
 
 # entry point for transferring models
-def transfer(config_path: str, port_name: str, data_dir: str) -> None:
-    tm = TransferManager(config_path, data_dir)
+def transfer(config_path: str, port_name: str, routes_dir: str, output_dir: str) -> None:
+    tm = TransferManager(config_path, routes_dir, output_dir)
     tm.transfer(port_name=port_name)
 
 
 def main(args) -> None:
     if args.command == "transfer":
-        transfer(args.config_path, args.port_name, args.data_dir)
+        transfer(args.config_path, args.port_name, args.routes_dir)
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
@@ -242,7 +247,9 @@ if __name__ == "__main__":
     parser.add_argument("port_name", type=str, help="Port to transfer from")
     parser.add_argument("--config_path", type=str, default=os.path.join(script_dir, "transfer", "config.json"),
                         help="Path to file for transfer definition generation")
-    parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data", "routes"),
+    parser.add_argument("--routes_dir", type=str, default=os.path.join(script_dir, "data", "routes"),
                         help="Path to routes-data directory without port")
+    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "output"),
+                        help="Path to output directory without port")
     main(parser.parse_args())
 

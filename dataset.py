@@ -81,9 +81,9 @@ class RoutesDirectoryDataset(Dataset):
             # print(f"data type: {window.dtype}")
             # data_tensors.append(torch.from_numpy(np.array(window[:, :-1])).float())
             # target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
-            data_tensors.append(torch.from_numpy(window[:, :-1]))
+            data_tensors.append(torch.from_numpy(window[:, :-1]).float())
             # print(f"target: {window[-1][window[-1].shape[0] - 1]}")
-            target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])))
+            target_tensors.append(torch.from_numpy(np.array([window[-1][window[-1].shape[0] - 1]])).float())
 
         data = torch.stack(data_tensors, dim=0)
         target = torch.stack(target_tensors, dim=0)

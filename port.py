@@ -6,8 +6,10 @@ import os
 import pandas as pd
 
 from logger import Logger
-from training import TrainingIteration, make_training_iteration
-from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name
+from output_collector import OutputCollector
+from training import TrainingIteration
+from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name,\
+    decode_loss_file, decode_loss_plot, decode_checkpoint_file, decode_model_file
 
 from datetime import datetime
 from math import radians, cos, sin, asin, sqrt, degrees
@@ -26,17 +28,16 @@ class Port:
         self.longitude = longitude  # degrees
         self.radius = radius        # km
         # approximate maximum lat and long distances from center point of the maximum square within radius r
-        self.r_lat = self.km_to_lat(radius)   # r in degrees for lat
-        self.r_long = self.km_to_long(radius, self.latitude)  # r in degrees for long
+        self.r_lat = self._km_to_lat(radius)   # r in degrees for lat
+        self.r_long = self._km_to_long(radius, self.latitude)  # r in degrees for long
         hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
-        self.inner_square_lat_radius = self.km_to_lat(hypotenuse/2)
-        self.inner_square_long_radius = self.km_to_long(hypotenuse/2, self.latitude)
-        self.training: TrainingIteration = None
+        self.inner_square_lat_radius = self._km_to_lat(hypotenuse/2)
+        self.inner_square_long_radius = self._km_to_long(hypotenuse/2, self.latitude)
 
-    def km_to_lat(self, km: float) -> float:
+    def _km_to_lat(self, km: float) -> float:
         return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
 
-    def km_to_long(self, km: float, latitude: float) -> float:
+    def _km_to_long(self, km: float, latitude: float) -> float:
         return 1/(self.KM_TO_LONG_FACTOR*km*cos(radians(latitude))) if km > 0 else 0
 
 
@@ -169,40 +170,32 @@ class PortManager:
 
         return df_outside_circle, arrival_times
 
-    def add_training(self, port: Union[str, Port], start_time: Union[float, datetime], end_time: Union[float, datetime],
-                     model_path: str, data_path: str, log_path: str, plot_path: str, debug_path: str) -> None:
+    def load_trainings(self, port: [str, Port], output_dir: str,
+                       training_type: str = "training") -> List[TrainingIteration]:
+        if not os.path.exists(output_dir):
+            raise ValueError(f"No such directory: {output_dir}")
+        if training_type not in ["training", "transfer"]:
+            raise ValueError(f"Unknown training type '{training_type}': Not in [training, transfer]")
         if port is str:
             port = self.find_port(port)
-            if port is None:
-                return
-        if start_time is datetime:
-            start_time = as_float(start_time)
-        if end_time is datetime:
-            end_time = as_float(end_time)
-        port.trainings[end_time] = make_training_iteration(start_time=start_time, end_time=end_time,
-                                                           log_path=log_path, model_path=model_path,
-                                                           data_path=data_path, plot_path=plot_path,
-                                                           debug_path=debug_path)
-        self.save()
+        if port is None:
+            raise ValueError(f"Unable to associate port with '{port}'")
 
-    def remove_training(self, port: Union[str, Port], training_iteration: TrainingIteration) -> None:
-        if port is str:
-            port = self.find_port(port)
-            if port is None:
-                return
-        if training_iteration.end_time in port.trainings:
-            del port.trainings[training_iteration.end_time]
-            self.save()
-        else:
-            print(f"Training iteration '{training_iteration}' not found for port {port.name}")
+        oc = OutputCollector(output_dir)
+        data_paths = oc.collect_data(port.name, group=True)
+        debug_paths = oc.collect_debug(port.name, group=True)
+        log_paths = oc.collect_log(port.name, group=True)
+        model_paths = oc.collect_model(port.name, group=True)
+        plot_paths = oc.collect_plot(port.name, group=True)
 
-    def reset_trainings(self, ports: Union[List[str], List[Port]]) -> None:
-        for port in ports:
-            if port is str:
-                port = self.find_port(port)
-            if port is not None:
-                port.trainings = {}
-        self.save()
+        trainings = []
+        start_times = model_paths.keys()
+        for start in sorted(start_times):
+            _, _, _, end = decode_model_file(model_paths[start])
+            ti = TrainingIteration(start, end, data_paths[start], log_paths[start], model_paths[start],
+                                   plot_paths[start], debug_paths[start])
+            trainings.append(ti)
+        return trainings
 
 
 def haversine(lat1: float, long1: float, lat2: float, long2: float) -> float:
@@ -330,7 +323,8 @@ def main(args) -> None:
         pm = PortManager()
         pm.load()
         port = pm.find_port("hamburg")
-        print(f"Port Manager:\n{port.trainings}")
+        trainings = pm.load_trainings(port, args.output_dir)
+        print(f"Trainings: {trainings}")
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 

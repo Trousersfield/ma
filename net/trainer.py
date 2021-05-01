@@ -5,6 +5,7 @@ import torch
 
 from datetime import datetime
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from typing import Dict, List, Tuple, Union
 
 from dataset import RoutesDirectoryDataset
@@ -13,18 +14,19 @@ from net.model import InceptionTimeModel
 from plotter import plot_series
 from port import Port, PortManager
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
-    num_total_trainable_parameters, decode_model_file, find_checkpoint_file_path
+    num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, encode_checkpoint_file,\
+    decode_checkpoint_file, as_datetime, verify_output_dir
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
 
 
 class TrainingCheckpoint:
-    def __init__(self, model_path: str, start_time: str, epoch: int, num_epochs: int, learning_rate: float,
-                 loss_history: Tuple[List[float], List[float]], optimizer: torch.optim.Adam,
+    def __init__(self, path: str, model_path: str, start_time: str, epoch: int, num_epochs: int,
+                 learning_rate: float, loss_history: Tuple[List[float], List[float]], optimizer: torch.optim.Adam,
                  is_optimum: bool) -> None:
+        self.path = path
         self.model_path = model_path
-        self.save_path = os.path.join(os.path.split(model_path)[0], "checkpoint.tar")
         self.start_time = start_time
         self.epoch = epoch
         self.num_epochs = num_epochs
@@ -35,8 +37,8 @@ class TrainingCheckpoint:
 
     def safe(self):
         torch.save({
+            "path": self.path,
             "model_path": self.model_path,
-            "save_path": self.save_path,
             "start_time": self.start_time,
             "epoch": self.epoch,
             "num_epochs": self.num_epochs,
@@ -44,16 +46,17 @@ class TrainingCheckpoint:
             "loss_history": self.loss_history,
             "is_optimum": self.is_optimum,
             "optimizer_state_dict": self.optimizer.state_dict()
-        }, self.save_path)
+        }, self.path)
 
     @staticmethod
-    def load(checkpoint_path: str, device) -> Tuple['TrainingCheckpoint', InceptionTimeModel]:
-        print(f"Loading training checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path, device)
+    def load(path: str, device) -> Tuple['TrainingCheckpoint', InceptionTimeModel]:
+        print(f"Loading training checkpoint from {path}")
+        checkpoint = torch.load(path, device)
         model = InceptionTimeModel.load(checkpoint["model_path"], device)  # .to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=checkpoint["learning_rate"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        tc = TrainingCheckpoint(model_path=checkpoint["model_path"],
+        tc = TrainingCheckpoint(path=checkpoint["path"],
+                                model_path=checkpoint["model_path"],
                                 start_time=checkpoint["start_time"],
                                 epoch=checkpoint["epoch"],
                                 num_epochs=checkpoint["num_epochs"],
@@ -79,7 +82,7 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
 # lr = .0001  --> some jumps
 # lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
 # lr = .00005 --> ?
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00001,
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00005,
           pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False) -> None:
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
@@ -91,12 +94,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
             raise ValueError("No port data available")
     port = pm.find_port(port_name)
 
-    output_dirs: Dict[str, str] = {}
-    for kind in ["data", "debug", "model", "plot", "log"]:
-        curr_dir = os.path.join(output_dir, kind, port.name)
-        if not os.path.exists(curr_dir):
-            os.makedirs(curr_dir)
-        output_dirs[kind] = curr_dir
+    output_dirs = verify_output_dir(output_dir, port.name)
 
     log_file_name = f"train-log_{port.name}_{start_time}"
     train_logger = Logger(log_file_name, output_dirs["log"])
@@ -208,23 +206,15 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
     # conclude training
     end_datetime = datetime.now()
-    loss_history_path, model_path, plot_path = conclude_training(loss_history=loss_history, end=end_datetime,
-                                                                 model_dir=output_dirs["model"],
-                                                                 data_dir=output_dirs["data"],
-                                                                 plot_dir=output_dirs["plot"],
-                                                                 port=port, start_time=start_time)
-
-    pm.add_training(port=port, start_time=start_datetime, end_time=end_datetime, model_path=model_path,
-                    data_path=loss_history_path, plot_path=plot_path,
-                    log_path=train_logger.file_path,
-                    debug_path=debug_logger.file_path if debug else None)
+    conclude_training(loss_history=loss_history, end=end_datetime, model_dir=output_dirs["model"],
+                      data_dir=output_dirs["data"], plot_dir=output_dirs["plot"], port=port, start_time=start_time)
 
 
 def conclude_training(loss_history: Tuple[List[float], List[float]], end: datetime, model_dir: str, data_dir: str,
                       plot_dir: str, port: Port, start_time: str,
                       plot_title: str = "Training loss") -> Tuple[str, str, str]:
     end_time = as_str(end)
-    remove_previous_checkpoint_model(model_dir, port, start_time, end_time)
+    remove_previous_checkpoint(model_dir, port, start_time, end_time)
     loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
     model_path = find_model_path(model_dir, start_time=start_time)
@@ -240,7 +230,7 @@ def conclude_training(loss_history: Tuple[List[float], List[float]], end: dateti
 def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
     loss = 0
     model.train()
-    for batch_idx, (inputs, target) in enumerate(loader):
+    for batch_idx, (inputs, target) in enumerate(tqdm(loader)):
         inputs = inputs.to(device)
         target = target.to(device)
         # print(f"train tensor:\n{train_data.shape}")
@@ -294,25 +284,47 @@ def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str,
                                                            is_checkpoint=False if is_optimum else True,
                                                            is_transfer=is_transfer))
     model.save(model_path)
-    tc = TrainingCheckpoint(model_path=model_path, epoch=epoch, start_time=start_time, num_epochs=num_epochs,
-                            learning_rate=learning_rate, loss_history=loss_history, optimizer=optimizer,
-                            is_optimum=is_optimum)
+    tc_path = os.path.join(os.path.split(model_path)[0],
+                           encode_checkpoint_file(port.name, start_time, current_time,
+                                                  is_checkpoint=False if is_optimum else True, is_transfer=is_transfer))
+    tc = TrainingCheckpoint(path=tc_path, model_path=model_path, epoch=epoch, start_time=start_time,
+                            num_epochs=num_epochs, learning_rate=learning_rate, loss_history=loss_history,
+                            optimizer=optimizer, is_optimum=is_optimum)
     tc.safe()
     # remove previous checkpoint's model
-    remove_previous_checkpoint_model(model_dir, port, start_time, current_time, is_optimum)
+    remove_previous_checkpoint(model_dir, port, start_time, current_time, is_optimum)
 
 
-def remove_previous_checkpoint_model(model_dir: str, port: Port, start_time: str, current_time: str,
-                                     new_optimum: bool = False) -> None:
+def remove_previous_checkpoint(model_dir: str, port: Port, start_time: str, current_time: str,
+                               new_optimum: bool = False) -> None:
+    """
+    Remove a previous checkpoint's model- and checkpoint-file. Identification via encoded start_time: Files with the
+    same start_time as given in the parameters are considered to be the same training
+    :param model_dir: Directory to models for given port (including port name)
+    :param port: Port
+    :param start_time: Main identification for files that belong to the same training within the given directory
+    :param current_time: Current time for identifying older checkpoints
+    :param new_optimum: Remove files from a previous optimum
+    :return: None
+    """
+    current_time = as_datetime(current_time)
     for file in os.listdir(model_dir):
+        _, ext = os.path.splitext(file)
         if file.startswith("checkpoint_") or (new_optimum and file.startswith("model_")):
-            _, cp_port_name, cp_start_time, cp_end_time = decode_model_file(file)
-            if cp_port_name == port.name and cp_start_time == start_time and cp_end_time < current_time:
-                os.remove(os.path.join(model_dir, file))
+            if ext in [".pt", ".tar"]:  # model or checkpoint file
+                _, cp_port_name, cp_start_time, cp_end_time = \
+                    decode_model_file(file) if ext == ".pt" else decode_checkpoint_file(file)
+                cp_end_time = as_datetime(cp_end_time)
+                if cp_port_name == port.name and cp_start_time == start_time and cp_end_time < current_time:
+                    os.remove(os.path.join(model_dir, file))
 
 
 def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, InceptionTimeModel]:
-    file_path = find_checkpoint_file_path(model_dir)
+    file_path, checkpoint_type = find_latest_checkpoint_file_path(model_dir)
+    if checkpoint_type == "model":
+        inp = input(f"Latest checkpoint is of type 'model' at {file_path}\nEnter 'Y' to continue")
+        if inp not in ["y", "Y"]:
+            raise ValueError(f"Training stopped by user! Undesired latest checkpoint of type 'model' at {file_path}")
     tc, model = TrainingCheckpoint.load(file_path, device)
     return tc, model
 

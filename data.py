@@ -17,7 +17,7 @@ from labeler import DurationLabeler
 from logger import Logger
 from port import Port, PortManager
 from util import data_ranges, categorical_values, get_destination_file_name, is_empty, encode_data_file, obj_file,\
-    write_to_console, mc_to_dk, as_str
+    write_to_console, mc_to_dma, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 logger = Logger(file_name=f"log_data-generation_{as_str(datetime.now())}")
@@ -199,10 +199,9 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
     if data_source == "dma":
         df = df.drop(columns=["Type of mobile", "ROT", "IMO", "Callsign", "Name", "Cargo type",
                               "Type of position fixing device", "ETA", "Data source type", "A", "B", "C", "D"])
-
     # unify data sources to 'dma' source
-    if data_source == "mc":
-        df = df.rename(columns=mc_to_dk)
+    elif data_source == "mc":
+        df = df.rename(columns=mc_to_dma)
         df = df.drop(columns={"VesselName", "IMO", "Callsign", "Cargo", "TransceiverClass"})
 
     # fill NaN values with their defaults from official AIS documentation

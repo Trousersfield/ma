@@ -1,19 +1,17 @@
-# import datetime as dt
 import numpy as np
 import os
 import pandas as pd
 import re
 import torch
 
-# from datetime import datetime
 from datetime import datetime, timedelta
 from pytz import timezone
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
-mc_to_dk = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude", "Status": "Navigational Status",
-            "Draft": "Draught", "VesselType": "Ship Type"}
+mc_to_dma = {"BaseDateTime": "# Timestamp", "LAT": "Latitude", "LON": "Longitude", "Status": "Navigational Status",
+             "Draft": "Draught", "VesselType": "Ship Type"}
 data_ranges = {
     "Latitude": {"min": -90., "max": 90.},
     "Longitude": {"min": -180., "max": 180.},
@@ -120,6 +118,16 @@ def is_empty(df: pd.DataFrame) -> bool:
     return len(df.index) == 0
 
 
+def verify_output_dir(output_dir: str, port_name: str) -> Dict[str, str]:
+    output_dirs = {}
+    for kind in ["data", "debug", "model", "plot", "log"]:
+        curr_dir = os.path.join(output_dir, kind, port_name)
+        if not os.path.exists(curr_dir):
+            os.makedirs(curr_dir)
+        output_dirs[kind] = curr_dir
+    return output_dirs
+
+
 def get_destination_file_name(name: any) -> str:
     dest = str(name)
     return re.sub(r'\W', '', dest).upper()
@@ -201,10 +209,22 @@ def encode_pm_file(time: str) -> str:
     return f"pm-ports_{time}.pkl"
 
 
-def decode_pm_file(file_name: str) -> str:
+def decode_pm_file(file_name: str) -> Tuple[str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
     return result[0], result[1]
+
+
+def decode_debug_file(file_name: str) -> Tuple[str, str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1], result[2]
+
+
+def decode_log_file(file_name: str) -> Tuple[str, str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1], result[2]
 
 
 def encode_loss_plot(port_name: str, time: str) -> str:
@@ -218,7 +238,7 @@ def decode_loss_plot(file_name: str) -> Tuple[str, str, str]:
 
 
 def encode_loss_file(port: str, time: str) -> str:
-    return f"loss_{port}_{time}_loss.npy"
+    return f"loss_{port}_{time}.npy"
 
 
 def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
@@ -233,8 +253,8 @@ def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpo
     return f"{model_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
-def decode_model_file(file_name: str, times_as_datetime=False) -> Tuple[str, str, Union[str, datetime],
-                                                                        Union[str, datetime]]:
+def decode_model_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
+                                                                                Union[str, datetime]]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
     start_time = result[2]
@@ -243,6 +263,17 @@ def decode_model_file(file_name: str, times_as_datetime=False) -> Tuple[str, str
         start_time = as_datetime(start_time)
         end_time = as_datetime(end_time)
     return result[0], result[1], start_time, end_time
+
+
+def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False,
+                           is_transfer: bool = False) -> str:
+    checkpoint_type = "checkpoint" if is_checkpoint else ("transfer" if is_transfer else "model")
+    return f"{checkpoint_type}_{port_name}_{start_time}_{end_time}.tar"
+
+
+def decode_checkpoint_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
+                                                                                     Union[str, datetime]]:
+    return decode_model_file(file_name, times_as_datetime)
 
 
 def encode_transfer_result_file(start_time: str, end_time: str) -> str:
@@ -263,13 +294,30 @@ def num_total_trainable_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def find_checkpoint_file_path(checkpoint_dir: str) -> str:
+def find_latest_checkpoint_file_path(checkpoint_dir: str, checkpoint_type: str = "checkpoint") -> Tuple[str, str]:
+    """
+    Look for the latest checkpoint file of type 'checkpoint_type' within the given directory.
+    :param checkpoint_dir: Directory to search for checkpoint file
+    :param checkpoint_type: Type of checkpoint file: [checkpoint, transfer, model]
+    :return: (path_to_checkpoint_file, type_of_returned_checkpoint)
+    """
     if not os.path.exists(checkpoint_dir):
         raise ValueError(f"Unable to find checkpoint file: No such directory: {checkpoint_dir}")
-    for file in os.listdir(checkpoint_dir):
-        if file == "checkpoint.tar":
-            return os.path.join(checkpoint_dir, file)
-    raise FileNotFoundError(f"No file 'checkpoint.tar' in directory {checkpoint_dir}")
+    if checkpoint_type not in ["checkpoint", "transfer", "model"]:
+        raise ValueError(f"Unknown checkpoint type '{checkpoint_type}' not contained in [checkpoint, transfer, model]")
+    file_path, latest_model_file_path = "", ""
+    latest_start, latest_start_model = None, None
+    for file in filter(lambda f: f.endswith(".tar") and (f.startswith(checkpoint_type)
+                                                         or f.startswith("model")), os.listdir(checkpoint_dir)):
+        cp_type, _, start, _ = decode_checkpoint_file(file, True)
+        if cp_type == checkpoint_type and (latest_start is None or latest_start < start):
+            latest_start = start
+            file_path = os.path.join(checkpoint_dir, file)
+        # handle if latest checkpoint is current optimum --> saved as model-file
+        elif latest_start_model is None or latest_start_model < start:
+            latest_start_model = start
+            latest_model_file_path = os.path.join(checkpoint_dir, file)
+    return (file_path, checkpoint_type) if file_path != "" else (latest_model_file_path, "model")
 
 
 def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader, logger,
