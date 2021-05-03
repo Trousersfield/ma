@@ -13,7 +13,8 @@ from logger import Logger
 from net.model import InceptionTimeModel
 from net.trainer import train_loop, validate_loop, make_train_step, make_training_checkpoint, conclude_training
 from port import Port, PortManager
-from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file, verify_output_dir
+from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file, verify_output_dir,\
+    encode_model_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -93,7 +94,7 @@ class TransferManager:
             raise ValueError(f"Unable to associate transfer-target port name {p_transfer.target_port_name}")
         dataset = RoutesDirectoryDataset(p_transfer.target_data_dir, batch_size=batch_size, start=0,
                                          window_width=window_width)
-        dataset_config_path = os.path.join(p_transfer.target_data_dir, "default_dataset_config.pkl")
+        dataset_config_path = os.path.join(p_transfer.target_data_dir, "transfer_dataset_config.pkl")
         if not os.path.exists(dataset_config_path):
             dataset.save_config()
         else:
@@ -157,40 +158,42 @@ class TransferManager:
                          f"\tAvg train loss {avg_train_loss}\n"
                          f"\tAvg val loss   {avg_validation_loss}")
 
-            make_training_checkpoint(model=model, model_dir=p_transfer.target_model_dir, port=port, start_time=start_time,
-                                     epoch=epoch, num_epochs=num_epochs, learning_rate=p_transfer.learning_rate,
-                                     loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch,
-                                     is_transfer=True)
+            make_training_checkpoint(model=model, model_dir=p_transfer.target_model_dir, port=port,
+                                     start_time=start_time, epoch=epoch, num_epochs=num_epochs,
+                                     learning_rate=p_transfer.learning_rate, loss_history=loss_history,
+                                     optimizer=optimizer, is_optimum=min_val_idx == epoch, is_transfer=True)
             print(f"epoch: {epoch + 1} avg val loss: {avg_validation_loss}")
 
         # conclude transfer
         end = datetime.now()
-        loss_history_path, model_path, plot_path = conclude_training(loss_history=loss_history, end=end,
-                                                                     model_dir=p_transfer.target_model_dir,
-                                                                     data_dir=p_transfer.target_output_data_dir,
-                                                                     plot_dir=p_transfer.target_plot_dir,
-                                                                     port=port, start_time=start_time)
+        loss_history_path, plot_path = conclude_training(loss_history=loss_history, end=end,
+                                                         model_dir=p_transfer.target_model_dir,
+                                                         data_dir=p_transfer.target_output_data_dir,
+                                                         plot_dir=p_transfer.target_plot_dir, port=port,
+                                                         start_time=start_time)
 
         tr_path = os.path.join(p_transfer.target_model_dir, encode_transfer_result_file(start_time, as_str(end)))
+        model_path = os.path.join(p_transfer.target_model_dir, encode_model_file(port.name, start_time, as_str(end),
+                                                                                 is_transfer=True))
         result = TransferResult(path=tr_path, transfer_definition=p_transfer, start=as_datetime(start_time), end=end,
                                 loss_history_path=loss_history_path, model_path=model_path, plot_path=plot_path)
         self.completed_transfers.append(result)
         return result
 
-    def load(self, transfer_definition_path: str) -> None:
-        if os.path.exists(transfer_definition_path):
-            self.transfer_definitions = joblib.load(transfer_definition_path)
-        else:
-            raise FileNotFoundError(f"No transfer definition file found at '{transfer_definition_path}'. "
-                                    f"Make sure to generate definitions are generated.")
+    # def load(self, transfer_definition_path: str) -> None:
+    #     if os.path.exists(transfer_definition_path):
+    #         self.transfer_definitions = joblib.load(transfer_definition_path)
+    #     else:
+    #         raise FileNotFoundError(f"No transfer definition file found at '{transfer_definition_path}'. "
+    #                                 f"Make sure to generate definitions are generated.")
 
-    def _generate_transfers(self, base_model_file_name: str = None) -> List[TransferDefinition]:
+    def _generate_transfers(self) -> List[TransferDefinition]:
         config = read_json(self.config_path)
         transfers: List[TransferDefinition] = []
 
         for transfer_def in config:
             base_port = self.pm.find_port(transfer_def["base_port"])
-            base_port_trainings = self.pm.load_trainings(base_port, self.output_dir)
+            base_port_trainings = self.pm.load_trainings(base_port, self.output_dir, self.routes_dir)
 
             print(f"trainings for port {base_port.name}:\n{base_port_trainings}")
             if len(base_port_trainings) == 0:

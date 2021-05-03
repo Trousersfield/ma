@@ -9,7 +9,7 @@ from logger import Logger
 from output_collector import OutputCollector
 from training import TrainingIteration
 from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name,\
-    decode_loss_file, decode_loss_plot, decode_checkpoint_file, decode_model_file
+    decode_loss_file, decode_loss_plot, decode_checkpoint_file, decode_model_file, encode_dataset_config_file
 
 from datetime import datetime
 from math import radians, cos, sin, asin, sqrt, degrees
@@ -84,7 +84,6 @@ class PortManager:
                                                         float(port_row["longitude"]),
                                                         float(port_row["radius"]))
                 self.save()
-
             if load:
                 self.load()
         else:
@@ -170,30 +169,38 @@ class PortManager:
 
         return df_outside_circle, arrival_times
 
-    def load_trainings(self, port: [str, Port], output_dir: str,
+    def load_trainings(self, port: [str, Port], output_dir: str, routes_dir: str,
                        training_type: str = "training") -> List[TrainingIteration]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
         if training_type not in ["training", "transfer"]:
             raise ValueError(f"Unknown training type '{training_type}': Not in [training, transfer]")
-        if port is str:
+        if isinstance(port, str):
             port = self.find_port(port)
         if port is None:
             raise ValueError(f"Unable to associate port with '{port}'")
 
         oc = OutputCollector(output_dir)
+        print(f"out dir: {output_dir}")
         data_paths = oc.collect_data(port.name, group=True)
         debug_paths = oc.collect_debug(port.name, group=True)
         log_paths = oc.collect_log(port.name, group=True)
         model_paths = oc.collect_model(port.name, group=True)
         plot_paths = oc.collect_plot(port.name, group=True)
 
+        dataset_dir = os.path.join(routes_dir, port.name)
+
         trainings = []
         start_times = model_paths.keys()
         for start in sorted(start_times):
             _, _, _, end = decode_model_file(model_paths[start])
-            ti = TrainingIteration(start, end, data_paths[start], log_paths[start], model_paths[start],
-                                   plot_paths[start], debug_paths[start])
+            ti = TrainingIteration(start_time=start, end_time=end,
+                                   data_path=data_paths[start] if start in data_paths else None,
+                                   log_path=log_paths[start] if start in log_paths else None,
+                                   model_path=model_paths[start] if start in model_paths else None,
+                                   plot_paths=plot_paths[start] if start in plot_paths else None,
+                                   debug_path=debug_paths[start] if start in debug_paths else None,
+                                   dataset_config_path=os.path.join(dataset_dir, encode_dataset_config_file(start)))
             trainings.append(ti)
         return trainings
 

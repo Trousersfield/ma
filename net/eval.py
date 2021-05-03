@@ -4,118 +4,159 @@ import torch
 
 from torch import nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from dataset import RoutesDirectoryDataset
 from net.model import InceptionTimeModel
 from plotter import plot_bars
 from port import Port, PortManager
-from training import EvaluationResult
-from util import descale_mae
+from util import descale_mae, encode_dataset_config_file
 
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 # Evaluationsmethoden: https://towardsdatascience.com/metrics-to-evaluate-your-machine-learning-algorithm-f10ba6e38234
 
 
-def eval_all(data_dir: str, output_dir: str) -> None:
-    """
-    Entry point for evaluating all available ports
-    :param data_dir: Directory to 'general' data without port-folder
-    :param output_dir: Directory to output results
-    :return: None
-    """
-    pm = PortManager()
-    pm.load()
-    if len(pm.ports.keys()) < 1:
-        raise ValueError("No port data available")
-
-    maes = []
-    port_names = []
-    # evaluate all ports
-    for _, port in pm.ports.items():
-        eval_port(port, os.path.join(data_dir, port.name))
-        maes.append(port.training.eval_result.mae)
-        port_names.append(port.name)
-
-    plot_bars(maes, port_names, title="MAE by port", y_label="MAE", path=os.path.join(output_dir, "eval", "eval.png"))
+class Evaluation:
+    def __init__(self, port_name: str, mae: float) -> None:
+        self.port_name = port_name
+        self.mae = mae
 
 
-def eval_port(port: Union[str, Port], routes_dir: str) -> EvaluationResult:
-    if port is str:
-        pm = PortManager()
-        pm.load()
-        if len(pm.ports.keys()) < 1:
+class Evaluator:
+    def __init__(self, output_dir: str, routes_dir: str, results: Dict[str, float] = None) -> None:
+        self.output_dir = output_dir
+        self.routes_dir = routes_dir
+        self.model_dir = os.path.join(output_dir, "model")
+        self.eval_dir = os.path.join(output_dir, "eval")
+        self.path = os.path.join(self.eval_dir, "evaluator.tar")
+        if not os.path.exists(self.eval_dir):
+            os.makedirs(self.eval_dir)
+        self.pm = PortManager()
+        self.pm.load()
+        if len(self.pm.ports.keys()) < 1:
             raise ValueError("No port data available")
-        port = pm.find_port(port)
+        self.results = results
+        if results is None:
+            self.results = {}
 
-    if port.training is not None:
-        print(f"Evaluating training iteration(s) for port {port.name}")
-        dataset_dir = os.path.join(routes_dir, port.name)
-        return eval_model(port.training.model_path, dataset_dir)
-    else:
-        print(f"No training iteration for port {port.name} found")
+    def save(self):
+        torch.save({
+            "path": self.path,
+            "output_dir": self.output_dir,
+            "routes_dir": self.routes_dir,
+            "results": self.results
+        }, self.path)
 
+    @staticmethod
+    def load(eval_dir_or_path: str) -> 'Evaluator':
+        path = eval_dir_or_path
+        eval_dir, file = os.path.split(eval_dir_or_path)
+        if not file.endswith(".tar"):
+            path = os.path.join(path, "evaluator.tar")
+        state_dict = torch.load(path)
+        evaluator = Evaluator(
+            output_dir=state_dict["output_dir"],
+            routes_dir=state_dict["routes_dir"],
+            results=state_dict["results"]
+        )
+        return evaluator
 
-def eval_model(model_path: str, dataset_dir: str) -> EvaluationResult:
-    dataset = RoutesDirectoryDataset.load_from_config(os.path.join(dataset_dir, "default_dataset_config.pkl"))
-    end_train = int(.8 * len(dataset))
-    if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
-        end_train += 1
-    end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
+    def add_result(self, port: Port, mae: float) -> None:
+        self.results[port.name] = mae
 
-    # use initialized dataset's config for consistent split
-    eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+    def remove_result(self, port: Port) -> None:
+        del self.results[port.name]
 
-    eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=None, drop_last=False, pin_memory=True,
-                                              num_workers=1)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = InceptionTimeModel.load(model_path, device).to(device)
-    model.eval()
+    def eval_port(self, port: Union[str, Port]) -> float:
+        if isinstance(port, str):
+            port = self.pm.find_port(port)
 
-    x = []
-    y = []
-    criterion = nn.L1Loss(reduction="mean")
-    print(f"len data: {len(eval_loader)}")
-    with torch.no_grad():
-        for eval_idx, (data, target) in enumerate(eval_loader):
-            data = data.to(device)
-            target = target.to(device)
-            output = model(data)
+        trainings = self.pm.load_trainings(port, self.output_dir, self.routes_dir)
+        if len(trainings) < 1:
+            print(f"Skipping evaluation for port '{port.name}': No training found")
+            return -1.
 
-            x.append(output)
-            y.append(target)
+        dataset = RoutesDirectoryDataset.load_from_config(trainings[-1].dataset_config_path)
+        end_train = int(.8 * len(dataset))
+        if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
+            end_train += 1
+        end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
-    # print(f"labels:\n{labels}")
-    # print(f"outputs:\n{outputs}")
-    outputs = torch.cat(x, dim=0)
-    targets = torch.cat(y, dim=0)
-    loss = criterion(outputs, targets)
-    mae = loss.item()
-    print(f"mae loss: {mae}")
-    mae_eta = descale_mae(mae)
-    print(f"descaled mae: {mae_eta}")
-    print(f"formatted: {descale_mae(mae, as_duration=True)}")
+        # use initialized dataset's config for consistent split
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
 
-    return EvaluationResult(mae=mae, mse=0)
+        eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=None, drop_last=False, pin_memory=True,
+                                                  num_workers=1)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = InceptionTimeModel.load(trainings[-1].model_path, device).to(device)
+        model.eval()
+
+        x = []
+        y = []
+        criterion = nn.L1Loss(reduction="mean")
+        print(f"len data: {len(eval_loader)}")
+        with torch.no_grad():
+            for eval_idx, (data, target) in enumerate(tqdm(eval_loader, desc="Evaluation progress:")):
+                data = data.to(device)
+                target = target.to(device)
+                output = model(data)
+
+                x.append(output)
+                y.append(target)
+
+        # print(f"labels:\n{labels}")
+        # print(f"outputs:\n{outputs}")
+        outputs = torch.cat(x, dim=0)
+        targets = torch.cat(y, dim=0)
+        loss = criterion(outputs, targets)
+        mae = loss.item()
+        print(f"mae loss: {mae}")
+        mae_eta = descale_mae(mae)
+        print(f"descaled mae: {mae_eta}")
+        print(f"formatted: {descale_mae(mae, as_duration=True)}")
+
+        self.add_result(port, mae)
+        return mae
+
+    def eval_all(self) -> None:
+        """
+        Entry point for evaluating all available ports
+        :param output_dir: Directory to output results
+        :return: None
+        """
+        # evaluate all ports
+        for port in self.pm.ports.values():
+            self.eval_port(port)
+
+        plot_bars(list(self.results.values()), list(self.results.keys()), title="MAE by port", y_label="MAE",
+                  path=os.path.join(self.output_dir, "eval", "eval.png"))
 
 
 def main(args) -> None:
     command = args.command
-    if command == "eval":
-        # eval_model(args.model_path, args.data_dir)
-        eval_all(args.routes_dir, args.output_dir)
+    if command == "init":
+        e = Evaluator(args.output_dir, args.routes_dir)
+        e.save()
+    elif command == "eval":
+        e = Evaluator.load(os.path.join(args.output_dir, "eval"))
+        e.eval_all()
     elif command == "eval_port":
-        eval_port(args.port_name, args.routes_dir)
+        e = Evaluator.load(os.path.join(args.output_dir, "eval"))
+        e.eval_port(args.port_name)
     else:
         raise ValueError(f"Unknown command '{command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["eval", "eval_port"])
+    parser.add_argument("command", choices=["init", "eval", "eval_port"])
     parser.add_argument("--routes_dir", type=str, default=os.path.join(script_dir, os.pardir, "data", "routes"),
                         help="Directory to routes")
+    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
+                        help="Directory to outputs")
     parser.add_argument("--port_name", type=str, help="Port name to evaluate trained model")
+    parser.add_argument("--init_new", type=bool, default=False, help="Set 'True' to reset evaluation results")
     main(parser.parse_args())

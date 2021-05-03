@@ -144,7 +144,7 @@ def encode_data_file(mmsi: float, data_dir: str = None, join: bool = False) -> s
     return os.path.join(data_dir, file_name) if join else file_name
 
 
-def descale_mae(scaled_mae: float, as_duration=False) -> Union[float, str]:
+def descale_mae(scaled_mae: float, as_duration: bool = False) -> Union[float, str]:
     scaled_mae = scaled_mae / 2
     data_range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
     mae_eta = scaled_mae * data_range
@@ -215,6 +215,16 @@ def decode_pm_file(file_name: str) -> Tuple[str, str]:
     return result[0], result[1]
 
 
+def encode_dataset_config_file(time: str) -> str:
+    return f"dataset-config_{time}.pkl"
+
+
+def decode_dataset_config_file(file_name: str) -> Tuple[str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]
+
+
 def decode_debug_file(file_name: str) -> Tuple[str, str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
@@ -227,14 +237,14 @@ def decode_log_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
-def encode_loss_plot(port_name: str, time: str) -> str:
-    return f"loss_{port_name}_{time}.png"
+def encode_loss_plot(port_name: str, time: str, scale: str = "linear") -> str:
+    return f"loss_{port_name}_{time}_{scale}.png"
 
 
-def decode_loss_plot(file_name: str) -> Tuple[str, str, str]:
+def decode_loss_plot(file_name: str) -> Tuple[str, str, str, str]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2]
+    return result[0], result[1], result[2], result[3]
 
 
 def encode_loss_file(port: str, time: str) -> str:

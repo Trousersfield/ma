@@ -20,13 +20,12 @@ class OutputCollector:
         data_files = []
         groups = {}
         for file in filter(lambda f: f.startswith("loss"), os.listdir(out_data)):
-            if file.startswith("loss"):
-                result = os.path.join(out_data, file) if full_path else file
-                if group:
-                    _, _, start = decode_loss_file(file)
-                    groups[start] = result
-                else:
-                    data_files.append(result)
+            result = os.path.join(out_data, file) if full_path else file
+            if group:
+                _, _, start = decode_loss_file(file)
+                groups[start] = result
+            else:
+                data_files.append(result)
         return groups if group else data_files
 
     def collect_debug(self, port_file_name: str, full_path: bool = True, group: bool = False) -> Union[List[str],
@@ -35,13 +34,12 @@ class OutputCollector:
         debug_files = []
         groups = {}
         for file in filter(lambda f: f.startswith("debug"), os.listdir(out_debug)):
-            if file.startswith("debug"):
-                result = os.path.join(out_debug, file) if full_path else file
-                if group:
-                    _, _, start = decode_debug_file(file)
-                    groups[start] = result
-                else:
-                    debug_files.append(result)
+            result = os.path.join(out_debug, file) if full_path else file
+            if group:
+                _, _, start = decode_debug_file(file)
+                groups[start] = result
+            else:
+                debug_files.append(result)
         return groups if group else debug_files
 
     def collect_log(self, port_file_name: str, full_path: bool = True, group: bool = False) -> Union[List[str],
@@ -49,14 +47,13 @@ class OutputCollector:
         out_log = os.path.join(self.out_log, port_file_name)
         log_files = []
         groups = {}
-        for file in filter(lambda f: f.startswith("log"), os.listdir(out_log)):
-            if file.startswith("log"):
-                result = os.path.join(out_log, file) if full_path else file
-                if group:
-                    _, _, start = decode_log_file(file)
-                    groups[start] = result
-                else:
-                    log_files.append(result)
+        for file in filter(lambda f: f.startswith("train-log"), os.listdir(out_log)):
+            result = os.path.join(out_log, file) if full_path else file
+            if group:
+                _, _, start = decode_log_file(file)
+                groups[start] = result
+            else:
+                log_files.append(result)
         return groups if group else log_files
 
     def collect_model(self, port_file_name: str, full_path: bool = True, group: bool = False) -> Union[List[str],
@@ -64,27 +61,28 @@ class OutputCollector:
         out_model = os.path.join(self.out_model, port_file_name)
         model_files = []
         groups = {}
-        for file in filter(lambda f: f.startswith("model"), os.listdir(out_model)):
-            if file.startswith("loss"):
-                result = os.path.join(out_model, file) if full_path else file
-                if group:
-                    _, _, start, _ = decode_model_file(file)
-                    groups[start] = result
-                else:
-                    model_files.append(result)
+        for file in filter(lambda f: f.endswith(".pt") and f.startswith("model"), os.listdir(out_model)):
+            result = os.path.join(out_model, file) if full_path else file
+            if group:
+                _, _, start, _ = decode_model_file(file)
+                groups[start] = result
+            else:
+                model_files.append(result)
         return groups if group else model_files
 
-    def collect_plot(self, port_file_name: str, full_path: bool = True, group: bool = False) -> Union[List[str],
-                                                                                                      Dict[str, str]]:
+    def collect_plot(self, port_file_name: str, full_path: bool = True,
+                     group: bool = False) -> Union[List[str], Dict[str, List[str]]]:
         out_plot = os.path.join(self.out_plot, port_file_name)
         plot_files = []
         groups = {}
-        for file in filter(lambda f: f.startswith("plot"), os.listdir(out_plot)):
-            if file.startswith("plot"):
-                result = os.path.join(out_plot, file) if full_path else file
-                if group:
-                    _, _, start = decode_loss_plot(file)
-                    groups[start] = result
+        for file in filter(lambda f: f.startswith("loss"), os.listdir(out_plot)):
+            result = os.path.join(out_plot, file) if full_path else file
+            if group:
+                _, _, start, _ = decode_loss_plot(file)
+                if start in groups:
+                    groups[start].append(result)
                 else:
-                    plot_files.append(result)
+                    groups[start] = [result]
+            else:
+                plot_files.append(result)
         return groups if group else plot_files

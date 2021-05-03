@@ -8,22 +8,22 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Dict, List, Tuple, Union
 
-from dataset import RoutesDirectoryDataset
+from dataset import RoutesDirectoryDataset, find_latest_dataset_config_path
 from logger import Logger
 from net.model import InceptionTimeModel
 from plotter import plot_series
 from port import Port, PortManager
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
     num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, encode_checkpoint_file,\
-    decode_checkpoint_file, as_datetime, verify_output_dir
+    decode_checkpoint_file, as_datetime, verify_output_dir, encode_dataset_config_file, decode_dataset_config_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
 
 
 class TrainingCheckpoint:
-    def __init__(self, path: str, model_path: str, start_time: str, epoch: int, num_epochs: int,
-                 learning_rate: float, loss_history: Tuple[List[float], List[float]],
+    def __init__(self, path: str, model_path: str, start_time: str, epoch: int,
+                 num_epochs: int, learning_rate: float, loss_history: Tuple[List[float], List[float]],
                  optimizer: Union[torch.optim.Adam, torch.optim.AdamW], is_optimum: bool) -> None:
         self.path = path
         self.model_path = model_path
@@ -93,13 +93,18 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
               resume_checkpoint=False, debug=debug)
 
 
+# THIS IS GOOD:
+# lr = 0.0003 batch size 64 window width 128
+
 # lr = 0.0004 batch size 128 window 200 --> very slow
 # lr = 0.0003 batch size 64 window 200 -->
 # lr = .0001  --> some jumps, but pretty good results with batch-size 32
 # lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
 # lr = .00005 --> seems to be still too slow, similar to above
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .0003,
-          pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False) -> None:
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00025,
+          pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False,
+          load_dataset: bool = False) -> None:
+    # TODO: Make sure dataset does not overwrite if (accidently) new training is started
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
     # set device: use gpu if available
@@ -127,16 +132,17 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     batch_size = 64
     window_width = 128
     dataset_dir = os.path.join(data_dir, "routes", port.name)
-    dataset_config_path = os.path.join(dataset_dir, "default_dataset_config.pkl")
 
     # init dataset on directory
-    dataset = RoutesDirectoryDataset(dataset_dir, batch_size=batch_size, start=0, window_width=window_width)
-    if not resume_checkpoint:
-        dataset.save_config()
-    else:
-        if not os.path.exists(dataset_config_path):
-            raise FileNotFoundError(f"Unable to recoder training: No dataset config found at {dataset_config_path}")
+    dataset = RoutesDirectoryDataset(dataset_dir, start_time=start_time, batch_size=batch_size, start=0,
+                                     window_width=window_width)
+    if resume_checkpoint:
+        dataset_config_path = find_latest_dataset_config_path(dataset_dir)
+        if dataset_config_path is None or not os.path.exists(dataset_config_path):
+            raise FileNotFoundError(f"Unable to recover training: No dataset config found at {dataset_config_path}")
         dataset = RoutesDirectoryDataset.load_from_config(dataset_config_path)
+    else:
+        dataset.save_config()
     end_train = int(.8 * len(dataset))
     if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
         end_train += 1
@@ -154,12 +160,6 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=None, drop_last=False,
                                                   pin_memory=True, num_workers=2)
 
-    # if len(loader) == 0:
-    #     raise ValueError(f"Unable to load data from directory {loader.data_dir}\n"
-    #                      f"Make sure Data loader is fit!")
-
-    # data, target = loader[0]
-    # input_dim = data.shape[2]
     data, target = train_dataset[0]
     input_dim = data.size(-1)
     output_dim = 1
@@ -178,22 +178,17 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         # TODO: optimizer
         optimizer = tc.optimizer
     else:
-        model = InceptionTimeModel(num_inception_blocks=2, in_channels=input_dim, out_channels=32,
+        model = InceptionTimeModel(num_inception_blocks=3, in_channels=input_dim, out_channels=32,
                                    bottleneck_channels=16, use_residual=True, output_dim=output_dim).to(device)
         # test what happens if using "weight_decay" e.g. with 1e-4
         # TODO: optimizer
         # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-    print(f"loaded loss history:\n{loss_history}")
-
-    # model.to(device)
-    # print(f"model:\n{model}")
     print(f".:'`!`':. TRAINING FOR PORT {port_name} STARTED .:'`!`':.")
     print(f"- - Epochs {num_epochs} </> Training examples {len(train_loader)} </> Learning rate {learning_rate} - -")
     print(f"- - Window width {window_width} </> Batch size {batch_size} - -")
     print(f"- - Number of model's parameters {num_total_trainable_parameters(model)} device {device} - -")
-    # print(f"First training example: \n{train_loader[0]}")
     train_logger.write(f"{port.name}-model\n"
                        f"Number of epochs: {num_epochs}\n"
                        f"Learning rate: {learning_rate}\n"
@@ -235,19 +230,19 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
 def conclude_training(loss_history: Tuple[List[float], List[float]], end: datetime, model_dir: str, data_dir: str,
                       plot_dir: str, port: Port, start_time: str,
-                      plot_title: str = "Training loss") -> Tuple[str, str, str]:
+                      plot_title: str = "Training loss") -> Tuple[str, str]:
     end_time = as_str(end)
     remove_previous_checkpoint(model_dir, port, start_time, end_time)
     loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time))
     np.save(loss_history_path, loss_history)
-    model_path = find_model_path(model_dir, start_time=start_time)
-    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, end_time))
+    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time))
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
-                legend_labels=["Training", "Validation"], path=plot_path)
+                legend_labels=["Training", "Validation"],
+                path=plot_path)
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], y_scale="log",
-                path=os.path.join(plot_dir, encode_loss_plot(f"{port.name}_LOG-SCALE", end_time)))
-    return loss_history_path, model_path, plot_path
+                path=os.path.join(plot_dir, encode_loss_plot(port.name, start_time, "log")))
+    return loss_history_path, plot_path
 
 
 def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
@@ -375,14 +370,14 @@ def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, Incepti
 
 def find_model_path(model_dir: str, start_time: str, transfer: bool = False) -> str:
     result = ""
-    file_kind = "transfer_" if transfer else "model_"
+    file_kind = "transfer" if transfer else "model"
     for file in os.listdir(model_dir):
-        if file.startswith(file_kind):
+        if file.endswith(".pt") and file.startswith(file_kind):
             _, _, file_start_time, file_end_time = decode_model_file(file)
             if file_start_time == start_time:
                 if result != "":
-                    print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same"
-                          f"training-time '{start_time}' detected. Returning latest")
+                    print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same "
+                          f"start-time '{start_time}' detected. Returning latest")
                 result = os.path.join(model_dir, file)
     if result is not None:
         return result
@@ -398,7 +393,8 @@ def main(args) -> None:
             raise ValueError(f"No port name found! Use '--port_name=' to train specific model")
         print(f"Attempting to train single model for port name '{args.port_name}'")
         resume = True if args.resume_checkpoint in ["True", "true", "Y", "y"] else False
-        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=resume)
+        load = True if args.load_dataset in ["True", "true", "Y", "y"] else False
+        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=resume, load_dataset=load)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -412,5 +408,7 @@ if __name__ == "__main__":
                         help="Path to output directory")
     parser.add_argument("--port_name", type=str, help="Name of port to train model")
     parser.add_argument("--resume_checkpoint", type=bool, default=False,
-                        help="Specifies training shall recover from previous checkpoint")
+                        help="Specify if training shall recover from previous checkpoint")
+    parser.add_argument("--load_dataset", type=bool , default=False,
+                        help="Specify if already initialized dataset shall be used")
     main(parser.parse_args())

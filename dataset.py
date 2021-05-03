@@ -9,7 +9,7 @@ from typing import List, Tuple
 from tqdm import tqdm
 
 from port import Port, PortManager
-from util import npy_file_len
+from util import npy_file_len, encode_dataset_config_file, decode_dataset_config_file, as_datetime
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -17,17 +17,12 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class RoutesDirectoryDataset(Dataset):
-    def __init__(self, data_dir: str, kind: str = None, start: int = 0, end: int = None, window_width: int = 100,
+    def __init__(self, data_dir: str, start_time: str, start: int = 0, end: int = None, window_width: int = 100,
                  batch_size: int = 1, shuffled_data_indices: List[int] = None) -> None:
         if end is not None and end < start:
             raise ValueError(f"Invalid data indices: start ({start}) < end ({end})")
-        if kind is None:
-            kind = "default"
-        elif kind not in ["default", "train", "validate", "eval"]:
-            raise ValueError(f"Invalid value for parameter 'kind': Not contained in [train, validate, eval]")
         self.data_dir = data_dir
-        self.kind = kind
-        self.config_file_name = f"{kind}_dataset_config.pkl"
+        self.config_file_name = encode_dataset_config_file(start_time)
         self.config_path = os.path.join(self.data_dir, self.config_file_name)
         self.start = start
         self.window_width = window_width
@@ -44,7 +39,7 @@ class RoutesDirectoryDataset(Dataset):
             self.end = end
         print(f"start: {self.start} end: {self.end}")
         assert self.start < self.end
-        self.data = list(tqdm(map(self._read_file, self.route_file_paths), desc=f"Loading {kind}-data"))
+        self.data = list(tqdm(map(self._read_file, self.route_file_paths), desc=f"Loading data"))
         self.access_matrix = self._generate_access_matrix()
         if shuffled_data_indices is None:
             self.shuffled_data_indices = self._shuffle_data_indices()
@@ -145,7 +140,6 @@ class RoutesDirectoryDataset(Dataset):
             # print(f"Loading dataset from config {config_path}")
             config = torch.load(config_path)
             dataset = RoutesDirectoryDataset(data_dir=config["data_dir"],
-                                             kind=config["kind"] if kind is None else kind,
                                              start=config["start"] if start is None else start,
                                              end=config["end"] if end is None else end,
                                              window_width=config["window_width"],
@@ -203,6 +197,18 @@ class RoutesDirectoryDataset(Dataset):
         return shuffled
 
 
+def find_latest_dataset_config_path(dataset_dir: str) -> str:
+    max_time, path = None, None
+    for file in os.listdir(dataset_dir):
+        if file.startswith("dataset-config"):
+            _, start_time = decode_dataset_config_file(file)
+            start_time = as_datetime(start_time)
+            if max_time is None or max_time < start_time:
+                max_time = start_time
+                path = file
+    return path if path is None else os.path.join(dataset_dir, path)
+
+
 def main(args) -> None:
     if args.command == "generate":
         print("Generating Directory Dataset")
@@ -251,8 +257,8 @@ def main(args) -> None:
         port = pm.find_port(args.port_name)
         if port is None:
             raise ValueError(f"Unable to associate '{args.port_name}' with any port")
-        dataset = RoutesDirectoryDataset.load_from_config(os.path.join(args.data_dir, "routes", port.name,
-                                                                       "default_dataset_config.pkl"))
+        dataset_dir = os.path.join(args.data_dir, "routes", port.name)
+        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir))
         print(f"Dataset length: {len(dataset)}")
         data, target = dataset[args.data_idx]
         print(f"Data at pos {args.data_idx} of shape {data.shape}:\n{data}")
@@ -268,9 +274,7 @@ def main(args) -> None:
             raise ValueError(f"Unable to associate '{args.port_name}' with any port")
 
         dataset_dir = os.path.join(args.data_dir, "routes", port.name)
-        # batch_size = int(args.batch_size)
-        dataset = RoutesDirectoryDataset.load_from_config(os.path.join(dataset_dir, "default_dataset_config.pkl"))
-        # dataset.save_config()
+        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir))
         end_train = int(.8 * len(dataset))
         if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
             end_train += 1
