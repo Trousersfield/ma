@@ -19,6 +19,17 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 class RoutesDirectoryDataset(Dataset):
     def __init__(self, data_dir: str, start_time: str, start: int = 0, end: int = None, window_width: int = 100,
                  batch_size: int = 1, shuffled_data_indices: List[int] = None) -> None:
+        """
+        Index-based access for route files within a given directory
+        :param data_dir: Directory to data
+        :param start_time: Identification to associate with output data from training
+        :param start: Index for first batch (inclusive)
+        :param end: Index for last batch (exclusive)
+        :param window_width: Number of data-points to retrieve within one batch-index
+        :param batch_size: Number of windows within a single batch
+        :param shuffled_data_indices: Given an already initialized dataset: Shuffled batch indices to keep track of
+            training, validation and test data split
+        """
         if end is not None and end < start:
             raise ValueError(f"Invalid data indices: start ({start}) < end ({end})")
         self.data_dir = data_dir
@@ -134,14 +145,17 @@ class RoutesDirectoryDataset(Dataset):
         return data
 
     @staticmethod
-    def load_from_config(config_path: str, kind: str = None, start: int = None,
-                         end: int = None) -> 'RoutesDirectoryDataset':
+    def load_from_config(config_path: str, start: int = None,
+                         end: int = None, new_data_dir: str = None) -> 'RoutesDirectoryDataset':
         if os.path.exists(config_path):
+            file_name = os.path.split(config_path)[1]
+            _, start_time = decode_dataset_config_file(file_name)
             # print(f"Loading dataset from config {config_path}")
             config = torch.load(config_path)
-            dataset = RoutesDirectoryDataset(data_dir=config["data_dir"],
-                                             start=config["start"] if start is None else start,
-                                             end=config["end"] if end is None else end,
+            dataset = RoutesDirectoryDataset(data_dir=config["data_dir"] if new_data_dir is None else new_data_dir,
+                                             start_time=start_time,
+                                             start=config["start"] if start is None else start,  # start-index
+                                             end=config["end"] if end is None else end,  # end-index
                                              window_width=config["window_width"],
                                              batch_size=config["batch_size"],
                                              shuffled_data_indices=config["shuffled_data_indices"])
@@ -153,7 +167,6 @@ class RoutesDirectoryDataset(Dataset):
         print(f"Saving dataset config at {self.config_path}")
         torch.save({
             "data_dir": self.data_dir,
-            "kind": self.kind,
             "start": self.start,
             "end": self.end,
             "window_width": self.window_width,
@@ -209,6 +222,18 @@ def find_latest_dataset_config_path(dataset_dir: str) -> str:
     return path if path is None else os.path.join(dataset_dir, path)
 
 
+def test_dataset(dataset) -> None:
+    config_file_name = os.path.split(dataset.config_path)[1]
+    for batch_idx in range(len(dataset)):
+        try:
+            _, _ = dataset[batch_idx]
+        except (IndexError, RuntimeError) as e:
+            print(f"Original Exception: {e}")
+            print(f"Occurred in Directory Dataset from config '{config_file_name}' while accessing index: {batch_idx}")
+            break
+    print(f"Route Dataset from config'{config_file_name}' checked!")
+
+
 def main(args) -> None:
     if args.command == "generate":
         print("Generating Directory Dataset")
@@ -226,11 +251,11 @@ def main(args) -> None:
             end_train += 1
         end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
-        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
+        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=0,
                                                                 end=end_train)
-        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
-                                                                   start=end_train, end=end_validate)
-        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_train,
+                                                                   end=end_validate)
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_validate)
 
         print(f"- - - - - Generated Datasets - - - - - -")
         print(f"Dataset: {len(dataset)}")
@@ -280,33 +305,36 @@ def main(args) -> None:
             end_train += 1
         end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
-        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
-                                                                end=end_train)
-        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
-                                                                   start=end_train, end=end_validate)
-        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+        train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=0, end=end_train)
+        validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_train,
+                                                                   end=end_validate)
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_validate)
 
-        test_dataset(train_dataset, kind="train")
-        test_dataset(validate_dataset, kind="validate")
-        test_dataset(eval_dataset, kind="eval")
+        test_dataset(train_dataset)
+        test_dataset(validate_dataset)
+        test_dataset(eval_dataset)
+    elif args.command == "change_data_dir":
+        print("Changing Directory Dataset Config's data directory")
+        pm = PortManager()
+        pm.load()
+        if len(pm.ports) == 0:
+            raise LookupError("Unable to load ports! Make sure port manager is fit")
+        port = pm.find_port(args.port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate '{args.port_name}' with any port")
+        routes_dir = os.path.join(args.data_dir, "routes", port.name)
+        config_path = os.path.join(routes_dir, args.config_file_name)
+        if not os.path.exists(config_path):
+            raise ValueError(f"No config file found at '{config_path}'")
+        dataset = RoutesDirectoryDataset.load_from_config(config_path, new_data_dir=routes_dir)
+        dataset.save_config()
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
 
-def test_dataset(dataset, kind: str) -> None:
-    for batch_idx in range(len(dataset)):
-        try:
-            _, _ = dataset[batch_idx]
-        except (IndexError, RuntimeError) as e:
-            print(f"Original Exception: {e}")
-            print(f"Occurred in Directory Dataset '{kind}' while accessing index: {batch_idx}")
-            break
-    print(f"'{kind}' Dataset checked!")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manual testing and validating Directory Dataset!")
-    parser.add_argument("command", choices=["generate", "test", "test_range"])
+    parser.add_argument("command", choices=["generate", "test", "test_range", "change_data_dir"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Path to data files")
     parser.add_argument("--window_width", type=int, default=100, help="Sliding window width of training examples")
@@ -314,4 +342,5 @@ if __name__ == "__main__":
     parser.add_argument("--port_name", type=str,
                         help="Name of port to fit Dataset Directory. Make sure Port Manager is initialized")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size to extract from individual files")
+    parser.add_argument("--config_file_name", type=str, help="File name including extension for dataset config")
     main(parser.parse_args())

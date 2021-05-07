@@ -1,4 +1,5 @@
 import argparse
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -89,6 +90,38 @@ def plot_bars(data: List[float], bar_labels: List[str], title: str, y_label: str
     ax.set_xticks(indices)
     ax.set_xticklabels(bar_labels)
     # ax.legend()
+
+    if path is None:
+        plt.show()
+    else:
+        plt.savefig(path)
+
+
+def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], path: str = None) -> None:
+    """
+    Generate plot with groups of maes
+    :param data: Result from 'util.mae_by_duration': List of Tuples
+        [(group_start, group_end, num_data, scaled_mae, descaled_mae, group_description), ...]
+    :param path: Output path for plot
+    :return: None
+    """
+    data = list(map(list, zip(*data)))
+
+    x = np.arange(len(data[0]))
+    num_range = max(data[2]) - min(data[2])
+    widths = [round(0.35 + n / num_range * 0.35, 2) for n in data[2]]  # wrong inspection i guess
+
+    fig, ax = plt.subplots()
+    bars = ax.bar(x, data[3], widths)
+    ax.set_title("MAE by duration until arrival")
+    ax.set_ylabel("MAE - ETA")
+    ax.set_xticks(x)
+    ax.set_xticklabels(data[5], rotation=45, ha="right")
+    ax.legend()
+    fig.tight_layout()
+
+    # for i, entry in enumerate(data):
+    #     ax.text(x=i, y=entry[3], s=entry[4], ha="center", va="center")
 
     if path is None:
         plt.show()

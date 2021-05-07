@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 from dataset import RoutesDirectoryDataset
 from net.model import InceptionTimeModel
-from plotter import plot_bars
+from plotter import plot_bars, plot_grouped_maes
 from port import Port, PortManager
-from util import descale_mae, encode_dataset_config_file
+from util import descale_mae, encode_dataset_config_file, mae_by_duration
 
 from typing import Dict, List, Tuple, Union
 
@@ -86,7 +86,7 @@ class Evaluator:
         end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
         # use initialized dataset's config for consistent split
-        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
+        eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_validate)
 
         eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=None, drop_last=False, pin_memory=True,
                                                   num_workers=1)
@@ -97,9 +97,8 @@ class Evaluator:
         x = []
         y = []
         criterion = nn.L1Loss(reduction="mean")
-        print(f"len data: {len(eval_loader)}")
         with torch.no_grad():
-            for eval_idx, (data, target) in enumerate(tqdm(eval_loader, desc="Evaluation progress:")):
+            for eval_idx, (data, target) in enumerate(tqdm(eval_loader, desc="Evaluation progress")):
                 data = data.to(device)
                 target = target.to(device)
                 output = model(data)
@@ -116,7 +115,11 @@ class Evaluator:
         print(f"mae loss: {mae}")
         mae_eta = descale_mae(mae)
         print(f"descaled mae: {mae_eta}")
-        print(f"formatted: {descale_mae(mae, as_duration=True)}")
+        print(f"formatted: {descale_mae(mae, as_str_duration=True)}")
+
+        mae_groups = mae_by_duration(outputs, targets)
+        print(f"Mae by duration:\n{mae_groups}")
+        plot_grouped_maes(mae_groups, os.path.join(self.eval_dir, "test.png"))
 
         self.add_result(port, mae)
         return mae
@@ -124,7 +127,6 @@ class Evaluator:
     def eval_all(self) -> None:
         """
         Entry point for evaluating all available ports
-        :param output_dir: Directory to output results
         :return: None
         """
         # evaluate all ports

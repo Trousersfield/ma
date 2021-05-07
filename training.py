@@ -8,9 +8,11 @@ from util import decode_loss_plot
 class TrainingIteration:
     def __init__(self, start_time: str, end_time: str, data_path: str, log_path: str, model_path: str,
                  plot_paths: List[str], dataset_config_path: str, debug_path: str = None):
-        for kind in [("data", data_path), ("log", log_path), ("model", model_path)]:
-            if kind[1] is None or not os.path.exists(kind[1]):
+        for kind in [("data", data_path), ("log", log_path), ("model", model_path), ("debug", debug_path)]:
+            if kind[1] is not None and not os.path.exists(kind[1]):
                 self._raise_path_err(kind[0], kind[1])
+        if plot_paths is None:
+            plot_paths = []
         for plot_path in plot_paths:
             if not os.path.exists(plot_path):
                 self._raise_path_err("plot", plot_path)
@@ -27,7 +29,7 @@ class TrainingIteration:
 
     @staticmethod
     def _raise_path_err(kind: str, path: str) -> None:
-        raise ValueError(f"Path for '{kind}' at '{path}' does not exist")
+        raise ValueError(f"Path for '{kind}' at location '{path}' does not exist")
 
     def find_plot_path(self, kind: str = "linear") -> str:
         if kind not in ["linear", "log"]:

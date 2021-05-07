@@ -2,13 +2,14 @@ import os
 
 
 class Logger:
-    def __init__(self, file_name: str = "log", output_dir: str = None):
+    def __init__(self, file_name: str = "log", output_dir: str = None, save: bool = True):
         if output_dir is None:
             self.file_path = f"{file_name}.txt"
         else:
             self.file_path = os.path.join(output_dir, f"{file_name}.txt")
-        file = open(self.file_path, "w+")
-        file.close()
+        if save:
+            file = open(self.file_path, "w+")
+            file.close()
 
     def clear(self):
         file = open(self.file_path, "w")

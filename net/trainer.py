@@ -22,15 +22,15 @@ torch.set_printoptions(precision=10)
 
 
 class TrainingCheckpoint:
-    def __init__(self, path: str, model_path: str, start_time: str, epoch: int,
-                 num_epochs: int, learning_rate: float, loss_history: Tuple[List[float], List[float]],
+    def __init__(self, path: str, model_path: str, start_time: str, num_epochs: int, learning_rate: float,
+                 weight_decay: float, loss_history: Tuple[List[float], List[float]],
                  optimizer: Union[torch.optim.Adam, torch.optim.AdamW], is_optimum: bool) -> None:
         self.path = path
         self.model_path = model_path
         self.start_time = start_time
-        self.epoch = epoch
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
         self.loss_history = loss_history
         self.is_optimum = is_optimum
         self.optimizer = optimizer
@@ -40,9 +40,9 @@ class TrainingCheckpoint:
             "path": self.path,
             "model_path": self.model_path,
             "start_time": self.start_time,
-            "epoch": self.epoch,
             "num_epochs": self.num_epochs,
             "learning_rate": self.learning_rate,
+            "weight_decay": self.weight_decay,
             "loss_history": self.loss_history,
             "is_optimum": self.is_optimum,
             "optimizer_state_dict": self.optimizer.state_dict()
@@ -64,17 +64,18 @@ class TrainingCheckpoint:
                                  f"currently trained epochs ({epoch})")
         num_epochs = new_num_epochs if new_num_epochs is not None else checkpoint["num_epochs"]
         lr = new_lr if new_lr is not None else checkpoint["learning_rate"]
+        wd = checkpoint["weight_decay"] if "weight_decay" in checkpoint else .0  # backward compatibility
         model = InceptionTimeModel.load(checkpoint["model_path"], device)  # .to(device)
         # TODO: optimizer
         # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         tc = TrainingCheckpoint(path=checkpoint["path"],
                                 model_path=checkpoint["model_path"],
                                 start_time=checkpoint["start_time"],
-                                epoch=checkpoint["epoch"],
                                 num_epochs=num_epochs,
                                 learning_rate=lr,
+                                weight_decay=wd,
                                 loss_history=checkpoint["loss_history"],
                                 is_optimum=checkpoint["is_optimum"],
                                 optimizer=optimizer)
@@ -90,20 +91,21 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
 
     for _, port in pm.ports.items():
         train(port_name=port.name, data_dir=data_dir, output_dir=output_dir, num_epochs=100, learning_rate=.0004, pm=pm,
-              resume_checkpoint=False, debug=debug)
+              resume_checkpoint=None, debug=debug)
 
 
 # THIS IS GOOD:
 # lr = 0.0003 batch size 64 window width 128
+# lr = 0.00025 batch size 64 window width 128
 
 # lr = 0.0004 batch size 128 window 200 --> very slow
 # lr = 0.0003 batch size 64 window 200 -->
 # lr = .0001  --> some jumps, but pretty good results with batch-size 32
 # lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
 # lr = .00005 --> seems to be still too slow, similar to above
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00025,
-          pm: PortManager = None, resume_checkpoint: bool = False, debug: bool = False,
-          load_dataset: bool = False) -> None:
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .0003,
+          weight_decay: float = .0001, pm: PortManager = None, resume_checkpoint: str = None,
+          debug: bool = False) -> None:
     # TODO: Make sure dataset does not overwrite if (accidently) new training is started
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
@@ -122,7 +124,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     output_dirs = verify_output_dir(output_dir, port.name)
 
     log_file_name = f"train-log_{port.name}_{start_time}"
-    train_logger = Logger(log_file_name, output_dirs["log"])
+    train_logger = Logger(log_file_name, output_dirs["log"], save=False)
     debug_logger = Logger(f"train-log_{port.name}_{start_time}_debug", output_dirs["log"]) if debug else train_logger
 
     if port is None:
@@ -136,8 +138,17 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     # init dataset on directory
     dataset = RoutesDirectoryDataset(dataset_dir, start_time=start_time, batch_size=batch_size, start=0,
                                      window_width=window_width)
-    if resume_checkpoint:
-        dataset_config_path = find_latest_dataset_config_path(dataset_dir)
+    if resume_checkpoint is not None:
+        dataset_config_path = encode_dataset_config_file(resume_checkpoint) \
+            if resume_checkpoint != "latest" else find_latest_dataset_config_path(dataset_dir)
+        if not os.path.exists(dataset_config_path):
+            latest_config_path = find_latest_dataset_config_path(dataset_dir)
+            use_latest = input(f"Unable to find dataset config for start time '{resume_checkpoint}'. "
+                               f"Continue with latest config (Y) at '{latest_config_path}' or abort")
+            if use_latest not in ["Y", "y", "YES", "yes"]:
+                print(f"Training aborted")
+                return
+            dataset_config_path = latest_config_path
         if dataset_config_path is None or not os.path.exists(dataset_config_path):
             raise FileNotFoundError(f"Unable to recover training: No dataset config found at {dataset_config_path}")
         dataset = RoutesDirectoryDataset.load_from_config(dataset_config_path)
@@ -149,10 +160,8 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     end_validate = int(len(dataset) - ((len(dataset) - end_train) / 2))
 
     # use initialized dataset's config for consistent split
-    train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="train", start=0,
-                                                            end=end_train)
-    validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="validate",
-                                                               start=end_train, end=end_validate)
+    train_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=0, end=end_train)
+    validate_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, start=end_train, end=end_validate)
     # eval_dataset = RoutesDirectoryDataset.load_from_config(dataset.config_path, kind="eval", start=end_validate)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=None, drop_last=False, pin_memory=True,
@@ -168,12 +177,13 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
 
     # resume from a checkpoint if training was aborted
-    if resume_checkpoint:
+    if resume_checkpoint is not None:
         tc, model = load_checkpoint(output_dirs["model"], device)
-        start_epoch = tc.epoch
+        start_epoch = len(tc.loss_history[1])
         start_time = tc.start_time
         num_epochs = tc.num_epochs
         learning_rate = tc.learning_rate
+        weight_decay = tc.weight_decay
         loss_history = tc.loss_history
         # TODO: optimizer
         optimizer = tc.optimizer
@@ -183,11 +193,11 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         # test what happens if using "weight_decay" e.g. with 1e-4
         # TODO: optimizer
         # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     print(f".:'`!`':. TRAINING FOR PORT {port_name} STARTED .:'`!`':.")
     print(f"- - Epochs {num_epochs} </> Training examples {len(train_loader)} </> Learning rate {learning_rate} - -")
-    print(f"- - Window width {window_width} </> Batch size {batch_size} - -")
+    print(f"- - Weight decay {weight_decay} Window width {window_width} </> Batch size {batch_size} - -")
     print(f"- - Number of model's parameters {num_total_trainable_parameters(model)} device {device} - -")
     train_logger.write(f"{port.name}-model\n"
                        f"Number of epochs: {num_epochs}\n"
@@ -196,7 +206,11 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
                        f"Total number of trainable parameters: {num_total_trainable_parameters(model)}")
 
     min_val_idx = 0
+    if resume_checkpoint is not None:
+        min_val_idx = loss_history[1].index(min(loss_history[1]))
     # training loop
+    print(f"loss history:\n{loss_history}")
+    print(f"min index:\n{min_val_idx}")
     for epoch in range(start_epoch, num_epochs):
         # train model
         print(f"->->->->-> Epoch ({epoch + 1}/{num_epochs}) <-<-<-<-<-<-")
@@ -210,7 +224,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         loss_history[1].append(avg_validation_loss)
 
         # check if current model has lowest validation loss (= is current optimal model)
-        if loss_history[1][epoch] < loss_history[1][min_val_idx]:
+        if avg_validation_loss < loss_history[1][min_val_idx]:
             min_val_idx = epoch
 
         train_logger.write(f"Epoch {epoch + 1}/{num_epochs}:\n"
@@ -218,8 +232,9 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
                            f"\tAvg val loss   {avg_validation_loss}")
 
         make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
-                                 epoch=epoch, num_epochs=num_epochs, learning_rate=learning_rate,
-                                 loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch)
+                                 num_epochs=num_epochs, learning_rate=learning_rate,
+                                 weight_decay=weight_decay, loss_history=loss_history, optimizer=optimizer,
+                                 is_optimum=min_val_idx == epoch)
         print(f">>>> Avg losses - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
     # conclude training
@@ -297,10 +312,10 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
     return loss.item()
 
 
-def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, epoch: int, num_epochs: int,
+def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, num_epochs: int,
                              learning_rate: float, loss_history: Tuple[List[float], List[float]],
                              optimizer: Union[torch.optim.Adam, torch.optim.AdamW],
-                             is_optimum: bool, is_transfer: bool = False) -> None:
+                             is_optimum: bool, weight_decay: float, is_transfer: bool = False) -> None:
     current_time = as_str(datetime.now())
     model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time,
                                                            is_checkpoint=False if is_optimum else True,
@@ -309,9 +324,9 @@ def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str,
     tc_path = os.path.join(os.path.split(model_path)[0],
                            encode_checkpoint_file(port.name, start_time, current_time,
                                                   is_checkpoint=False if is_optimum else True, is_transfer=is_transfer))
-    tc = TrainingCheckpoint(path=tc_path, model_path=model_path, epoch=epoch, start_time=start_time,
-                            num_epochs=num_epochs, learning_rate=learning_rate, loss_history=loss_history,
-                            optimizer=optimizer, is_optimum=is_optimum)
+    tc = TrainingCheckpoint(path=tc_path, model_path=model_path, start_time=start_time,
+                            num_epochs=num_epochs, learning_rate=learning_rate, weight_decay=weight_decay,
+                            loss_history=loss_history, optimizer=optimizer, is_optimum=is_optimum)
     tc.safe()
     # remove previous checkpoint's model
     remove_previous_checkpoint(model_dir, port, start_time, current_time, is_optimum)
@@ -392,9 +407,7 @@ def main(args) -> None:
         if not args.port_name:
             raise ValueError(f"No port name found! Use '--port_name=' to train specific model")
         print(f"Attempting to train single model for port name '{args.port_name}'")
-        resume = True if args.resume_checkpoint in ["True", "true", "Y", "y"] else False
-        load = True if args.load_dataset in ["True", "true", "Y", "y"] else False
-        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=resume, load_dataset=load)
+        train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=args.resume_checkpoint)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
@@ -407,8 +420,6 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory")
     parser.add_argument("--port_name", type=str, help="Name of port to train model")
-    parser.add_argument("--resume_checkpoint", type=bool, default=False,
+    parser.add_argument("--resume_checkpoint", type=str, default=None,
                         help="Specify if training shall recover from previous checkpoint")
-    parser.add_argument("--load_dataset", type=bool , default=False,
-                        help="Specify if already initialized dataset shall be used")
     main(parser.parse_args())

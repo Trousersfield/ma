@@ -6,6 +6,7 @@ import torch
 
 from datetime import datetime, timedelta
 from pytz import timezone
+from torch import nn
 from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -144,11 +145,11 @@ def encode_data_file(mmsi: float, data_dir: str = None, join: bool = False) -> s
     return os.path.join(data_dir, file_name) if join else file_name
 
 
-def descale_mae(scaled_mae: float, as_duration: bool = False) -> Union[float, str]:
+def descale_mae(scaled_mae: float, as_str_duration: bool = False) -> Union[float, str]:
     scaled_mae = scaled_mae / 2
     data_range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
     mae_eta = scaled_mae * data_range
-    if as_duration:
+    if as_str_duration:
         return str(timedelta(seconds=mae_eta))
     return mae_eta
 
@@ -339,3 +340,58 @@ def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx:
     if target_tensor != target_tensor:
         logger.write(f"{log_prefix}: Detected NaN in target-tensor at index {data_idx}. Window width "
                      f"{loader.window_width}")
+
+
+def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[int, int, int, float, str, str]]:
+    """
+    Computed multiple maes for each target duration group
+    :param outputs: Predicted values
+    :param targets: Target values
+    :return: List of Tuples for each group
+        [(group_start, group_end, num_data, scaled_mae, descaled_mae, group_description), ...]
+    """
+    groups = [
+        (-1, 1800, "0-0.5h"),
+        (1800, 3600, "0.5-1h"),
+        (3600, 7200, "1-2h"),
+        (7200, 10800, "2-3h"),
+        (10800, 14400, "3-4h"),
+        (14400, 18000, "4-5h"),
+        (18000, 21600, "5-6h"),
+        (21600, 25200, "6-7h"),
+        (25200, 28800, "7-8h"),
+        (28800, 32400, "8-9h"),
+        (32400, 36000, "9-10h"),
+        (36000, 39600, "10-11h"),
+        (39600, 43200, "11-12"),
+        (43200, 86400, "12h - 1 day"),
+        (86400, 172800, "1 day - 2 days"),
+        (172800, 259200, "2 days - 3 days"),
+        (259200, 345600, "3 days - 4 days"),
+        (345600, 432000, "4 days - 5 days"),
+        (432000, 518400, "5 days - 6 days"),
+        (518400, 604800, "6 days - 1 week"),
+        (604800, 155520000, "1 week - 1 month"),
+        (155520000, int(data_ranges["label"]["max"]), "> 1 month")
+    ]
+
+    def scale(seconds: int) -> float:
+        half_range = (data_ranges["label"]["max"] - data_ranges["label"]["min"]) / 2
+        result = seconds / half_range
+        return -1 + result if seconds < half_range else result
+
+    def process_group(x: torch.Tensor, y: torch.Tensor, group: Tuple[int, int, str]) -> Tuple[int, int, int, float,
+                                                                                              str, str]:
+        criterion = nn.L1Loss(reduction="mean")
+        mask = (y > scale(group[0])) & (y <= scale(group[1]))
+        x = x[mask]
+        y = y[mask]
+        mae = 0.
+        num_data = x.shape[0]
+        if num_data > 0:
+            loss = criterion(x, y)
+            mae = loss.item()
+        return group[0], group[1], num_data, mae, descale_mae(mae, as_str_duration=True), group[2]
+
+    maes = [process_group(outputs, targets, group) for group in groups]
+    return maes
