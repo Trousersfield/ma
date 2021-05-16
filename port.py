@@ -186,7 +186,9 @@ class PortManager:
         debug_paths = oc.collect_debug(port.name, group=True)
         log_paths = oc.collect_log(port.name, group=True)
         model_paths = oc.collect_model(port.name, group=True)
+        transfer_model_paths = oc.collect_transfer_model(port.name, group=True)
         plot_paths = oc.collect_plot(port.name, group=True)
+        eval_paths = oc.collect_eval(port.name, group=True)
 
         dataset_dir = os.path.join(routes_dir, port.name)
 
@@ -198,8 +200,10 @@ class PortManager:
                                    data_path=data_paths[start] if start in data_paths else None,
                                    log_path=log_paths[start] if start in log_paths else None,
                                    model_path=model_paths[start] if start in model_paths else None,
+                                   transfer_model_path=transfer_model_paths if start in transfer_model_paths else None,
                                    plot_paths=plot_paths[start] if start in plot_paths else None,
                                    debug_path=debug_paths[start] if start in debug_paths else None,
+                                   eval_paths=eval_paths[start] if start in eval_paths else None,
                                    dataset_config_path=os.path.join(dataset_dir, encode_dataset_config_file(start)))
             trainings.append(ti)
         return trainings

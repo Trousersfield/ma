@@ -13,6 +13,7 @@ class OutputCollector:
         self.out_log = os.path.join(output_dir, "log")
         self.out_model = os.path.join(output_dir, "model")
         self.out_plot = os.path.join(output_dir, "plot")
+        self.out_eval = os.path.join(output_dir, "eval")
 
     def collect_data(self, port_file_name: str, full_path: bool = True, group: bool = False) -> Union[List[str],
                                                                                                       Dict[str, str]]:
@@ -64,7 +65,21 @@ class OutputCollector:
         for file in filter(lambda f: f.endswith(".pt") and f.startswith("model"), os.listdir(out_model)):
             result = os.path.join(out_model, file) if full_path else file
             if group:
-                _, _, start, _ = decode_model_file(file)
+                model_type, _, start, _ = decode_model_file(file)
+                groups[start] = result
+            else:
+                model_files.append(result)
+        return groups if group else model_files
+
+    def collect_transfer_model(self, port_file_name: str, full_path: bool = True,
+                               group: bool = False) -> Union[List[str], Dict[str, str]]:
+        out_model = os.path.join(self.out_model, port_file_name)
+        model_files = []
+        groups = {}
+        for file in filter(lambda f: f.endswith(".pt") and f.startswith("transfer"), os.listdir(out_model)):
+            result = os.path.join(out_model, file) if full_path else file
+            if group:
+                model_type, _, start, _ = decode_model_file(file)
                 groups[start] = result
             else:
                 model_files.append(result)
@@ -86,3 +101,21 @@ class OutputCollector:
             else:
                 plot_files.append(result)
         return groups if group else plot_files
+
+    def collect_eval(self, port_file_name: str, full_path: bool = True,
+                     group: bool = False) -> Union[List[str], Dict[str, List[str]]]:
+        out_eval = os.path.join(self.out_eval, port_file_name)
+        plot_files = []
+        groups = {}
+        for file in filter(lambda f: f.startswith("loss"), os.listdir(out_eval)):
+            result = os.path.join(out_eval, file) if full_path else file
+            if group:
+                _, _, start, _ = decode_loss_plot(file)
+                if start in groups:
+                    groups[start].append(result)
+                else:
+                    groups[start] = [result]
+            else:
+                plot_files.append(result)
+        return groups if group else plot_files
+

@@ -64,8 +64,17 @@ class Evaluator:
         )
         return evaluator
 
-    def add_result(self, port: Port, mae: float) -> None:
-        self.results[port.name] = mae
+    @staticmethod
+    def _encode_result_key(port_name: str, start_time: str) -> str:
+        return f"{port_name}_{start_time}"
+
+    @staticmethod
+    def _decode_result_key(key: str) -> Tuple[str, str]:
+        result = key.split("_")
+        return result[0], result[1]
+
+    def set_result(self, port: Port, start_time: str, mae: float) -> None:
+        self.results[self._encode_result_key(port.name, start_time)] = mae
 
     def remove_result(self, port: Port) -> None:
         del self.results[port.name]
@@ -119,9 +128,9 @@ class Evaluator:
 
         mae_groups = mae_by_duration(outputs, targets)
         print(f"Mae by duration:\n{mae_groups}")
-        plot_grouped_maes(mae_groups, os.path.join(self.eval_dir, "test.png"))
+        plot_grouped_maes(mae_groups, os.path.join(self.eval_dir, port.name, "test.png"))
 
-        self.add_result(port, mae)
+        self.set_result(port, start_time, mae)
         return mae
 
     def eval_all(self) -> None:

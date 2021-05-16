@@ -2,6 +2,9 @@
     {
         "base_port": "HAMBURG",
         "target_ports": ["ROSTOCK"]
+    },
+    {
+        "base_port": "TRELLEBORG",
+        "target_ports": ["ROSTOCK"]
     }
-
 ]

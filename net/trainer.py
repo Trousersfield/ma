@@ -103,7 +103,7 @@ def train_all(data_dir: str, output_dir: str, debug: bool = False) -> None:
 # lr = .0001  --> some jumps, but pretty good results with batch-size 32
 # lr = .00001 --> slow but steady updating: but after 50 epochs still 9x worse than above
 # lr = .00005 --> seems to be still too slow, similar to above
-def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .0003,
+def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100, learning_rate: float = .00025,
           weight_decay: float = .0001, pm: PortManager = None, resume_checkpoint: str = None,
           debug: bool = False) -> None:
     # TODO: Make sure dataset does not overwrite if (accidently) new training is started
@@ -422,4 +422,5 @@ if __name__ == "__main__":
     parser.add_argument("--port_name", type=str, help="Name of port to train model")
     parser.add_argument("--resume_checkpoint", type=str, default=None,
                         help="Specify if training shall recover from previous checkpoint")
+    parser.add_argument("--lr", type=float, default=None, help="Learning rate")
     main(parser.parse_args())
