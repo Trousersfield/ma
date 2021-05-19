@@ -34,7 +34,7 @@
 			"id": 5,
 			"latitude": 57.1259,
 			"longitude": 8.5919,
-			"radius": 1,
+			"radius": 2,
 			"name": "HANSTHOLM"
 		},
 		{
@@ -42,7 +42,7 @@
 			"latitude": 55.7068,
 			"longitude": 21.1185,
 			"radius": 2.5,
-			"name": "KLAIPEDIA"
+			"name": "KLAIPEDA"
 		},
 		{
 			"id": 7,
@@ -137,9 +137,9 @@
 		},
 		{
 			"id": 20,
-			"latitude": 52.3774,
-			"longitude": 4.8972,
-			"radius": 3,
+			"latitude": 52.41085718923774,
+			"longitude": 4.863430032524938,
+			"radius": 6,
 			"name": "AMSTERDAM"
 		},
 		{
@@ -190,6 +190,62 @@
 			"longitude": 9.7440,
 			"radius": 1.2,
 			"name": "FREDERICIA"
+		},
+		{
+			"id": 28,
+			"latitude": 51.23291347160396,
+			"longitude": 4.413762753764157,
+			"radius": 10,
+			"name": "ANTWERPEN"
+		},
+		{
+			"id": 29,
+			"latitude": 56.03779683211004,
+			"longitude": 12.69385579374717,
+			"radius": 3,
+			"name": "HELSINGBORG"
+		},
+		{
+			"id": 30,
+			"latitude": 55.05655151666725,
+			"longitude": 10.617608550663117,
+			"radius": 0.5,
+			"name": "SVENDBORG"
+		},
+		{
+			"id": 31,
+			"latitude": 55.05655151666725,
+			"longitude": 10.617608550663117,
+			"radius": 0.5,
+			"name": "HARLINGEN"
+		},
+		{
+			"id": 32,
+			"latitude": 57.05199168732593,
+			"longitude": 9.94315758781066,
+			"radius": 1.5,
+			"name": "AALBORG"
+		},
+		{
+			"id": 33,
+			"latitude": 55.614077738751014,
+			"longitude": 12.993517844428142,
+			"radius": 2,
+			"name": "MALMO"
+		},
+		{
+			"id": 34,
+			"latitude": 56.95124613797143,
+			"longitude": 24.095000495828998,
+			"radius": 3,
+			"name": "RIGA"
+		},
+		{
+			"id": 35,
+			"latitude": 53.86898673644018,
+			"longitude": 8.712079160479716,
+			"radius": 3,
+			"name": "CUXHAVEN"
 		}
 	]
 }

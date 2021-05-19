@@ -15,7 +15,8 @@ from plotter import plot_series
 from port import Port, PortManager
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
     num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, encode_checkpoint_file,\
-    decode_checkpoint_file, as_datetime, verify_output_dir, encode_dataset_config_file, decode_dataset_config_file
+    decode_checkpoint_file, as_datetime, verify_output_dir, encode_dataset_config_file, decode_dataset_config_file,\
+    as_duration
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
@@ -123,26 +124,28 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
     output_dirs = verify_output_dir(output_dir, port.name)
 
-    log_file_name = f"train-log_{port.name}_{start_time}"
+    log_file_name = f"train-log-base_{port.name}_{start_time}"
     train_logger = Logger(log_file_name, output_dirs["log"], save=False)
-    debug_logger = Logger(f"train-log_{port.name}_{start_time}_debug", output_dirs["log"]) if debug else train_logger
+    debug_logger = Logger(f"{log_file_name}_debug", output_dirs["log"]) if debug else train_logger
 
     if port is None:
         train_logger.write(f"Training skipped: Unable to find port based on port_name {port_name}")
         return
 
+    training_type = "base"
     batch_size = 64
     window_width = 128
     dataset_dir = os.path.join(data_dir, "routes", port.name)
 
     # init dataset on directory
-    dataset = RoutesDirectoryDataset(dataset_dir, start_time=start_time, batch_size=batch_size, start=0,
-                                     window_width=window_width)
+    dataset = RoutesDirectoryDataset(dataset_dir, start_time=start_time, training_type=training_type,
+                                     batch_size=batch_size, start=0, window_width=window_width)
     if resume_checkpoint is not None:
-        dataset_config_path = encode_dataset_config_file(resume_checkpoint) \
-            if resume_checkpoint != "latest" else find_latest_dataset_config_path(dataset_dir)
+        dataset_config_path = encode_dataset_config_file(resume_checkpoint, training_type) \
+            if resume_checkpoint != "latest" else find_latest_dataset_config_path(dataset_dir,
+                                                                                  training_type=training_type)
         if not os.path.exists(dataset_config_path):
-            latest_config_path = find_latest_dataset_config_path(dataset_dir)
+            latest_config_path = find_latest_dataset_config_path(dataset_dir, training_type=training_type)
             use_latest = input(f"Unable to find dataset config for start time '{resume_checkpoint}'. "
                                f"Continue with latest config (Y) at '{latest_config_path}' or abort")
             if use_latest not in ["Y", "y", "YES", "yes"]:
@@ -229,13 +232,13 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
         train_logger.write(f"Epoch {epoch + 1}/{num_epochs}:\n"
                            f"\tAvg train loss {avg_train_loss}\n"
-                           f"\tAvg val loss   {avg_validation_loss}")
+                           f"\tAvg val   loss {avg_validation_loss}")
 
         make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
                                  num_epochs=num_epochs, learning_rate=learning_rate,
                                  weight_decay=weight_decay, loss_history=loss_history, optimizer=optimizer,
                                  is_optimum=min_val_idx == epoch)
-        print(f">>>> Avg losses - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
+        print(f">>>> Avg losses (MSE) - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
     # conclude training
     end_datetime = datetime.now()
@@ -246,17 +249,19 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 def conclude_training(loss_history: Tuple[List[float], List[float]], end: datetime, model_dir: str, data_dir: str,
                       plot_dir: str, port: Port, start_time: str,
                       plot_title: str = "Training loss") -> Tuple[str, str]:
+    training_type = "base"
     end_time = as_str(end)
     remove_previous_checkpoint(model_dir, port, start_time, end_time)
-    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time))
+    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time, file_type=training_type))
     np.save(loss_history_path, loss_history)
-    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time))
+    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type))
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"],
                 path=plot_path)
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], y_scale="log",
-                path=os.path.join(plot_dir, encode_loss_plot(port.name, start_time, "log")))
+                path=os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type,
+                                                             scale="log")))
     return loss_history_path, plot_path
 
 
@@ -269,16 +274,17 @@ def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_l
         # print(f"data loading took {end.microsecond - start.microsecond} microseconds")
         inputs = inputs.to(device)
         target = target.to(device)
-        # print(f"train tensor:\n{train_data.shape}")
-        # print(f"target tensor:\n{target.shape}")
+        # print(f"train tensor:\n{inputs}")
+        # print(f"target tensor:\n{target}")
 
         if debug and debug_logger is not None:
             debug_data(inputs, target, batch_idx, loader, debug_logger)
 
         batch_loss = make_train_step(inputs, target, optimizer, model, criterion)
         loss += batch_loss
+        # print(f"idx: {batch_idx} batch_loss: {batch_loss} sum: {loss}")
 
-        # if batch_idx % 1000 == 0:
+        # if batch_idx % 100 == 0:
         #     print(f"Loop idx: {batch_idx} batch loss: {batch_loss}")
         #     print(f"Loop idx: {batch_idx} loss_train: {loss}")
     return loss / len(loader)
@@ -304,6 +310,7 @@ def validate_loop(criterion, device, model, optimizer, loader, debug=False, debu
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
                     training: bool = True):
     output = model(data_tensor)
+    # print(f"output: {output}, target tensor: {target_tensor}")
     loss = criterion(output, target_tensor)
     if training:
         optimizer.zero_grad()
@@ -316,14 +323,15 @@ def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str,
                              learning_rate: float, loss_history: Tuple[List[float], List[float]],
                              optimizer: Union[torch.optim.Adam, torch.optim.AdamW],
                              is_optimum: bool, weight_decay: float, is_transfer: bool = False) -> None:
+    training_type = "transfer" if is_transfer else "base"
     current_time = as_str(datetime.now())
     model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time,
                                                            is_checkpoint=False if is_optimum else True,
-                                                           is_transfer=is_transfer))
+                                                           file_type=training_type))
     model.save(model_path)
     tc_path = os.path.join(os.path.split(model_path)[0],
                            encode_checkpoint_file(port.name, start_time, current_time,
-                                                  is_checkpoint=False if is_optimum else True, is_transfer=is_transfer))
+                                                  is_checkpoint=False if is_optimum else True, file_type=training_type))
     tc = TrainingCheckpoint(path=tc_path, model_path=model_path, start_time=start_time,
                             num_epochs=num_epochs, learning_rate=learning_rate, weight_decay=weight_decay,
                             loss_history=loss_history, optimizer=optimizer, is_optimum=is_optimum)
@@ -347,7 +355,7 @@ def remove_previous_checkpoint(model_dir: str, port: Port, start_time: str, curr
     current_time = as_datetime(current_time)
     for file in os.listdir(model_dir):
         _, ext = os.path.splitext(file)
-        if file.startswith("checkpoint_") or (new_optimum and file.startswith("model_")):
+        if file.startswith("checkpoint-base") or (new_optimum and file.startswith("model-base")):
             if ext in [".pt", ".tar"]:  # model or checkpoint file
                 _, cp_port_name, cp_start_time, cp_end_time = \
                     decode_model_file(file) if ext == ".pt" else decode_checkpoint_file(file)
@@ -382,22 +390,22 @@ def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, Incepti
     tc, model = TrainingCheckpoint.load(file_path, device, new_lr=lr, new_num_epochs=num_epochs)
     return tc, model
 
-
-def find_model_path(model_dir: str, start_time: str, transfer: bool = False) -> str:
-    result = ""
-    file_kind = "transfer" if transfer else "model"
-    for file in os.listdir(model_dir):
-        if file.endswith(".pt") and file.startswith(file_kind):
-            _, _, file_start_time, file_end_time = decode_model_file(file)
-            if file_start_time == start_time:
-                if result != "":
-                    print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same "
-                          f"start-time '{start_time}' detected. Returning latest")
-                result = os.path.join(model_dir, file)
-    if result is not None:
-        return result
-    else:
-        raise FileNotFoundError(f"Unable to retrieve model path from directory {model_dir} at '{start_time}'")
+# TODO: Seems to be unused
+# def find_model_path(model_dir: str, start_time: str, transfer: bool = False) -> str:
+#     result = ""
+#     file_kind = "transfer" if transfer else "model"
+#     for file in os.listdir(model_dir):
+#         if file.endswith(".pt") and file.startswith(file_kind):
+#             _, _, file_start_time, file_end_time = decode_model_file(file)
+#             if file_start_time == start_time:
+#                 if result != "":
+#                     print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same "
+#                           f"start-time '{start_time}' detected. Returning latest")
+#                 result = os.path.join(model_dir, file)
+#     if result is not None:
+#         return result
+#     else:
+#         raise FileNotFoundError(f"Unable to retrieve model path from directory {model_dir} at '{start_time}'")
 
 
 def main(args) -> None:

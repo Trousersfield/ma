@@ -17,8 +17,8 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class RoutesDirectoryDataset(Dataset):
-    def __init__(self, data_dir: str, start_time: str, start: int = 0, end: int = None, window_width: int = 100,
-                 batch_size: int = 1, shuffled_data_indices: List[int] = None) -> None:
+    def __init__(self, data_dir: str, start_time: str, training_type: str, start: int = 0, end: int = None,
+                 window_width: int = 100, batch_size: int = 1, shuffled_data_indices: List[int] = None) -> None:
         """
         Index-based access for route files within a given directory
         :param data_dir: Directory to data
@@ -33,9 +33,10 @@ class RoutesDirectoryDataset(Dataset):
         if end is not None and end < start:
             raise ValueError(f"Invalid data indices: start ({start}) < end ({end})")
         self.data_dir = data_dir
-        self.config_file_name = encode_dataset_config_file(start_time)
+        self.config_file_name = encode_dataset_config_file(start_time, training_type)
         self.config_path = os.path.join(self.data_dir, self.config_file_name)
         self.start = start
+        self.training_type = training_type
         self.window_width = window_width
         self.batch_size = batch_size
         self.window_vector = np.expand_dims(np.arange(self.window_width), axis=0)
@@ -152,8 +153,11 @@ class RoutesDirectoryDataset(Dataset):
             _, start_time = decode_dataset_config_file(file_name)
             # print(f"Loading dataset from config {config_path}")
             config = torch.load(config_path)
+            # TODO: Remote training_type none check
             dataset = RoutesDirectoryDataset(data_dir=config["data_dir"] if new_data_dir is None else new_data_dir,
                                              start_time=start_time,
+                                             training_type=config["training_type"] if "training_type" in config else
+                                             "base",
                                              start=config["start"] if start is None else start,  # start-index
                                              end=config["end"] if end is None else end,  # end-index
                                              window_width=config["window_width"],
@@ -168,6 +172,7 @@ class RoutesDirectoryDataset(Dataset):
         torch.save({
             "data_dir": self.data_dir,
             "start": self.start,
+            "training_type": self.training_type,
             "end": self.end,
             "window_width": self.window_width,
             "batch_size": self.batch_size,
@@ -210,10 +215,12 @@ class RoutesDirectoryDataset(Dataset):
         return shuffled
 
 
-def find_latest_dataset_config_path(dataset_dir: str) -> str:
+def find_latest_dataset_config_path(dataset_dir: str, training_type: str) -> str:
+    if training_type not in ["base", "transfer"]:
+        raise ValueError(f"Unknown training type '{training_type}'. Not in [base, transfer]")
     max_time, path = None, None
     for file in os.listdir(dataset_dir):
-        if file.startswith("dataset-config"):
+        if file.startswith(f"dataset-config-{training_type}"):
             _, start_time = decode_dataset_config_file(file)
             start_time = as_datetime(start_time)
             if max_time is None or max_time < start_time:
@@ -229,7 +236,7 @@ def test_dataset(dataset) -> None:
             _, _ = dataset[batch_idx]
         except (IndexError, RuntimeError) as e:
             print(f"Original Exception: {e}")
-            print(f"Occurred in Directory Dataset from config '{config_file_name}' while accessing index: {batch_idx}")
+            print(f"Occurred in Directory Dataset from config '{config_file_name}' while accessing index '{batch_idx}'")
             break
     print(f"Route Dataset from config'{config_file_name}' checked!")
 
@@ -244,7 +251,7 @@ def main(args) -> None:
         port = pm.find_port(args.port_name)
         data_dir = os.path.join(args.data_dir, "routes", port.name)
         batch_size = int(args.batch_size)
-        dataset = RoutesDirectoryDataset(data_dir, batch_size=batch_size, start=0)
+        dataset = RoutesDirectoryDataset(data_dir, batch_size=batch_size, start=0, training_type="base")
         dataset.save_config()
         end_train = int(.8 * len(dataset))
         if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
@@ -283,7 +290,9 @@ def main(args) -> None:
         if port is None:
             raise ValueError(f"Unable to associate '{args.port_name}' with any port")
         dataset_dir = os.path.join(args.data_dir, "routes", port.name)
-        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir))
+        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir,
+                                                                                          training_type="base"))
+        print(f"Loaded dataset config: {dataset.config_path}")
         print(f"Dataset length: {len(dataset)}")
         data, target = dataset[args.data_idx]
         print(f"Data at pos {args.data_idx} of shape {data.shape}:\n{data}")
@@ -299,7 +308,8 @@ def main(args) -> None:
             raise ValueError(f"Unable to associate '{args.port_name}' with any port")
 
         dataset_dir = os.path.join(args.data_dir, "routes", port.name)
-        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir))
+        dataset = RoutesDirectoryDataset.load_from_config(find_latest_dataset_config_path(dataset_dir,
+                                                                                          training_type="base"))
         end_train = int(.8 * len(dataset))
         if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):
             end_train += 1

@@ -6,5 +6,9 @@
     {
         "base_port": "TRELLEBORG",
         "target_ports": ["ROSTOCK"]
+    },
+    {
+        "base_port": "ESBJERG",
+        "target_ports": ["ROSTOCK"]
     }
 ]

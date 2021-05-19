@@ -33,15 +33,6 @@ def initialize(output_dir:  str) -> None:
             os.makedirs(os.path.join(output_dir, folder))
 
 
-def correlate(raw_data_frame):
-    print("Computing correlations ...")
-
-    correlations = raw_data_frame.corr()
-    print(correlations)
-
-    np.save(os.path.join(script_dir, "data", "correlations.npy"), correlations)
-
-
 def generate_label(df: pd.DataFrame, arrival_time: int) -> Tuple[pd.DataFrame, DurationLabeler]:
     labeler = DurationLabeler()
     labeled_df = labeler.fit_transform(df, arrival_time)
@@ -91,14 +82,19 @@ def init_scaler(source_df: pd.DataFrame, target_columns: List[str]) -> MinMaxSca
     min_max_df = pd.concat([target_min_df, target_max_df])
     min_max_data = min_max_df.to_numpy()
     # copy = False, if input already is numpy array
-    scaler = MinMaxScaler(feature_range=(-1, 1), copy=False)
+    scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
     scaler.fit(min_max_data)
     return scaler
 
 
-def normalize(data: np.ndarray, scaler: MinMaxScaler) -> np.ndarray:
-    normalized_data = scaler.transform(data)
-    return normalized_data
+# def normalize(data: np.ndarray, scaler: MinMaxScaler, columns: List[str]) -> np.ndarray:
+#     normalized_data = scaler.transform(data)
+#     return normalized_data
+
+
+def normalize(data: pd.DataFrame, scaler: MinMaxScaler, columns: List[str]) -> pd.DataFrame:
+    data[columns] = scaler.transform(data[columns])
+    return data
 
 
 def denormalize(data: pd.DataFrame, scaler: MinMaxScaler) -> pd.DataFrame:
@@ -303,12 +299,6 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 # drop rows sent after ship left the port
                 ship_df = ship_df[ship_df["time"] <= arrival_time]
 
-                # if not is_empty(ship_df):
-                    # print("- - - - - - - - - - - - - - - - - - - - - - -")
-                    # print("- - T A R G E T  &  D A T A   F O U N D - - -")
-                    # print("- - - - - - - - - - - - - - - - - - - - - - -")
-                    # print(f"MMSI {mmsi}")
-
             # print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
             if is_empty(ship_df):
                 continue
@@ -337,17 +327,20 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
             # print("df with added label: \n", ship_df)
+            cols_to_normalize = ship_df.columns.tolist()
 
             if scaler is None:
-                scaler = init_scaler(x_df, ship_df.columns.tolist())
+                scaler = init_scaler(x_df, cols_to_normalize)
                 joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
-            data = ship_df.to_numpy()
+            # data = ship_df.to_numpy()
             # print(f"Shape after all: {data.shape}")
-            # print(f"Data:\n{data}")
+            # print(f"Data:\n{data[0]}")
 
-            data_normalized = normalize(data, scaler) if data.shape[0] > 0 else data
+            # data_normalized = normalize(data, scaler, columns) if data.shape[0] > 0 else data
+            ship_df_normalized = normalize(ship_df, scaler, cols_to_normalize)
             # print(f"normalized data:\n{data_normalized}")
+            data_normalized = ship_df_normalized.to_numpy()
 
             routes_dir = os.path.join(output_dir, "routes", port.name)
             data_file_path = encode_data_file(mmsi, routes_dir, join=True)
@@ -380,6 +373,4 @@ if __name__ == "__main__":
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "data"),
                         help="Output directory path")
-    parser.add_argument("--ship_type", type=str, default="Cargo", choices=["Cargo", "Fishing", "Passenger", "Military",
-                                                                           "Tanker"])
     main(parser.parse_args())

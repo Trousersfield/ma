@@ -102,7 +102,6 @@ class PortManager:
         print(f"Port Manager loaded: {len(self.ports.keys())} ports; {len(self.alias.keys())} alias'")
 
     def save(self) -> None:
-        print(f"ports:\n{self.ports}")
         joblib.dump(self.ports, self.port_path)
 
     def add_port(self, port: Port) -> None:
@@ -112,18 +111,19 @@ class PortManager:
             self.ports[port.name] = port
             self.save()
 
-    def add_alias(self, port_name: str, alias: str, overwrite: bool = False) -> None:
-        alias = alias.upper()
-        if port_name in self.ports.keys():
-            if overwrite or (alias not in self.alias.keys()):
-                self.alias[alias] = port_name
-                joblib.dump(self.alias, self.alias_path)
-                print(f"Alias '{alias}' added. Associated port: {self.alias[alias]}")
+    def add_alias(self, port_name: str, alias: List[str], overwrite: bool = False) -> None:
+        for al in alias:
+            al = al.upper()
+            if port_name in self.ports.keys():
+                if overwrite or (al not in self.alias.keys()):
+                    self.alias[al] = port_name
+                    joblib.dump(self.alias, self.alias_path)
+                    print(f"Alias '{al}' added. Associated port: {self.alias[al]}")
+                else:
+                    print(f"Alias '{al}' already contained! Associated port: {self.alias[al]}")
             else:
-                print(f"Alias '{alias}' already contained! Associated port: {self.alias[alias]}")
-        else:
-            print(f"Unable to associate '{port_name}' with loaded port data. Make sure port data is loaded "
-                  f"before adding alias.")
+                print(f"Unable to associate '{port_name}' with loaded port data. Make sure port data is loaded "
+                      f"before adding alias.")
 
     def find_port(self, name: str) -> Port:
         # print("Searching match for name {}".format(name))
@@ -170,41 +170,41 @@ class PortManager:
         return df_outside_circle, arrival_times
 
     def load_trainings(self, port: [str, Port], output_dir: str, routes_dir: str,
-                       training_type: str = "training") -> List[TrainingIteration]:
+                       training_type) -> List[TrainingIteration]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
-        if training_type not in ["training", "transfer"]:
-            raise ValueError(f"Unknown training type '{training_type}': Not in [training, transfer]")
+        if not os.path.exists(routes_dir):
+            raise ValueError(f"No such directory: {routes_dir}")
+        if training_type not in ["base", "transfer"]:
+            raise ValueError(f"Unknown training type '{training_type}': Not in [base, transfer]")
+        orig_port = port
         if isinstance(port, str):
             port = self.find_port(port)
         if port is None:
-            raise ValueError(f"Unable to associate port with '{port}'")
+            raise ValueError(f"Unable to associate port with '{orig_port}'")
 
         oc = OutputCollector(output_dir)
-        print(f"out dir: {output_dir}")
-        data_paths = oc.collect_data(port.name, group=True)
-        debug_paths = oc.collect_debug(port.name, group=True)
-        log_paths = oc.collect_log(port.name, group=True)
-        model_paths = oc.collect_model(port.name, group=True)
-        transfer_model_paths = oc.collect_transfer_model(port.name, group=True)
-        plot_paths = oc.collect_plot(port.name, group=True)
-        eval_paths = oc.collect_eval(port.name, group=True)
-
-        dataset_dir = os.path.join(routes_dir, port.name)
+        data_paths = oc.collect_data(port.name, file_type=training_type, group=True)
+        debug_paths = oc.collect_debug(port.name, file_type=training_type, group=True)
+        log_paths = oc.collect_log(port.name, file_type=training_type, group=True)
+        model_paths = oc.collect_model(port.name, file_type=training_type, group=True)
+        plot_paths = oc.collect_plot(port.name, file_type=training_type, group=True)
+        eval_paths = oc.collect_eval(port.name, file_type=training_type, group=True)
 
         trainings = []
         start_times = model_paths.keys()
         for start in sorted(start_times):
             _, _, _, end = decode_model_file(model_paths[start])
+            dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start, training_type))
             ti = TrainingIteration(start_time=start, end_time=end,
                                    data_path=data_paths[start] if start in data_paths else None,
                                    log_path=log_paths[start] if start in log_paths else None,
                                    model_path=model_paths[start] if start in model_paths else None,
-                                   transfer_model_path=transfer_model_paths if start in transfer_model_paths else None,
                                    plot_paths=plot_paths[start] if start in plot_paths else None,
                                    debug_path=debug_paths[start] if start in debug_paths else None,
                                    eval_paths=eval_paths[start] if start in eval_paths else None,
-                                   dataset_config_path=os.path.join(dataset_dir, encode_dataset_config_file(start)))
+                                   dataset_config_path=dataset_config_path)
+
             trainings.append(ti)
         return trainings
 
@@ -322,20 +322,42 @@ def main(args) -> None:
     elif args.command == "add_alias":
         pm = PortManager()
         pm.load()
-        pm.add_alias("PETERSBURG", "ST.PETERSBURG")
-        pm.add_alias("THYBORON", "THYBOROEN")
-        pm.add_alias("ANTWERPEN", "ANTWERP")
-        pm.add_alias("GRENAA", "GRENA")
-        pm.add_alias("GOTEBORG", "GOTHENBURG")
-        pm.add_alias("HVIDESANDE", "HVIDE SANDE")
+        pm.add_alias("ANTWERPEN", ["ANTWERPBEL", "ANTWERPEN", "ANTWERP"])
+        pm.add_alias("BREMERHAVEN", ["BREMENGERMANY", "BREMEN", "BREMENDE", "DEBREMEN", "BREMEHAVEN", "BREMERNHAVEN"])
+        pm.add_alias("CUXHAVEN", ["GERCUXHAVEN", "CUXHAVENGER"])
+        pm.add_alias("ESBJERG", ["ESBJERGDK", "DKESBJERG", "ESBJERGDENMARK", "DENMARKESBJERG"])
+        pm.add_alias("FREDERICIA", ["FREDERICIA_DK", "DKFREDERICIA", "FREDERICIADK", "DENMARKESBJERG", "DKFREDERICIA"])
+        pm.add_alias("FREDERIKSHAVN", ["FREDERIKSHAVEN"])
+        pm.add_alias("GRENAA", ["GRENAADK", "GRENAADMK", "DKGRENAA", "GRENA", "GRENAADENMARK", "DENMARKGRENAA"])
+        pm.add_alias("HAMBURG", ["HAMBURGGER", "GERHAMBURG"])
+        pm.add_alias("HIRTSHALS", ["HIRTSHALSDMK", "DKHIRTHALS", "DMKHIRTSHALS", "HIRTSHALSDK"])
+        pm.add_alias("HARLINGEN", ["HARLINGENX"])
+        pm.add_alias("HVIDESANDE", ["HVIDE SANDE", "HVIDESANDEDK", "HVSANDE"])
+        pm.add_alias("KALUNDBORG", ["DKKALUNDBORG", "KALUNDBORGDK", "KALUNDBORGDENMARK", "DENMARKKALUNDBORG"])
+        pm.add_alias("KIEL", ["KIELDE", "DEKIEL", "KIELGER", "GERKIEL"])
+        pm.add_alias("MALMO", ["MALMOSWE", "SWEMALMO", "SWEDENMALMO", "MALMOSWEDEN"])
+        pm.add_alias("ODENSE", ["ODENSEDENMARK", "DENMARKODENSE", "ODENSEDK", "DKODENSE"])
+        pm.add_alias("PETERSBURG", ["ST.PETERSBURG", "STPETERSBURG", "SAITPETERSBURG"])
+        pm.add_alias("RIGA", ["RIGALATIVIA", "RIGALAT", "LATRIGA"])
+        pm.add_alias("SKAGEN", ["SKAGENDK", "DKSKAGEN", "SKAGENDENMARK", "DENMARKSKAGEN"])
+        pm.add_alias("THYBORON", ["THYBOROEN"])
+        pm.add_alias("VARBERG", ["VARBERGV"])
+        pm.add_alias("GOTEBORG", ["GOTHENBURG", "GOTHEBORG", "GOTHEBORGSWE", "SWEGOTHEBORG", "GOTEBORGSWE",
+                                  "SWEGOTEBORG", "SWEDENGOTEBORG", "GOTEBORGSWEDEN"])
     elif args.command == "analyze_csv":
-        analyze_csv(args.input_dir, args.file_name)
-    elif args.command == "test":
+        analyze_csv(args.csv_dir, args.file_name)
+    elif args.command == "load_trainings":
         pm = PortManager()
         pm.load()
-        port = pm.find_port("hamburg")
-        trainings = pm.load_trainings(port, args.output_dir)
-        print(f"Trainings: {trainings}")
+        port = pm.find_port(args.port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate port with name '{args.port_name}'")
+        trainings = pm.load_trainings(port, output_dir=args.output_dir, routes_dir=args.routes_dir,
+                                      training_type="base")
+        print(f"Base trainings: {trainings}")
+        transfers = pm.load_trainings(port, output_dir=args.output_dir, routes_dir=args.routes_dir,
+                                      training_type="transfer")
+        print(f"Transfer trainings: {transfers}")
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
@@ -343,8 +365,11 @@ def main(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Handle ports")
     parser.add_argument("command", choices=["init_ports", "add_alias", "analyze_csv", "test"])
-    parser.add_argument("--input_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
+    parser.add_argument("--csv_dir", type=str, default=os.path.join(script_dir, "data", "raw", "dma"),
                         help="Path to directory of AIS .csv files")
     parser.add_argument("--file_name", type=str,
                         help="Specify single file name if ports shall get read from specific .csv file")
+    parser.add_argument("--port_name", type=str)
+    parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, "output"))
+    parser.add_argument("--routes_dir", type=str, default=os.path.join(script_dir, "data", "routes"))
     main(parser.parse_args())

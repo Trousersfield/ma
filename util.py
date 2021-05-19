@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import os
 import pandas as pd
@@ -121,7 +122,7 @@ def is_empty(df: pd.DataFrame) -> bool:
 
 def verify_output_dir(output_dir: str, port_name: str) -> Dict[str, str]:
     output_dirs = {}
-    for kind in ["data", "debug", "model", "plot", "log"]:
+    for kind in ["data", "debug", "model", "plot", "log", "eval"]:
         curr_dir = os.path.join(output_dir, kind, port_name)
         if not os.path.exists(curr_dir):
             os.makedirs(curr_dir)
@@ -146,12 +147,18 @@ def encode_data_file(mmsi: float, data_dir: str = None, join: bool = False) -> s
 
 
 def descale_mae(scaled_mae: float, as_str_duration: bool = False) -> Union[float, str]:
-    scaled_mae = scaled_mae / 2
     data_range = data_ranges["time_scaled"]["max"] - data_ranges["time_scaled"]["min"]
-    mae_eta = scaled_mae * data_range
+    seconds = scaled_mae * data_range
     if as_str_duration:
-        return str(timedelta(seconds=mae_eta))
-    return mae_eta
+        return str(timedelta(seconds=seconds))
+    return seconds
+
+
+def as_duration(mae: float, as_seconds: bool = False) -> Union[str, float]:
+    seconds = mae * data_ranges["label"]["max"]
+    if as_seconds:
+        return seconds
+    return str(timedelta(seconds=seconds))
 
 
 def obj_file(file_type: str, mmsi: float, suffix: str = None) -> str:
@@ -216,8 +223,8 @@ def decode_pm_file(file_name: str) -> Tuple[str, str]:
     return result[0], result[1]
 
 
-def encode_dataset_config_file(time: str) -> str:
-    return f"dataset-config_{time}.pkl"
+def encode_dataset_config_file(time: str, file_type: str) -> str:
+    return f"dataset-config-{file_type}_{time}.pkl"
 
 
 def decode_dataset_config_file(file_name: str) -> Tuple[str, str]:
@@ -238,8 +245,8 @@ def decode_log_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
-def encode_loss_plot(port_name: str, time: str, scale: str = "linear") -> str:
-    return f"loss_{port_name}_{time}_{scale}.png"
+def encode_loss_plot(port_name: str, time: str, file_type: str, scale: str = "linear") -> str:
+    return f"loss-{file_type}_{port_name}_{time}_{scale}.png"
 
 
 def decode_loss_plot(file_name: str) -> Tuple[str, str, str, str]:
@@ -248,8 +255,8 @@ def decode_loss_plot(file_name: str) -> Tuple[str, str, str, str]:
     return result[0], result[1], result[2], result[3]
 
 
-def encode_loss_file(port: str, time: str) -> str:
-    return f"loss_{port}_{time}.npy"
+def encode_loss_file(port: str, time: str, file_type: str) -> str:
+    return f"loss-{file_type}_{port}_{time}.npy"
 
 
 def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
@@ -258,10 +265,10 @@ def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
-def encode_model_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False,
-                      is_transfer: bool = False) -> str:
-    model_type = "checkpoint" if is_checkpoint else ("transfer" if is_transfer else "model")
-    return f"{model_type}_{port_name}_{start_time}_{end_time}.pt"
+def encode_model_file(port_name: str, start_time: str, end_time: str, file_type: str,
+                      is_checkpoint: bool = False) -> str:
+    model_type = "checkpoint" if is_checkpoint else "model"
+    return f"{model_type}-{file_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
 def decode_model_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
@@ -276,10 +283,10 @@ def decode_model_file(file_name: str, times_as_datetime: bool = False) -> Tuple[
     return result[0], result[1], start_time, end_time
 
 
-def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, is_checkpoint: bool = False,
-                           is_transfer: bool = False) -> str:
-    checkpoint_type = "checkpoint" if is_checkpoint else ("transfer" if is_transfer else "model")
-    return f"{checkpoint_type}_{port_name}_{start_time}_{end_time}.tar"
+def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, file_type: str,
+                           is_checkpoint: bool = False) -> str:
+    checkpoint_type = "checkpoint" if is_checkpoint else "model"
+    return f"{checkpoint_type}-{file_type}_{port_name}_{start_time}_{end_time}.tar"
 
 
 def decode_checkpoint_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
@@ -297,6 +304,16 @@ def decode_transfer_result_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
+def encode_grouped_mae_plot(start_time: str, file_type: str) -> str:
+    return f"grouped-mae-{file_type}_{start_time}.png"
+
+
+def decode_grouped_mae_plot(file_name: str) -> Tuple[str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1]
+
+
 def num_total_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters())
 
@@ -305,30 +322,31 @@ def num_total_trainable_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def find_latest_checkpoint_file_path(checkpoint_dir: str, checkpoint_type: str = "checkpoint") -> Tuple[str, str]:
+def find_latest_checkpoint_file_path(checkpoint_dir: str, checkpoint_type: str = "base") -> Tuple[str, str]:
     """
     Look for the latest checkpoint file of type 'checkpoint_type' within the given directory.
     :param checkpoint_dir: Directory to search for checkpoint file
-    :param checkpoint_type: Type of checkpoint file: [checkpoint, transfer, model]
+    :param checkpoint_type: Type of checkpoint file: [base, transfer]
     :return: (path_to_checkpoint_file, type_of_returned_checkpoint)
     """
     if not os.path.exists(checkpoint_dir):
         raise ValueError(f"Unable to find checkpoint file: No such directory: {checkpoint_dir}")
-    if checkpoint_type not in ["checkpoint", "transfer", "model"]:
-        raise ValueError(f"Unknown checkpoint type '{checkpoint_type}' not contained in [checkpoint, transfer, model]")
-    file_path, latest_model_file_path = "", ""
+    if checkpoint_type not in ["base", "transfer"]:
+        raise ValueError(f"Unknown checkpoint type '{checkpoint_type}' not in [base, transfer]")
+    checkpoint_file_path, model_file_path = "", ""
     latest_start, latest_start_model = None, None
-    for file in filter(lambda f: f.endswith(".tar") and (f.startswith(checkpoint_type)
-                                                         or f.startswith("model")), os.listdir(checkpoint_dir)):
+    for file in filter(lambda f: f.endswith(".tar") and (f.startswith(f"model-{checkpoint_type}") or
+                                                         f.startswith(f"checkpoint-{checkpoint_type}")),
+                       os.listdir(checkpoint_dir)):
         cp_type, _, start, _ = decode_checkpoint_file(file, True)
-        if cp_type == checkpoint_type and (latest_start is None or latest_start < start):
+        if file.startswith("checkpoint") and (latest_start is None or latest_start < start):
             latest_start = start
-            file_path = os.path.join(checkpoint_dir, file)
+            checkpoint_file_path = os.path.join(checkpoint_dir, file)
         # handle if latest checkpoint is current optimum --> saved as model-file
         elif latest_start_model is None or latest_start_model < start:
             latest_start_model = start
-            latest_model_file_path = os.path.join(checkpoint_dir, file)
-    return (file_path, checkpoint_type) if file_path != "" else (latest_model_file_path, "model")
+            model_file_path = os.path.join(checkpoint_dir, file)
+    return (checkpoint_file_path, "checkpoint") if checkpoint_file_path != "" else (model_file_path, "model")
 
 
 def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx: int, loader, logger,
@@ -376,14 +394,17 @@ def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[
     ]
 
     def scale(seconds: int) -> float:
-        half_range = (data_ranges["label"]["max"] - data_ranges["label"]["min"]) / 2
-        result = seconds / half_range
-        return -1 + result if seconds < half_range else result
+        # half_range = (data_ranges["label"]["max"] - data_ranges["label"]["min"]) / 2
+        # result = seconds / half_range
+        # return -1 + result if seconds < half_range else result
+        label_range = data_ranges["label"]["max"]
+        return seconds / label_range
 
     def process_group(x: torch.Tensor, y: torch.Tensor, group: Tuple[int, int, str]) -> Tuple[int, int, int, float,
                                                                                               str, str]:
         criterion = nn.L1Loss(reduction="mean")
         mask = (y > scale(group[0])) & (y <= scale(group[1]))
+        # mask = (y > group[0]) & (y <= group[1])
         x = x[mask]
         y = y[mask]
         mae = 0.
@@ -391,7 +412,8 @@ def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[
         if num_data > 0:
             loss = criterion(x, y)
             mae = loss.item()
-        return group[0], group[1], num_data, mae, descale_mae(mae, as_str_duration=True), group[2]
+        # return group[0], group[1], num_data, mae, descale_mae(mae, as_str_duration=True), group[2]
+        return group[0], group[1], num_data, mae, as_duration(mae), group[2]
 
     maes = [process_group(outputs, targets, group) for group in groups]
     return maes
