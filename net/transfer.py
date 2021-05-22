@@ -141,6 +141,7 @@ class TransferManager:
         # start_epoch = 0
         num_epochs = 50
         loss_history = ([], [])
+        elapsed_time_history = []
         criterion: torch.nn.MSELoss = torch.nn.MSELoss()
         min_val_idx = 0
 
@@ -158,9 +159,10 @@ class TransferManager:
         for epoch in range(num_epochs):
             # re-train model-parameters with requires_grad == True
             print(f"->->->->-> Epoch ({epoch + 1}/{num_epochs}) <-<-<-<-<-<-")
-            avg_train_loss = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
-                                        loader=train_loader)
+            avg_train_loss, elapsed_time = train_loop(criterion=criterion, model=model, device=device,
+                                                      optimizer=optimizer, loader=train_loader)
             loss_history[0].append(avg_train_loss)
+            elapsed_time_history.append(elapsed_time)
 
             # validate model
             avg_validation_loss = validate_loop(criterion=criterion, device=device, model=model, optimizer=optimizer,
@@ -178,17 +180,20 @@ class TransferManager:
             make_training_checkpoint(model=model, model_dir=transfer_def.target_model_dir, port=port,
                                      start_time=start_time, num_epochs=num_epochs,
                                      learning_rate=transfer_def.learning_rate, weight_decay=.0,
-                                     loss_history=loss_history, optimizer=optimizer, is_optimum=min_val_idx == epoch,
-                                     is_transfer=True)
+                                     num_train_examples=len(train_loader), loss_history=loss_history,
+                                     elapsed_time_history=elapsed_time_history, optimizer=optimizer,
+                                     is_optimum=min_val_idx == epoch, base_port_name=transfer_def.base_port_name)
             print(f">>>> Avg losses - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
         # conclude transfer
         end = datetime.now()
-        loss_history_path, plot_path = conclude_training(loss_history=loss_history, end=end,
-                                                         model_dir=transfer_def.target_model_dir,
+        loss_history_path, plot_path = conclude_training(loss_history=loss_history,
                                                          data_dir=transfer_def.target_output_data_dir,
                                                          plot_dir=transfer_def.target_plot_dir, port=port,
-                                                         start_time=start_time)
+                                                         start_time=start_time,
+                                                         elapsed_time_history=elapsed_time_history,
+                                                         plot_title="Transfer loss",
+                                                         training_type=training_type)
 
         tr_path = os.path.join(transfer_def.target_model_dir, encode_transfer_result_file(start_time, as_str(end)))
         model_path = os.path.join(transfer_def.target_model_dir, encode_model_file(port.name, start_time, as_str(end),

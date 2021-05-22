@@ -169,7 +169,7 @@ class PortManager:
 
         return df_outside_circle, arrival_times
 
-    def load_trainings(self, port: [str, Port], output_dir: str, routes_dir: str,
+    def load_trainings(self, port: Union[str, Port], output_dir: str, routes_dir: str,
                        training_type) -> List[TrainingIteration]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
@@ -194,7 +194,7 @@ class PortManager:
         trainings = []
         start_times = model_paths.keys()
         for start in sorted(start_times):
-            _, _, _, end = decode_model_file(model_paths[start])
+            _, _, _, end, _ = decode_model_file(model_paths[start])
             dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start, training_type))
             ti = TrainingIteration(start_time=start, end_time=end,
                                    data_path=data_paths[start] if start in data_paths else None,

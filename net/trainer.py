@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import os
+import time
 import torch
 
 from datetime import datetime
@@ -14,9 +15,9 @@ from net.model import InceptionTimeModel
 from plotter import plot_series
 from port import Port, PortManager
 from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
-    num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, encode_checkpoint_file,\
-    decode_checkpoint_file, as_datetime, verify_output_dir, encode_dataset_config_file, decode_dataset_config_file,\
-    as_duration
+    num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, as_datetime,\
+    verify_output_dir, encode_dataset_config_file, decode_dataset_config_file, as_duration, encode_meta_file,\
+    encode_checkpoint_file, decode_checkpoint_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 torch.set_printoptions(precision=10)
@@ -24,15 +25,18 @@ torch.set_printoptions(precision=10)
 
 class TrainingCheckpoint:
     def __init__(self, path: str, model_path: str, start_time: str, num_epochs: int, learning_rate: float,
-                 weight_decay: float, loss_history: Tuple[List[float], List[float]],
-                 optimizer: Union[torch.optim.Adam, torch.optim.AdamW], is_optimum: bool) -> None:
+                 weight_decay: float, num_train_examples: int, loss_history: Tuple[List[float], List[float]],
+                 elapsed_time_history: List[float], optimizer: Union[torch.optim.Adam, torch.optim.AdamW],
+                 is_optimum: bool) -> None:
         self.path = path
         self.model_path = model_path
         self.start_time = start_time
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.num_train_examples = num_train_examples
         self.loss_history = loss_history
+        self.elapsed_time_history = elapsed_time_history
         self.is_optimum = is_optimum
         self.optimizer = optimizer
 
@@ -44,7 +48,9 @@ class TrainingCheckpoint:
             "num_epochs": self.num_epochs,
             "learning_rate": self.learning_rate,
             "weight_decay": self.weight_decay,
+            "num_train_examples": self.num_train_examples,
             "loss_history": self.loss_history,
+            "elapsed_time_history": self.elapsed_time_history,
             "is_optimum": self.is_optimum,
             "optimizer_state_dict": self.optimizer.state_dict()
         }, self.path)
@@ -65,7 +71,12 @@ class TrainingCheckpoint:
                                  f"currently trained epochs ({epoch})")
         num_epochs = new_num_epochs if new_num_epochs is not None else checkpoint["num_epochs"]
         lr = new_lr if new_lr is not None else checkpoint["learning_rate"]
-        wd = checkpoint["weight_decay"] if "weight_decay" in checkpoint else .0  # backward compatibility
+        # backward compatibility
+        wd = checkpoint["weight_decay"] if "weight_decay" in checkpoint else .0
+        eth = checkpoint["elapsed_time_history"] if "elapsed_time_history" in checkpoint else \
+            np.zeros(len(checkpoint["loss_history"]))
+        nte = checkpoint["num_train_examples"] if "num_train_examples" in checkpoint else 0
+
         model = InceptionTimeModel.load(checkpoint["model_path"], device)  # .to(device)
         # TODO: optimizer
         # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -77,7 +88,9 @@ class TrainingCheckpoint:
                                 num_epochs=num_epochs,
                                 learning_rate=lr,
                                 weight_decay=wd,
+                                num_train_examples=nte,
                                 loss_history=checkpoint["loss_history"],
+                                elapsed_time_history=eth,
                                 is_optimum=checkpoint["is_optimum"],
                                 optimizer=optimizer)
         return tc, model
@@ -171,12 +184,15 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
                                                num_workers=2)
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=None, drop_last=False,
                                                   pin_memory=True, num_workers=2)
+    train_logger.write(f"Dataset lengths:\n"
+                       f"all: {len(dataset)}\ntrain: {len(train_dataset)}\nvalidate: {len(validate_dataset)}")
 
     data, target = train_dataset[0]
     input_dim = data.size(-1)
     output_dim = 1
     start_epoch = 0
     loss_history = ([], [])
+    elapsed_time_history = []
     criterion: torch.nn.MSELoss = torch.nn.MSELoss()
 
     # resume from a checkpoint if training was aborted
@@ -188,6 +204,7 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
         learning_rate = tc.learning_rate
         weight_decay = tc.weight_decay
         loss_history = tc.loss_history
+        elapsed_time_history = tc.elapsed_time_history
         # TODO: optimizer
         optimizer = tc.optimizer
     else:
@@ -217,9 +234,10 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
     for epoch in range(start_epoch, num_epochs):
         # train model
         print(f"->->->->-> Epoch ({epoch + 1}/{num_epochs}) <-<-<-<-<-<-")
-        avg_train_loss = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
-                                    loader=train_loader, debug=debug, debug_logger=debug_logger)
+        avg_train_loss, elapsed_time = train_loop(criterion=criterion, model=model, device=device, optimizer=optimizer,
+                                                  loader=train_loader, debug=debug, debug_logger=debug_logger)
         loss_history[0].append(avg_train_loss)
+        elapsed_time_history.append(elapsed_time)
 
         # validate model
         avg_validation_loss = validate_loop(criterion=criterion, device=device, model=model, optimizer=optimizer,
@@ -236,24 +254,24 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
         make_training_checkpoint(model=model, model_dir=output_dirs["model"], port=port, start_time=start_time,
                                  num_epochs=num_epochs, learning_rate=learning_rate,
-                                 weight_decay=weight_decay, loss_history=loss_history, optimizer=optimizer,
-                                 is_optimum=min_val_idx == epoch)
+                                 weight_decay=weight_decay, num_train_examples=len(train_loader),
+                                 loss_history=loss_history, elapsed_time_history=elapsed_time_history,
+                                 optimizer=optimizer, is_optimum=min_val_idx == epoch)
         print(f">>>> Avg losses (MSE) - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
     # conclude training
-    end_datetime = datetime.now()
-    conclude_training(loss_history=loss_history, end=end_datetime, model_dir=output_dirs["model"],
-                      data_dir=output_dirs["data"], plot_dir=output_dirs["plot"], port=port, start_time=start_time)
+    conclude_training(loss_history=loss_history, data_dir=output_dirs["data"], plot_dir=output_dirs["plot"],
+                      port=port, start_time=start_time, elapsed_time_history=elapsed_time_history,
+                      plot_title="Training loss", training_type="base")
 
 
-def conclude_training(loss_history: Tuple[List[float], List[float]], end: datetime, model_dir: str, data_dir: str,
-                      plot_dir: str, port: Port, start_time: str,
-                      plot_title: str = "Training loss") -> Tuple[str, str]:
-    training_type = "base"
-    end_time = as_str(end)
-    remove_previous_checkpoint(model_dir, port, start_time, end_time)
-    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, end_time, file_type=training_type))
+def conclude_training(loss_history: Tuple[List[float], List[float]], data_dir: str,
+                      plot_dir: str, port: Port, start_time: str, elapsed_time_history: List[float],
+                      plot_title: str, training_type: str) -> Tuple[str, str]:
+    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, start_time, file_type=training_type))
+    meta_data_path = os.path.join(data_dir, encode_meta_file(port.name, start_time, file_type=training_type))
     np.save(loss_history_path, loss_history)
+    np.save(meta_data_path, elapsed_time_history)
     plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type))
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"],
@@ -265,29 +283,20 @@ def conclude_training(loss_history: Tuple[List[float], List[float]], end: dateti
     return loss_history_path, plot_path
 
 
-def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
+def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> Tuple[float, float]:
     loss = 0
     model.train()
+    t_start = time.time()
     for batch_idx, (inputs, target) in enumerate(tqdm(loader, desc="Training-loop progress")):
-        # start = datetime.now()
-        # end = datetime.now()
-        # print(f"data loading took {end.microsecond - start.microsecond} microseconds")
         inputs = inputs.to(device)
         target = target.to(device)
-        # print(f"train tensor:\n{inputs}")
-        # print(f"target tensor:\n{target}")
 
         if debug and debug_logger is not None:
             debug_data(inputs, target, batch_idx, loader, debug_logger)
 
         batch_loss = make_train_step(inputs, target, optimizer, model, criterion)
         loss += batch_loss
-        # print(f"idx: {batch_idx} batch_loss: {batch_loss} sum: {loss}")
-
-        # if batch_idx % 100 == 0:
-        #     print(f"Loop idx: {batch_idx} batch loss: {batch_loss}")
-        #     print(f"Loop idx: {batch_idx} loss_train: {loss}")
-    return loss / len(loader)
+    return loss / len(loader), time.time() - t_start
 
 
 def validate_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> float:
@@ -310,7 +319,6 @@ def validate_loop(criterion, device, model, optimizer, loader, debug=False, debu
 def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, optimizer, model, criterion,
                     training: bool = True):
     output = model(data_tensor)
-    # print(f"output: {output}, target tensor: {target_tensor}")
     loss = criterion(output, target_tensor)
     if training:
         optimizer.zero_grad()
@@ -320,44 +328,52 @@ def make_train_step(data_tensor: torch.Tensor, target_tensor: torch.Tensor, opti
 
 
 def make_training_checkpoint(model, model_dir: str, port: Port, start_time: str, num_epochs: int,
-                             learning_rate: float, loss_history: Tuple[List[float], List[float]],
+                             learning_rate: float, weight_decay: float, num_train_examples: int,
+                             loss_history: Tuple[List[float], List[float]],
+                             elapsed_time_history: List[float],
                              optimizer: Union[torch.optim.Adam, torch.optim.AdamW],
-                             is_optimum: bool, weight_decay: float, is_transfer: bool = False) -> None:
-    training_type = "transfer" if is_transfer else "base"
+                             is_optimum: bool, base_port_name: str = None) -> None:
+    training_type = "base" if base_port_name is None else "transfer"
     current_time = as_str(datetime.now())
-    model_path = os.path.join(model_dir, encode_model_file(port.name, start_time, current_time,
-                                                           is_checkpoint=False if is_optimum else True,
-                                                           file_type=training_type))
+    model_file_name = encode_model_file(port.name, start_time, current_time, is_checkpoint=not is_optimum,
+                                        file_type=training_type, base_port_name=base_port_name)
+    model_path = os.path.join(model_dir, model_file_name)
     model.save(model_path)
-    tc_path = os.path.join(os.path.split(model_path)[0],
-                           encode_checkpoint_file(port.name, start_time, current_time,
-                                                  is_checkpoint=False if is_optimum else True, file_type=training_type))
+
+    cp_file_name = encode_checkpoint_file(port.name, start_time, current_time, is_checkpoint=not is_optimum,
+                                          file_type=training_type, base_port_name=base_port_name)
+    tc_path = os.path.join(os.path.split(model_path)[0], cp_file_name)
     tc = TrainingCheckpoint(path=tc_path, model_path=model_path, start_time=start_time,
                             num_epochs=num_epochs, learning_rate=learning_rate, weight_decay=weight_decay,
-                            loss_history=loss_history, optimizer=optimizer, is_optimum=is_optimum)
+                            num_train_examples=num_train_examples, loss_history=loss_history,
+                            elapsed_time_history=elapsed_time_history, optimizer=optimizer,
+                            is_optimum=is_optimum)
     tc.safe()
     # remove previous checkpoint's model
-    remove_previous_checkpoint(model_dir, port, start_time, current_time, is_optimum)
+    remove_previous_checkpoint(model_dir, port, start_time, current_time, is_optimum, base_port_name)
 
 
 def remove_previous_checkpoint(model_dir: str, port: Port, start_time: str, current_time: str,
-                               new_optimum: bool = False) -> None:
+                               new_optimum: bool, base_port: str = None) -> None:
     """
-    Remove a previous checkpoint's model- and checkpoint-file. Identification via encoded start_time: Files with the
-    same start_time as given in the parameters are considered to be the same training
+    Remove a previous checkpoint's model- and checkpoint-file. Identification via file_type and encoded start_time:
+    Files with the same start_time as given in the parameters are considered to be the same training
     :param model_dir: Directory to models for given port (including port name)
     :param port: Port
     :param start_time: Main identification for files that belong to the same training within the given directory
     :param current_time: Current time for identifying older checkpoints
-    :param new_optimum: Remove files from a previous optimum
+    :param new_optimum: Specify if new optimum (= model) was found, so previous model gets removed
+    :param base_port: Base port name if checkpoint is made during transfer
     :return: None
     """
     current_time = as_datetime(current_time)
+    cp_type = "checkpoint-base" if base_port is None else "checkpoint-transfer"
+    model_type = "model-base" if base_port is None else "model-transfer"
     for file in os.listdir(model_dir):
         _, ext = os.path.splitext(file)
-        if file.startswith("checkpoint-base") or (new_optimum and file.startswith("model-base")):
+        if file.startswith(cp_type) or (new_optimum and file.startswith(model_type)):
             if ext in [".pt", ".tar"]:  # model or checkpoint file
-                _, cp_port_name, cp_start_time, cp_end_time = \
+                _, cp_port_name, cp_start_time, cp_end_time, _ = \
                     decode_model_file(file) if ext == ".pt" else decode_checkpoint_file(file)
                 cp_end_time = as_datetime(cp_end_time)
                 if cp_port_name == port.name and cp_start_time == start_time and cp_end_time < current_time:
@@ -411,18 +427,62 @@ def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, Incepti
 def main(args) -> None:
     if args.command == "train":
         train_all(args.data_dir, args.output_dir)
-    if args.command == "train_port":
+    elif args.command == "train_port":
         if not args.port_name:
             raise ValueError(f"No port name found! Use '--port_name=' to train specific model")
         print(f"Attempting to train single model for port name '{args.port_name}'")
         train(args.port_name, args.data_dir, args.output_dir, resume_checkpoint=args.resume_checkpoint)
+    elif args.command == "edit_checkpoint":
+        if not os.path.exists(args.checkpoint_path):
+            raise ValueError(f"Checkpoint file not found: checkpoint_path at '{args.checkpint_path}' does not exist")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        tc, model = TrainingCheckpoint.load(path=args.checkpoint_path, device=device)
+        new_tc = TrainingCheckpoint(path=tc.path,
+                                    model_path=tc.model_path,
+                                    start_time=tc.start_time,
+                                    num_train_examples=90193,
+                                    num_epochs=tc.num_epochs,
+                                    learning_rate=tc.learning_rate,
+                                    weight_decay=tc.weight_decay,
+                                    loss_history=tc.loss_history,
+                                    elapsed_time_history=[4009., 4011., 4005., 4008., 3991., 3981., 3975., 3991., 3979., 3975., 3981, 3956., 4056., 4068., 4073., 4073., 4074.],
+                                    optimizer=tc.optimizer,
+                                    is_optimum=tc.is_optimum)
+        # new_tc.safe()
+        # SKAGEN:
+        # 101482 data entries
+        # [4144., 4135., 4116., 4125., 4130., 4115., 4116., 4124., 4126., 4133., 4132., 4132., 4131., 4125., 4139., 4163., 4151., 4148., 4125.]
+        # 24,5 it/sec
+
+        # TRELLEBORG:
+        # 24788 data entries
+        # [273., 274., 275., 269., 269., 276., 277., 275., 275., 273.,
+        # 274., 275., 274., 276., 266., 268., 270., 269., 269., 270.,
+        # 268., 272., 283., 282., 275., 273., 274., 274., 273., 275.,
+        # 275., 269., 267., 266., 268., 266., 267., 268., 266., 273.,
+        # 274., 276., 274., 274., 275., 273., 273., 274., 275., 275.,
+        # 267., 268., 268., 266., 271., 267., 276., 274., 274., 275.,
+        # 275., 274., 271., 268., 274., 274., 278., 278., 277., 275.,
+        # 279., 289., 293., 291., 279., 273., 271., 275., 277., 277.,
+        # 278., 282., 281., 281., 280., 281., 284., 281., 279., 280.,
+        # 278., 273., 268., 269., 271., 263., 274., 274., 275., 281.]
+        # 90 it/sec
+
+        # ESBJERG
+        # 2296 files
+        # 140349 data entries
+        # 112316 train
+        # 126355-112316=14039 eval
+        # Obergrenze RAM fast erreicht: 10,42/12,69 GB
+        # 24,5 it/sec
+
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training endpoint")
-    parser.add_argument("command", choices=["train", "train_port"])
+    parser.add_argument("command", choices=["train", "train_port", "edit_checkpoint"])
     parser.add_argument("--data_dir", type=str, default=os.path.join(script_dir, os.pardir, "data"),
                         help="Path to data file directory")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),

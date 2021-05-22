@@ -265,32 +265,59 @@ def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
     return result[0], result[1], result[2]
 
 
+def encode_meta_file(port: str, time: str, file_type: str) -> str:
+    return f"meta-{file_type}_{port}_{time}.npy"
+
+
+def decode_meta_file(file_name: str) -> Tuple[str, str, str]:
+    file_no_ext = os.path.splitext(file_name)[0]
+    result = file_no_ext.split("_")
+    return result[0], result[1], result[2]
+
+
 def encode_model_file(port_name: str, start_time: str, end_time: str, file_type: str,
-                      is_checkpoint: bool = False) -> str:
+                      is_checkpoint: bool = False, base_port_name: str = None) -> str:
     model_type = "checkpoint" if is_checkpoint else "model"
+    if base_port_name is not None:
+        port_name = f"{port_name}-{base_port_name}"
     return f"{model_type}-{file_type}_{port_name}_{start_time}_{end_time}.pt"
 
 
 def decode_model_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
-                                                                                Union[str, datetime]]:
+                                                                                Union[str, datetime], str]:
+    """
+    Decode a model file name
+    :param file_name: Name of file to decode
+    :param times_as_datetime: If True, return times as datetime types. Str otherwise
+    :return: [file_type, port, start_time, end_time, "base_port_name" if transferred else ""]
+    """
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
+    port_name = result[1]
+    base_port_name = ""
+    if "-" in port_name:  # transferred model: two ports are encoded
+        port_names = port_name.split("-")
+        port_name = port_names[0]
+        base_port_name = port_names[1]
     start_time = result[2]
     end_time = result[3]
     if times_as_datetime:
         start_time = as_datetime(start_time)
         end_time = as_datetime(end_time)
-    return result[0], result[1], start_time, end_time
+    return result[0], port_name, start_time, end_time, base_port_name
 
 
 def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, file_type: str,
-                           is_checkpoint: bool = False) -> str:
-    checkpoint_type = "checkpoint" if is_checkpoint else "model"
-    return f"{checkpoint_type}-{file_type}_{port_name}_{start_time}_{end_time}.tar"
+                           is_checkpoint: bool = False, base_port_name: str = None) -> str:
+    # checkpoint_type = "checkpoint" if is_checkpoint else "model"
+    # return f"{checkpoint_type}-{file_type}_{port_name}_{start_time}_{end_time}.tar"
+    file_name = encode_model_file(port_name, start_time, end_time, file_type, is_checkpoint, base_port_name)
+    file_name_no_ext = os.path.splitext(file_name)[0]
+    return f"{file_name_no_ext}.tar"
 
 
 def decode_checkpoint_file(file_name: str, times_as_datetime: bool = False) -> Tuple[str, str, Union[str, datetime],
-                                                                                     Union[str, datetime]]:
+                                                                                     Union[str, datetime], str]:
     return decode_model_file(file_name, times_as_datetime)
 
 
@@ -358,62 +385,3 @@ def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx:
     if target_tensor != target_tensor:
         logger.write(f"{log_prefix}: Detected NaN in target-tensor at index {data_idx}. Window width "
                      f"{loader.window_width}")
-
-
-def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[int, int, int, float, str, str]]:
-    """
-    Computed multiple maes for each target duration group
-    :param outputs: Predicted values
-    :param targets: Target values
-    :return: List of Tuples for each group
-        [(group_start, group_end, num_data, scaled_mae, descaled_mae, group_description), ...]
-    """
-    groups = [
-        (-1, 1800, "0-0.5h"),
-        (1800, 3600, "0.5-1h"),
-        (3600, 7200, "1-2h"),
-        (7200, 10800, "2-3h"),
-        (10800, 14400, "3-4h"),
-        (14400, 18000, "4-5h"),
-        (18000, 21600, "5-6h"),
-        (21600, 25200, "6-7h"),
-        (25200, 28800, "7-8h"),
-        (28800, 32400, "8-9h"),
-        (32400, 36000, "9-10h"),
-        (36000, 39600, "10-11h"),
-        (39600, 43200, "11-12"),
-        (43200, 86400, "12h - 1 day"),
-        (86400, 172800, "1 day - 2 days"),
-        (172800, 259200, "2 days - 3 days"),
-        (259200, 345600, "3 days - 4 days"),
-        (345600, 432000, "4 days - 5 days"),
-        (432000, 518400, "5 days - 6 days"),
-        (518400, 604800, "6 days - 1 week"),
-        (604800, 155520000, "1 week - 1 month"),
-        (155520000, int(data_ranges["label"]["max"]), "> 1 month")
-    ]
-
-    def scale(seconds: int) -> float:
-        # half_range = (data_ranges["label"]["max"] - data_ranges["label"]["min"]) / 2
-        # result = seconds / half_range
-        # return -1 + result if seconds < half_range else result
-        label_range = data_ranges["label"]["max"]
-        return seconds / label_range
-
-    def process_group(x: torch.Tensor, y: torch.Tensor, group: Tuple[int, int, str]) -> Tuple[int, int, int, float,
-                                                                                              str, str]:
-        criterion = nn.L1Loss(reduction="mean")
-        mask = (y > scale(group[0])) & (y <= scale(group[1]))
-        # mask = (y > group[0]) & (y <= group[1])
-        x = x[mask]
-        y = y[mask]
-        mae = 0.
-        num_data = x.shape[0]
-        if num_data > 0:
-            loss = criterion(x, y)
-            mae = loss.item()
-        # return group[0], group[1], num_data, mae, descale_mae(mae, as_str_duration=True), group[2]
-        return group[0], group[1], num_data, mae, as_duration(mae), group[2]
-
-    maes = [process_group(outputs, targets, group) for group in groups]
-    return maes

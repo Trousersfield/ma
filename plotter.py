@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 from matplotlib import ticker
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from port import Port, PortManager
 
@@ -82,16 +82,16 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         plt.savefig(path)
 
 
-def plot_bars(data: List[float], bar_labels: List[str], title: str, y_label: str, path: str = None) -> None:
+def plot_ports_by_mae(maes: List[float], ports: List[str], title: str, path: str = None) -> None:
+    assert len(maes) == len(ports)
     fix, ax = plt.subplots()
-    indices = np.arange(len(data))
+    x = np.arange(len(maes))
 
-    p = ax.bar(indices, label="MAEs")
-
+    p = ax.bar(x, maes)
     ax.set_title(title)
-    ax.set_ylabel(y_label)
-    ax.set_xticks(indices)
-    ax.set_xticklabels(bar_labels)
+    ax.set_ylabel("MAE")
+    ax.set_xticks(x)
+    ax.set_xticklabels(ports, rotation=45, ha="right")
     # ax.legend()
 
     if path is None:
@@ -101,16 +101,18 @@ def plot_bars(data: List[float], bar_labels: List[str], title: str, y_label: str
 
 
 def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], port_name: str = None,
-                      path: str = None) -> None:
+                      path: str = None, title: str = None) -> None:
     """
     Generate plot with groups of maes
     :param data: Result from 'util.mae_by_duration': List of Tuples
         [(group_start, group_end, num_data, mae, mas_as_str, group_description), ...]
     :param port_name: Name of port
     :param path: Output path for plot
+    :param title: Plot title
     :return: None
     """
-    title = "MAE by label duration until arrival"
+    if title is None:
+        title = "MAE by label duration until arrival"
     if port_name is not None:
         title = f"{title} ({port_name})"
     data = list(map(list, zip(*data)))
@@ -148,32 +150,68 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], port_na
         plt.savefig(path)
 
 
-def plot_grouped_paired_maes(data_base: List[Tuple[int, int, int, float, str, str]],
-                             data_target: List[Tuple[int, int, int, float, str, str]],
-                             port_name_base: str, port_name_target: str, path: str) -> None:
-    assert len(data_base) == len(data_target)
-    if not os.path.exists(path):
-        raise ValueError(f"Path at '{path}' does not exist")
-    title = f"MAE by label duration until arrival for transferred port\n"\
-        f"Base: {port_name_base} -> Target: {port_name_target}"
-    data_base = list(map(list, zip(*data_base)))
-    data_target = list(map(list, zip(*data_target)))
-    x = np.arange(len(data_base[0]))
+def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str, str]],
+                         transfer_data: List[Tuple[int, int, int, float, str, str]],
+                         port_name_base: str, port_name_target: str, path: str) -> None:
+    assert len(base_data) == len(transfer_data)
+    title = f"Transfer effect on MAE\nBase: {port_name_base} -> Target: {port_name_target}"
+    base_data = list(map(list, zip(*base_data)))
+    transfer_data = list(map(list, zip(*transfer_data)))
+    x = np.arange(len(base_data[0]))
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
-    bars_base = ax.bar(x - width/2, data_base[3])
-    bars_target = ax.bar(x + width/2, data_target[3])
+    base_bars = ax.bar(x - width/2, base_data[3])
+    transfer_bars = ax.bar(x + width/2, transfer_data[3])
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in seconds")
     ax.set_xticks(x)
-    ax.set_xtickslabels(data_base[5], rotattion=45, ha="right")
-    for i in range(len(data_base[3])):
-        ax.text(x=i - width/2, y=data_base[3][i], s=data_base[4][i], ha="center", va="center")
-        ax.text(x=i + width/2, y=data_target[3][i], s=data_target[4][i], ha="center", va="center")
+    ax.set_xtickslabels(base_data[5], rotattion=45, ha="right")
+    for i in range(len(base_data[3])):
+        ax.text(x=i - width/2, y=base_data[3][i], s=base_data[4][i], ha="center", va="center")
+        ax.text(x=i + width/2, y=transfer_data[3][i], s=transfer_data[4][i], ha="center", va="center")
     fig.tight_layout()
 
     plt.savefig(path)
+
+
+def plot_transfer_effects(avg_base_mae: List[float], avg_transfer_mae: List[float],
+                          transfer_port_names: List[str], path: str) -> None:
+    assert len(avg_base_mae) == len(avg_transfer_mae) == len(transfer_port_names)
+    title = f"Average transfer effects on ports"
+    x = np.arange(len(avg_base_mae)*3)
+    width = .35
+
+    fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
+    ax.minorticks_on()
+    base_bars = ax.bar(x - width/2, avg_base_mae)
+    transfer_bars = ax.bar(x - width/2, avg_transfer_mae)
+    ax.set_title(title)
+    ax.set_ylabel("NAE - ETA in seconds")
+    ax.set_xticks(x)
+    ax.set_xticklabels(transfer_port_names, ha="right")
+    fig.tight_layout()
+
+    plt.savefig(path)
+
+
+def plot_port_visits(mae_data: Dict[str, float]) -> None:
+    ports = ["Esbjerg", "Rostock", "Kiel", "Skagen", "Trelleborg", "Thyboron", "Hirthals", "Hvidesande", "Aalborg",
+             "Goteborg", "Copenhagen", "Grenaa", "Malmo", "Helsingborg", "Hanstholm", "Fredericia", "Horsens",
+             "Kalundborg", "Frederikshavn", "Varberg", "Mukran", "Randers", "Hamburg"]
+    visits = [2349, 2232, 1529, 1053, 787, 768, 664, 662, 648, 637, 632, 511, 474, 470, 445, 429, 402, 390, 377, 369,
+              335, 309, 268]
+
+    mae = [mae_data[port.upper()] if port in mae_data else 0 for port in ports]
+    x = np.arange(len(ports))
+    fig, ax = plt.subplots(fizsize=(30*cm, 15*cm))
+    bars = ax.bar(x, visits)
+    ax.plot(x, mae, color="red")
+    ax.set_title("MAE compared to number of unique visits per port")
+    ax.set_xticks(x)
+    ax.set_xticklabels(ports, rotation=45, ha="right")
+    for i, n in enumerate(visits):
+        ax.text(x=i, y=n, s=n, ha="center", va="center")
 
 
 def main(args) -> None:
@@ -205,7 +243,7 @@ def main(args) -> None:
             asdf = "all"
         port = pm.find_port(args.port_name)
         if port is None:
-            print(f"Unable to find port for name '{args.port_name}'")
+            raise ValueError(f"Unable to find port for name '{args.port_name}'")
         trainings = pm.load_trainings(port=port, output_dir=args.output_dir, routes_dir=args.routes_dir,
                                       training_type=args.training_type)
 
