@@ -20,6 +20,8 @@ class OutputCollector:
         self._check_file_type("data", file_type)
         file_type = f"loss-{file_type}"
         out_data = os.path.join(self.out_data, port_file_name)
+        if not os.path.exists(out_data):
+            return {} if group else []
         data_files = []
         groups = {}
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_data)):
@@ -36,6 +38,8 @@ class OutputCollector:
         self._check_file_type("debug", file_type)
         file_type = f"debug-{file_type}"
         out_debug = os.path.join(self.out_debug, port_file_name)
+        if not os.path.exists(out_debug):
+            return {} if group else []
         debug_files = []
         groups = {}
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_debug)):
@@ -52,6 +56,8 @@ class OutputCollector:
         self._check_file_type("log", file_type)
         file_type = f"train-log-{file_type}"
         out_log = os.path.join(self.out_log, port_file_name)
+        if not os.path.exists(out_log):
+            return {} if group else []
         log_files = []
         groups = {}
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_log)):
@@ -68,12 +74,14 @@ class OutputCollector:
         self._check_file_type("model", file_type)
         file_type = f"model-{file_type}"
         out_model = os.path.join(self.out_model, port_file_name)
+        if not os.path.exists(out_model):
+            return {} if group else []
         model_files = []
         groups = {}
         for file in filter(lambda f: f.endswith(".pt") and f.startswith(file_type), os.listdir(out_model)):
             result = os.path.join(out_model, file) if full_path else file
             if group:
-                model_type, _, start, _ = decode_model_file(file)
+                model_type, _, start, _, _ = decode_model_file(file)
                 groups[start] = result
             else:
                 model_files.append(result)
@@ -84,6 +92,8 @@ class OutputCollector:
         self._check_file_type("plot", file_type)
         file_type = f"loss-{file_type}"
         out_plot = os.path.join(self.out_plot, port_file_name)
+        if not os.path.exists(out_plot):
+            return {} if group else []
         plot_files = []
         groups = {}
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_plot)):
@@ -103,6 +113,8 @@ class OutputCollector:
         self._check_file_type("eval", file_type)
         file_type = f"loss-{file_type}"
         out_eval = os.path.join(self.out_eval, port_file_name)
+        if not os.path.exists(out_eval):
+            return {} if group else []
         plot_files = []
         groups = {}
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_eval)):

@@ -100,6 +100,7 @@ class PortManager:
         else:
             print(f"No alias definition found at {self.alias_path}")
         print(f"Port Manager loaded: {len(self.ports.keys())} ports; {len(self.alias.keys())} alias'")
+        # print(f"Ports: {self.ports.keys()}")
 
     def save(self) -> None:
         joblib.dump(self.ports, self.port_path)
@@ -130,7 +131,6 @@ class PortManager:
         name_upper = name.upper()
         if name_upper in self.ports:
             return self.ports[name_upper]
-
         if (name_upper in self.alias) and (self.alias[name_upper] in self.ports):
             return self.ports[self.alias[name_upper]]
         # print("No match found!")
@@ -170,7 +170,7 @@ class PortManager:
         return df_outside_circle, arrival_times
 
     def load_trainings(self, port: Union[str, Port], output_dir: str, routes_dir: str,
-                       training_type) -> List[TrainingIteration]:
+                       training_type: str) -> List[TrainingIteration]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
         if not os.path.exists(routes_dir):

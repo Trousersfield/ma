@@ -257,6 +257,8 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
                                  weight_decay=weight_decay, num_train_examples=len(train_loader),
                                  loss_history=loss_history, elapsed_time_history=elapsed_time_history,
                                  optimizer=optimizer, is_optimum=min_val_idx == epoch)
+        save_intermediate(data_dir=output_dirs["data"], elapsed_time_history=elapsed_time_history,
+                          loss_history=loss_history, port=port, start_time=start_time, training_type="base")
         print(f">>>> Avg losses (MSE) - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
     # conclude training
@@ -267,20 +269,30 @@ def train(port_name: str, data_dir: str, output_dir: str, num_epochs: int = 100,
 
 def conclude_training(loss_history: Tuple[List[float], List[float]], data_dir: str,
                       plot_dir: str, port: Port, start_time: str, elapsed_time_history: List[float],
-                      plot_title: str, training_type: str) -> Tuple[str, str]:
+                      plot_title: str, training_type: str) -> None:
+    save_intermediate(data_dir, elapsed_time_history, loss_history, port, start_time, training_type)
+    plot_training(loss_history, plot_dir, plot_title, port, start_time, training_type)
+
+
+def save_intermediate(data_dir: str, elapsed_time_history: List[float], loss_history: Tuple[List[float], List[float]],
+                      port: Port, start_time: str, training_type: str) -> None:
     loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, start_time, file_type=training_type))
     meta_data_path = os.path.join(data_dir, encode_meta_file(port.name, start_time, file_type=training_type))
     np.save(loss_history_path, loss_history)
     np.save(meta_data_path, elapsed_time_history)
-    plot_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type))
+
+
+def plot_training(loss_history: Tuple[List[float], List[float]], plot_dir: str, plot_title: str, port: Port,
+                  start_time: str, training_type: str):
+    plot_linear_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type))
+    plot_log_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type,
+                                                            scale="log"))
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"],
-                path=plot_path)
+                path=plot_linear_path)
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"], y_scale="log",
-                path=os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type,
-                                                             scale="log")))
-    return loss_history_path, plot_path
+                path=plot_log_path)
 
 
 def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> Tuple[float, float]:
@@ -406,23 +418,6 @@ def load_checkpoint(model_dir: str, device) -> Tuple[TrainingCheckpoint, Incepti
     tc, model = TrainingCheckpoint.load(file_path, device, new_lr=lr, new_num_epochs=num_epochs)
     return tc, model
 
-# TODO: Seems to be unused
-# def find_model_path(model_dir: str, start_time: str, transfer: bool = False) -> str:
-#     result = ""
-#     file_kind = "transfer" if transfer else "model"
-#     for file in os.listdir(model_dir):
-#         if file.endswith(".pt") and file.startswith(file_kind):
-#             _, _, file_start_time, file_end_time = decode_model_file(file)
-#             if file_start_time == start_time:
-#                 if result != "":
-#                     print(f"Warning: Multiple models of kind '{file_kind}' in directory {model_dir} with same "
-#                           f"start-time '{start_time}' detected. Returning latest")
-#                 result = os.path.join(model_dir, file)
-#     if result is not None:
-#         return result
-#     else:
-#         raise FileNotFoundError(f"Unable to retrieve model path from directory {model_dir} at '{start_time}'")
-
 
 def main(args) -> None:
     if args.command == "train":
@@ -473,7 +468,7 @@ def main(args) -> None:
         # 140349 data entries
         # 112316 train
         # 126355-112316=14039 eval
-        # Obergrenze RAM fast erreicht: 10,42/12,69 GB
+        # Obergrenze RAM fast erreicht: 11,17/12,69 GB
         # 24,5 it/sec
 
     else:

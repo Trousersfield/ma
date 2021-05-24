@@ -1,4 +1,4 @@
-import math
+import json
 import numpy as np
 import os
 import pandas as pd
@@ -7,7 +7,6 @@ import torch
 
 from datetime import datetime, timedelta
 from pytz import timezone
-from torch import nn
 from typing import Dict, List, Tuple, Union
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -155,7 +154,8 @@ def descale_mae(scaled_mae: float, as_str_duration: bool = False) -> Union[float
 
 
 def as_duration(mae: float, as_seconds: bool = False) -> Union[str, float]:
-    seconds = mae * data_ranges["label"]["max"]
+    seconds = int(mae * data_ranges["label"]["max"])
+    print(f"seconds: {seconds}")
     if as_seconds:
         return seconds
     return str(timedelta(seconds=seconds))
@@ -365,7 +365,7 @@ def find_latest_checkpoint_file_path(checkpoint_dir: str, checkpoint_type: str =
     for file in filter(lambda f: f.endswith(".tar") and (f.startswith(f"model-{checkpoint_type}") or
                                                          f.startswith(f"checkpoint-{checkpoint_type}")),
                        os.listdir(checkpoint_dir)):
-        cp_type, _, start, _ = decode_checkpoint_file(file, True)
+        cp_type, _, start, _, _ = decode_checkpoint_file(file, True)
         if file.startswith("checkpoint") and (latest_start is None or latest_start < start):
             latest_start = start
             checkpoint_file_path = os.path.join(checkpoint_dir, file)
@@ -385,3 +385,12 @@ def debug_data(data_tensor: torch.Tensor, target_tensor: torch.Tensor, data_idx:
     if target_tensor != target_tensor:
         logger.write(f"{log_prefix}: Detected NaN in target-tensor at index {data_idx}. Window width "
                      f"{loader.window_width}")
+
+
+def read_json(path: str) -> json:
+    if os.path.exists(path):
+        with open(path) as json_file:
+            result = json.load(json_file)
+            return result
+    else:
+        raise ValueError(f"Unable to read .json file from {path}")

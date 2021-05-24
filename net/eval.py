@@ -59,7 +59,7 @@ class Evaluator:
         self.mae_transfer_groups = {}
 
     @staticmethod
-    def load(eval_dir_or_path: str) -> 'Evaluator':
+    def load(eval_dir_or_path: str, output_dir: str = None, routes_dir: str = None) -> 'Evaluator':
         path = eval_dir_or_path
         eval_dir, file = os.path.split(eval_dir_or_path)
         if not os.path.exists(eval_dir):
@@ -68,8 +68,8 @@ class Evaluator:
             path = os.path.join(path, "evaluator.tar")
         state_dict = torch.load(path)
         evaluator = Evaluator(
-            output_dir=state_dict["output_dir"],
-            routes_dir=state_dict["routes_dir"],
+            output_dir=state_dict["output_dir"] if output_dir is None else output_dir,
+            routes_dir=state_dict["routes_dir"] if routes_dir is None else routes_dir,
             mae_base=state_dict["mae_base"],
             mae_transfer=state_dict["mae_transfer"],
             mae_base_groups=state_dict["mae_base_groups"],
@@ -87,8 +87,8 @@ class Evaluator:
         return result[0], result[1]
 
     @staticmethod
-    def _encode_transfer_key(base_port: str, transfer_port: str, start_time: str) -> str:
-        return f"{base_port}_{transfer_port}_{start_time}"
+    def _encode_transfer_key(source_port: str, target_port: str, start_time: str) -> str:
+        return f"{source_port}_{target_port}_{start_time}"
 
     @staticmethod
     def _decode_transfer_key(key: str) -> Tuple[str, str, str]:
@@ -96,8 +96,8 @@ class Evaluator:
         return result[0], result[1], result[2]
 
     def _get_mae_base(self, transfer_key: str, group: bool) -> float:
-        base_port, transfer_port, start_time = self._decode_transfer_key(transfer_key)
-        base_key = self._encode_base_key(base_port, start_time)
+        source_port, _, start_time = self._decode_transfer_key(transfer_key)
+        base_key = self._encode_base_key(source_port, start_time)
         return self.mae_base_groups[base_key] if group else self.mae_base[base_key]
 
     def export(self) -> None:
@@ -112,66 +112,76 @@ class Evaluator:
                 curr_decoded_transfer_keys = filter(lambda decoded_key: decoded_key[0] == base_port,
                                                     decoded_transfer_keys)
 
-                for entry in curr_decoded_transfer_keys:
-                    transfer_key = self._encode_transfer_key(base_port, entry[1], start_time)
+                for decoded_transfer_key in curr_decoded_transfer_keys:
+                    transfer_key = self._encode_transfer_key(base_port, decoded_transfer_key[1], start_time)
                     if transfer_key in self.mae_transfer:
-                        writer.writerow([base_port, entry[1], start_time, self.mae_base[base_key],
+                        writer.writerow([base_port, decoded_transfer_key[1], start_time, self.mae_base[base_key],
                                          self.mae_transfer[transfer_key]])
                     else:
-                        raise ValueError(f"Unable to retrieve transfer result base port '{base_port}' to '{entry[1]}. "
-                                         f"No such transfer key '{transfer_key}' (base key: '{base_key}')")
+                        raise ValueError(f"Unable to retrieve transfer result base port '{base_port}' to "
+                                         f"'{decoded_transfer_key[1]}. No such transfer key '{transfer_key}' "
+                                         f"(base key: '{base_key}')")
 
-    def set_mae(self, base_port: Port, start_time: str, mae: Union[float, List[Tuple[int, int, int, float, str, str]]],
-                transfer_port: Port = None, grouped: bool = False) -> None:
-        if transfer_port is not None:
-            transfer_key = self._encode_transfer_key(base_port.name, transfer_port.name, start_time)
+    def set_mae(self, port: Port, start_time: str, mae: Union[float, List[Tuple[int, int, int, float, str, str]]],
+                source_port: Port = None, grouped: bool = False) -> None:
+        if source_port is not None:
+            transfer_key = self._encode_transfer_key(source_port.name, port.name, start_time)
             if grouped:
                 self.mae_transfer_groups[transfer_key] = mae
             else:
                 self.mae_transfer[transfer_key] = mae
         else:
-            base_key = self._encode_base_key(base_port.name, start_time)
+            base_key = self._encode_base_key(port.name, start_time)
             if grouped:
                 self.mae_base_groups[base_key] = mae
             else:
                 self.mae_base[base_key] = mae
 
-    def remove_mae(self, base_port: Port, start_time: str, transfer_port: Port = None, grouped: bool = False) -> None:
-        if transfer_port is not None:
-            transfer_key = self._encode_transfer_key(base_port.name, transfer_port.name, start_time)#
+    def remove_mae(self, port: Port, start_time: str, source_port: Port = None, grouped: bool = False) -> None:
+        if source_port is not None:
+            transfer_key = self._encode_transfer_key(source_port.name, port.name, start_time)
+            # print(f"transfer key: {transfer_key}")
+            # print(f"transfer keys: {self.mae_transfer.keys()}")
+            # print(f"transfer group keys: {self.mae_transfer_groups.keys()}")
             if grouped:
                 if transfer_key in self.mae_transfer_groups:
                     del self.mae_transfer_groups[transfer_key]
                 else:
-                    print(f"No grouped transfer result found for base_port '{base_port.name}', "
-                          f"transfer_port '{transfer_port.name}' and start time '{start_time}'")
+                    print(f"No grouped transfer result found for port '{port.name}', "
+                          f"source_port '{source_port.name}' and start time '{start_time}'")
             else:
                 if transfer_key in self.mae_transfer:
                     del self.mae_transfer[transfer_key]
                 else:
-                    print(f"No transfer result found for base_port '{base_port.name}', "
-                          f"transfer_port '{transfer_port.name}' and start time '{start_time}'")
+                    print(f"No transfer result found for port '{port.name}', "
+                          f"source_port '{source_port.name}' and start time '{start_time}'")
         else:
-            base_key = self._encode_base_key(base_port.name, start_time)
-
+            base_key = self._encode_base_key(port.name, start_time)
             if grouped:
                 if base_key in self.mae_base_groups:
                     del self.mae_base_groups[base_key]
                 else:
-                    print(f"No grouped base result found for port '{base_port.name}' and start time '{start_time}'")
+                    print(f"No grouped base result found for port '{port.name}' and start time '{start_time}'")
             else:
                 if base_key in self.mae_base:
                     del self.mae_base[base_key]
                 else:
-                    print(f"No base result found for port '{base_port.name}' and start time '{start_time}'")
+                    print(f"No base result found for port '{port.name}' and start time '{start_time}'")
+        # print(f"base keys: {self.mae_base.keys()}")
+        # print(f"base group keys: {self.mae_base_groups.keys()}")
+        # print(f"transfer keys: {self.mae_transfer.keys()}")
+        # print(f"transfer group keys: {self.mae_transfer_groups.keys()}")
 
     def eval_port(self, port: Union[str, Port], training_type: str, plot: bool = True) -> None:
         if isinstance(port, str):
+            orig_port = port
             port = self.pm.find_port(port)
+            if port is None:
+                raise ValueError(f"Unable to associate port with port name '{orig_port}'")
 
         trainings = self.pm.load_trainings(port, self.output_dir, self.routes_dir, training_type=training_type)
         if len(trainings) < 1:
-            print(f"Skipping evaluation for port '{port.name}': No training found")
+            print(f"Skipping evaluation for port '{port.name}': No {training_type}-training found")
             return
 
         training = trainings[-1]
@@ -192,6 +202,7 @@ class Evaluator:
 
         x = []
         y = []
+        print(f">->->->->->-> STARTED EVALUATION OF PORT {port.name} | TRAINING TYPE {training_type} <-<-<-<-<-<-<-<-<")
         criterion = nn.L1Loss(reduction="mean")
         with torch.no_grad():
             for eval_idx, (data, target) in enumerate(tqdm(eval_loader, desc="Evaluation progress")):
@@ -211,13 +222,22 @@ class Evaluator:
         mae_groups = mae_by_duration(outputs, targets)
         print(f"Mae by duration:\n{mae_groups}")
 
-        self.set_mae(port, training.start_time, mae, grouped=False)
-        self.set_mae(port, training.start_time, mae_groups, grouped=True)
+        if training_type == "transfer":
+            model_file = os.path.split(training.model_path)[1]
+            _, _, _, _, source_port_name = decode_model_file(model_file)
+            source_port = self.pm.find_port(source_port_name)
+            if source_port is None:
+                raise ValueError(f"Unable to associate port with port name '{source_port_name}")
+            self.set_mae(port, training.start_time, mae, source_port=source_port, grouped=False)
+            self.set_mae(port, training.start_time, mae_groups, source_port=source_port, grouped=True)
+        else:
+            self.set_mae(port, training.start_time, mae, grouped=False)
+            self.set_mae(port, training.start_time, mae_groups, grouped=True)
         self.save()
         if plot:
             self.plot_grouped_mae(port, training_type=training_type, training=training)
 
-    def eval_all(self) -> None:
+    def eval_all(self, plot: bool = True) -> None:
         """
         Entry point for evaluating all available ports
         :return: None
@@ -225,13 +245,14 @@ class Evaluator:
         # evaluate all ports
         for port in self.pm.ports.values():
             for t in ["base", "transfer"]:
-                self.eval_port(port, training_type=t, plot=True)
+                self.eval_port(port, training_type=t, plot=plot)
 
-        self.plot_ports_by_mae(training_type="base")
-        self.plot_ports_by_mae(training_type="transfer")
+        if plot:
+            self.plot_ports_by_mae(training_type="base")
+            self.plot_ports_by_mae(training_type="transfer")
 
     def plot_grouped_mae(self, port: Union[str, Port], training_type: str, training: TrainingIteration = None) -> None:
-        if port is str:
+        if isinstance(port, str):
             orig_port = port
             port = self.pm.find_port(port)
             if port is None:
@@ -245,22 +266,22 @@ class Evaluator:
             else:
                 raise ValueError(f"No training of type '{training_type}' found for port '{port.name}'")
 
-        transfer_port_name = None
+        source_port_name = None
         if training_type == "base":
             base_key = self._encode_base_key(port.name, training.start_time)
             mae_groups = self.mae_base_groups[base_key]
         else:
             model_file_name = os.path.split(training.model_path)[1]
-            _, _, _, _, transfer_port_name = decode_model_file(model_file_name)
-            transfer_key = self._encode_transfer_key(port.name, transfer_port_name, training.start_time)
+            _, _, _, _, source_port_name = decode_model_file(model_file_name)
+            transfer_key = self._encode_transfer_key(source_port_name, port.name, training.start_time)
             mae_groups = self.mae_transfer_groups[transfer_key]
 
         plot_path = os.path.join(self.eval_dir, port.name, encode_grouped_mae_plot(training.start_time,
                                                                                    file_type=training_type))
         title = f"Grouped MAE {training_type}-training: Port {port.name}"
         if training_type == "transfer":
-            title = f"{title} (Base: {transfer_port_name})"
-        plot_grouped_maes(mae_groups, port_name=port.name, path=plot_path, title=title)
+            title = f"{title} (Source port: {source_port_name})"
+        plot_grouped_maes(mae_groups, title=title, path=plot_path)
 
     def plot_ports_by_mae(self, training_type: str) -> None:
         result = []
@@ -281,7 +302,7 @@ class Evaluator:
         :param port: Port, that has a transferred model from another port
         :return: None
         """
-        if port is str:
+        if isinstance(port, str):
             orig_port = port
             port = self.pm.find_port(port)
             if port is None:
@@ -289,21 +310,25 @@ class Evaluator:
         transfer_trainings = self.pm.load_trainings(port, output_dir=self.output_dir, routes_dir=self.routes_dir,
                                                     training_type="transfer")
         transfer_training = transfer_trainings[-1]
-        _, start_time, _, _, base_port_name = decode_model_file(os.path.split(transfer_training.model_path)[1])
+        _, _, start_time, _, source_port_name = decode_model_file(os.path.split(transfer_training.model_path)[1])
 
-        base_trainings = self.pm.load_trainings(base_port_name, output_dir=self.output_dir, routes_dir=self.routes_dir,
-                                                training_type="base")
+        base_trainings = self.pm.load_trainings(source_port_name, output_dir=self.output_dir,
+                                                routes_dir=self.routes_dir, training_type="base")
         base_trainings = [t for t in base_trainings if t.start_time == start_time]
         if len(base_trainings) != 1:
             raise ValueError(f"Unable to identify base-training for start_time '{start_time}': "
                              f"Got {len(base_trainings)}, expected exactly 1")
         base_training = base_trainings[0]
-        base_key = self._encode_base_key(port.name, base_training.start_time)
-        transfer_key = self._encode_transfer_key(base_port_name, port.name, start_time)
+        base_key = self._encode_base_key(source_port_name, base_training.start_time)
+        # print(f"normal keys: {self.mae_base.keys()}")
+        # print(f"grouped keys: {self.mae_base_groups.keys()}")
+        # print(f"transferred normal keys: {self.mae_transfer.keys()}")
+        # print(f"transferred grouped keys: {self.mae_transfer_groups.keys()}")
+        transfer_key = self._encode_transfer_key(source_port_name, port.name, start_time)
         base_data = self.mae_base_groups[base_key]
         transfer_data = self.mae_transfer_groups[transfer_key]
-        path = os.path.join(self.output_dir, "eval", f"transfer-effect_{base_port_name}-{port.name}.png")
-        plot_transfer_effect(base_data, transfer_data, base_port_name, port.name, path)
+        path = os.path.join(self.output_dir, "eval", f"transfer-effect_{source_port_name}-{port.name}.png")
+        plot_transfer_effect(base_data, transfer_data, source_port_name, port.name, path)
 
     def plot_transfer_effects(self, sort: str = "mae_base") -> None:
         """
@@ -313,15 +338,15 @@ class Evaluator:
         """
         tmp = {}
         for transfer_key, mae_transfer in self.mae_transfer.items():
-            base_port_name, transfer_port_name, _ = self._decode_transfer_key(transfer_key)
-            mae_base = self._get_mae_base(transfer_key, group=False)
+            source_port_name, target_port_name, _ = self._decode_transfer_key(transfer_key)
+            mae_source_base = self._get_mae_base(transfer_key, group=False)
 
-            if transfer_port_name in tmp:
-                tmp[transfer_port_name][0].append(base_port_name)
-                tmp[transfer_port_name][1].append(mae_base)
-                tmp[transfer_port_name][2].append(mae_transfer)
+            if target_port_name in tmp:
+                tmp[target_port_name][0].append(source_port_name)
+                tmp[target_port_name][1].append(mae_source_base)
+                tmp[target_port_name][2].append(mae_transfer)
             else:
-                tmp[transfer_port_name] = ([base_port_name], [mae_base], [mae_transfer])
+                tmp[target_port_name] = ([source_port_name], [mae_source_base], [mae_transfer])
 
         def compute_metrics(key, val: Tuple[List[str], List[float], List[float]]) -> Tuple[str, str, float, str, float,
                                                                                            str, float, str, float,
@@ -329,8 +354,8 @@ class Evaluator:
             """
             :return: Tuple in form of
                 transfer_port_name,
-                max_mae_base_port_name, max_mae_base,
-                min_mae_base_port_name, min_mae_base,
+                max_mae_source_port_name, max_mae_source_base,
+                min_mae_source_port_name, min_mae_source_base,
                 max_mae_transfer_port_name, max_mae_transfer,
                 min_mae_transfer_port_name, min_mae_transfer,
                 avg_mae_base,
@@ -354,9 +379,10 @@ class Evaluator:
             result.sort(key=lambda r: r[0])
         result = list(map(list, zip(*result)))
 
-        # plot_transfer_effects(base_data, transfer_data, base_port_names, transfer_port_names, path)
         path = os.path.join(self.output_dir, "eval", f"transfer-effects_{sort}.png")
-        plot_transfer_effects(result[0], result[1], result[2], result[3], path)
+        # print(f"result:\n{result}")
+        plot_transfer_effects(result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7],
+                              result[8], result[9], result[10], path)
 
 
 def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[int, int, int, float, str, str]]:
@@ -427,9 +453,22 @@ def main(args) -> None:
         e = Evaluator.load(os.path.join(args.output_dir, "eval"))
         e.reset()
         e.save()
+    elif command == "reset_mae":
+        e = Evaluator.load(os.path.join(args.output_dir, "eval"))
+        port = e.pm.find_port(args.port_name)
+        if port is None:
+            raise ValueError(f"Unable to associate port with port name '{args.port_name}'")
+        source_port = None
+        if args.source_port is not None:
+            source_port = e.pm.find_port(args.source_port)
+            if source_port is None:
+                raise ValueError(f"Unable to associate port with port name '{args.source_port}'")
+        print(f"source port: {source_port}")
+        e.remove_mae(port=port, start_time=args.start_time, source_port=source_port, grouped=args.group)
+        e.save()
     elif command == "eval":
         e = Evaluator.load(os.path.join(args.output_dir, "eval"))
-        e.eval_all()
+        e.eval_all(plot=args.plot)
     elif command == "eval_port":
         e = Evaluator.load(os.path.join(args.output_dir, "eval"))
         training_types = []
@@ -440,23 +479,39 @@ def main(args) -> None:
         else:
             training_types = [args.training_type]
         for t in training_types:
-            e.eval_port(args.port_name, training_type=t, plot=True)
-    elif command == "plot":  # plot saved evaluations
+            e.eval_port(args.port_name, training_type=t, plot=args.plot)
+    elif command == "make_plots":  # plot saved evaluations
         e = Evaluator.load(os.path.join(args.output_dir, "eval"))
+        e.plot_transfer_effect(args.port_name)
+        e.plot_transfer_effects()
         for t in ["base", "transfer"]:
             e.plot_grouped_mae(args.port_name, training_type=t)
-
+            e.plot_ports_by_mae(training_type=t)
+    elif command == "adapt_paths":
+        e = Evaluator.load(eval_dir_or_path=os.path.join(args.output_dir, "eval"), output_dir=args.output_dir,
+                           routes_dir=args.routes_dir)
+        # print(f"path: {e.path}")
+        # print(f"output dir: {e.output_dir}")
+        # print(f"routes dir: {e.routes_dir}")
+        e.save()
     else:
         raise ValueError(f"Unknown command '{command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["init", "eval", "eval_port", "plot"])
+    parser.add_argument("command", choices=["init", "eval", "eval_port", "make_plots", "adapt_paths", "reset_mae"])
     parser.add_argument("--routes_dir", type=str, default=os.path.join(script_dir, os.pardir, "data", "routes"),
                         help="Directory to routes")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Directory to outputs")
     parser.add_argument("--port_name", type=str, help="Port name")
     parser.add_argument("--training_type", type=str, choices=["all", "base", "transfer"])
+    parser.add_argument("--plot", dest="plot", action="store_true")
+    parser.add_argument("--no_plot", dest="plot", action="store_false")
+    parser.add_argument("--source_port", type=str, default=None)
+    parser.add_argument("--start_time", type=str)
+    parser.add_argument("--group", dest="group", action="store_true")
+    parser.add_argument("--no_group", dest="group", action="store_false")
+    parser.set_defaults(plot=True)
     main(parser.parse_args())
