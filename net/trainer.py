@@ -435,7 +435,7 @@ def main(args) -> None:
         new_tc = TrainingCheckpoint(path=tc.path,
                                     model_path=tc.model_path,
                                     start_time=tc.start_time,
-                                    num_train_examples=90193,
+                                    num_train_examples=90193,  # KIEL
                                     num_epochs=tc.num_epochs,
                                     learning_rate=tc.learning_rate,
                                     weight_decay=tc.weight_decay,
@@ -446,7 +446,8 @@ def main(args) -> None:
         # new_tc.safe()
         # SKAGEN:
         # 101482 data entries
-        # [4144., 4135., 4116., 4125., 4130., 4115., 4116., 4124., 4126., 4133., 4132., 4132., 4131., 4125., 4139., 4163., 4151., 4148., 4125.]
+        # [4144., 4135., 4116., 4125., 4130., 4115., 4116., 4124., 4126., 4133.,
+        # 4132., 4132., 4131., 4125., 4139., 4163., 4151., 4148., 4125.]
         # 24,5 it/sec
 
         # TRELLEBORG:

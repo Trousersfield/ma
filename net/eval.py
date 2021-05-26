@@ -22,8 +22,8 @@ script_dir = os.path.abspath(os.path.dirname(__file__))
 class Evaluator:
     def __init__(self, output_dir: str, routes_dir: str, mae_base: Dict[str, float] = None,
                  mae_transfer: Dict[str, float] = None,
-                 mae_base_groups: Dict[str, List[Tuple[int, int, int, float, str, str]]] = None,
-                 mae_transfer_groups: Dict[str, List[Tuple[int, int, int, float, str, str]]] = None) -> None:
+                 mae_base_groups: Dict[str, List[Tuple[int, int, int, float, str]]] = None,
+                 mae_transfer_groups: Dict[str, List[Tuple[int, int, int, float, str]]] = None) -> None:
         self.output_dir = output_dir
         self.routes_dir = routes_dir
         self.data_dir = os.path.join(output_dir, "data")
@@ -122,7 +122,7 @@ class Evaluator:
                                          f"'{decoded_transfer_key[1]}. No such transfer key '{transfer_key}' "
                                          f"(base key: '{base_key}')")
 
-    def set_mae(self, port: Port, start_time: str, mae: Union[float, List[Tuple[int, int, int, float, str, str]]],
+    def set_mae(self, port: Port, start_time: str, mae: Union[float, List[Tuple[int, int, int, float, str]]],
                 source_port: Port = None, grouped: bool = False) -> None:
         if source_port is not None:
             transfer_key = self._encode_transfer_key(source_port.name, port.name, start_time)
@@ -251,6 +251,25 @@ class Evaluator:
             self.plot_ports_by_mae(training_type="base")
             self.plot_ports_by_mae(training_type="transfer")
 
+    def plot(self, port_name: str = None) -> None:
+        """
+        Generate all general and specific plots for specified/all available ports.
+        :param port_name: If specified, plot this port. If not, plot all
+        :return: None
+        """
+        if port_name is not None:
+            self.plot_port(port_name)
+        else:
+            for port in self.pm.ports.values():
+                self.plot_port(port)
+        self.plot_transfer_effects()
+
+    def plot_port(self, port: Union[str, Port]):
+        for t in ["base", "transfer"]:
+            self.plot_grouped_mae(port, training_type=t)
+            self.plot_ports_by_mae(training_type=t)
+        self.plot_transfer_effect(port)
+
     def plot_grouped_mae(self, port: Union[str, Port], training_type: str, training: TrainingIteration = None) -> None:
         if isinstance(port, str):
             orig_port = port
@@ -264,7 +283,8 @@ class Evaluator:
             if len(trainings) > 0:
                 training = trainings[-1]
             else:
-                raise ValueError(f"No training of type '{training_type}' found for port '{port.name}'")
+                print(f"No training of type '{training_type}' found for port '{port.name}'. Skipping plot_grouped_mae")
+                return
 
         source_port_name = None
         if training_type == "base":
@@ -285,15 +305,30 @@ class Evaluator:
 
     def plot_ports_by_mae(self, training_type: str) -> None:
         result = []
-        for key, mae in self.mae_base.items():
-            port_name, start_time = self._decode_base_key(key)
-            result.append((mae, port_name))
+        if training_type == "base":
+            for key, mae in self.mae_base.items():
+                port_name, start_time = self._decode_base_key(key)
+                result.append((mae, port_name))
+        elif training_type == "transfer":
+            tmp = {}
+            for key, mae in self.mae_transfer.items():
+                source_port_name, target_port_name, start_time = self._decode_transfer_key(key)
+                if target_port_name in tmp:
+                    tmp[target_port_name].append(mae)
+                else:
+                    tmp[target_port_name] = [mae]
+            result = [(sum(v) / len(v), k) for k, v in tmp.items()]
+        else:
+            raise ValueError(f"Unknown training-type '{training_type}'")
 
         result.sort(key=lambda r: r[0])  # sort by mae
         result = list(map(list, zip(*result)))
 
-        plot_ports_by_mae(result[0], result[1], title=f"MAE from {training_type}-training by port",
-                          path=os.path.join(self.output_dir, "eval", "ports-mae.png"))
+        title = f"MAE from {training_type}-training by port"
+        if training_type == "transfer":
+            title = f"Average {title}"
+        plot_ports_by_mae(result[0], result[1], title=title,
+                          path=os.path.join(self.output_dir, "eval", f"ports-mae_{training_type}-training.png"))
 
     def plot_transfer_effect(self, port: Union[str, Port]) -> None:
         """
@@ -309,6 +344,10 @@ class Evaluator:
                 raise ValueError(f"Unable to associate port with port name '{orig_port}'")
         transfer_trainings = self.pm.load_trainings(port, output_dir=self.output_dir, routes_dir=self.routes_dir,
                                                     training_type="transfer")
+        if len(transfer_trainings) < 1:
+            print(f"No training of type 'transfer' found for port {port.name}. Skipping plot_transfer_effect")
+            return
+
         transfer_training = transfer_trainings[-1]
         _, _, start_time, _, source_port_name = decode_model_file(os.path.split(transfer_training.model_path)[1])
 
@@ -380,42 +419,64 @@ class Evaluator:
         result = list(map(list, zip(*result)))
 
         path = os.path.join(self.output_dir, "eval", f"transfer-effects_{sort}.png")
-        # print(f"result:\n{result}")
         plot_transfer_effects(result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7],
                               result[8], result[9], result[10], path)
 
 
-def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[int, int, int, float, str, str]]:
+def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[int, int, int, float, str]]:
     """
     Compute multiple maes for each target duration group
     :param outputs: Predicted values
     :param targets: Target values
     :return: List of tuples. Each tuple represents one group
-        [(group_start, group_end, num_data, scaled_mae, descaled_mae, group_description), ...]
+        [(group_start, group_end, num_data, scaled_mae, group_description), ...]
     """
+    # groups = [
+    #     (-1, 1800, "0-0.5h"),
+    #     (1800, 3600, "0.5-1h"),
+    #     (3600, 7200, "1-2h"),
+    #     (7200, 10800, "2-3h"),
+    #     (10800, 14400, "3-4h"),
+    #     (14400, 18000, "4-5h"),
+    #     (18000, 21600, "5-6h"),
+    #     (21600, 25200, "6-7h"),
+    #     (25200, 28800, "7-8h"),
+    #     (28800, 32400, "8-9h"),
+    #     (32400, 36000, "9-10h"),
+    #     (36000, 39600, "10-11h"),
+    #     (39600, 43200, "11-12"),
+    #     (43200, 86400, "12h - 1 day"),
+    #     (86400, 172800, "1 day - 2 days"),
+    #     (172800, 259200, "2 days - 3 days"),
+    #     (259200, 345600, "3 days - 4 days"),
+    #     (345600, 432000, "4 days - 5 days"),
+    #     (432000, 518400, "5 days - 6 days"),
+    #     (518400, 604800, "6 days - 1 week"),
+    #     (604800, 155520000, "1 week - 1 month"),
+    #     (155520000, int(data_ranges["label"]["max"]), "> 1 month")
+    # ]
     groups = [
         (-1, 1800, "0-0.5h"),
         (1800, 3600, "0.5-1h"),
         (3600, 7200, "1-2h"),
         (7200, 10800, "2-3h"),
         (10800, 14400, "3-4h"),
-        (14400, 18000, "4-5h"),
-        (18000, 21600, "5-6h"),
-        (21600, 25200, "6-7h"),
-        (25200, 28800, "7-8h"),
-        (28800, 32400, "8-9h"),
-        (32400, 36000, "9-10h"),
-        (36000, 39600, "10-11h"),
-        (39600, 43200, "11-12"),
-        (43200, 86400, "12h - 1 day"),
-        (86400, 172800, "1 day - 2 days"),
-        (172800, 259200, "2 days - 3 days"),
-        (259200, 345600, "3 days - 4 days"),
-        (345600, 432000, "4 days - 5 days"),
-        (432000, 518400, "5 days - 6 days"),
-        (518400, 604800, "6 days - 1 week"),
-        (604800, 155520000, "1 week - 1 month"),
-        (155520000, int(data_ranges["label"]["max"]), "> 1 month")
+        (14400, 21600, "4-6h"),
+        (21600, 28800, "6-8h"),
+        (28800, 36000, "8-10h"),
+        (36000, 43200, "10-12h"),
+        (43200, 50400, "12-16h"),
+        (50400, 64800, "16-20h"),
+        (64800, 86400, "20-24h"),
+        (86400, 172800, "1-2d"),
+        (172800, 259200, "2-3d"),
+        (259200, 345600, "3-4d"),
+        (345600, 432000, "4-5d"),
+        (432000, 518400, "5-6d"),
+        (518400, 604800, "6-7d"),
+        (604800, 1209600, "1-2w"),
+        (1209600, 2419200, "2-4w"),
+        (2419200, int(data_ranges["label"]["max"]), "> 4w")
     ]
 
     def scale(seconds: int) -> float:
@@ -426,7 +487,7 @@ def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[
         return seconds / label_range
 
     def process_group(x: torch.Tensor, y: torch.Tensor, group: Tuple[int, int, str]) -> Tuple[int, int, int, float,
-                                                                                              str, str]:
+                                                                                              str]:
         criterion = nn.L1Loss(reduction="mean")
         mask = (y > scale(group[0])) & (y <= scale(group[1]))
         # mask = (y > group[0]) & (y <= group[1])
@@ -437,8 +498,7 @@ def mae_by_duration(outputs: torch.Tensor, targets: torch.Tensor) -> List[Tuple[
         if num_data > 0:
             loss = criterion(x, y)
             mae = loss.item()
-        # return group[0], group[1], num_data, mae, descale_mae(mae, as_str_duration=True), group[2]
-        return group[0], group[1], num_data, mae, as_duration(mae), group[2]
+        return group[0], group[1], num_data, mae, group[2]
 
     mae_groups = [process_group(outputs, targets, group) for group in groups]
     return mae_groups
@@ -482,11 +542,7 @@ def main(args) -> None:
             e.eval_port(args.port_name, training_type=t, plot=args.plot)
     elif command == "make_plots":  # plot saved evaluations
         e = Evaluator.load(os.path.join(args.output_dir, "eval"))
-        e.plot_transfer_effect(args.port_name)
-        e.plot_transfer_effects()
-        for t in ["base", "transfer"]:
-            e.plot_grouped_mae(args.port_name, training_type=t)
-            e.plot_ports_by_mae(training_type=t)
+        e.plot(port_name=args.port_name)
     elif command == "adapt_paths":
         e = Evaluator.load(eval_dir_or_path=os.path.join(args.output_dir, "eval"), output_dir=args.output_dir,
                            routes_dir=args.routes_dir)

@@ -84,16 +84,20 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         plt.savefig(path)
 
 
-def plot_ports_by_mae(maes: List[float], ports: List[str], title: str, path: str = None) -> None:
-    assert len(maes) == len(ports)
-    fix, ax = plt.subplots()
-    x = np.arange(len(maes))
+def plot_ports_by_mae(mae: List[float], ports: List[str], title: str, path: str = None) -> None:
+    assert len(mae) == len(ports)
+    fix, ax = plt.subplots(figsize=(30*cm, 15*cm))
+    x = np.arange(len(mae))
 
-    p = ax.bar(x, maes)
+    bar = ax.bar(x, mae)
     ax.set_title(title)
-    ax.set_ylabel("MAE")
+    ax.set_ylabel("MAE in minutes")
     ax.set_xticks(x)
-    ax.set_xticklabels(ports, rotation=45, ha="right")
+    ax.set_xticklabels(ports, rotation=45, ha="center")
+    for i, val in enumerate(mae):
+        # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
+        ax.text(x=i, y=val, s=_y_format(val), ha="center", va="bottom")
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     # ax.legend()
 
     if path is None:
@@ -102,7 +106,7 @@ def plot_ports_by_mae(maes: List[float], ports: List[str], title: str, path: str
         plt.savefig(path)
 
 
-def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], title: str, path: str = None) -> None:
+def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, path: str = None) -> None:
     """
     Generate plot with groups of maes
     :param data: Result from 'util.mae_by_duration': List of Tuples
@@ -117,6 +121,7 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], title: 
     max_num = max(data[2])
     num_range = max_num - min(data[2])
     widths = [round(0.35 + n / num_range * 0.35, 2) for n in data[2]]
+    avg = sum(data[3]) / len(data[3])
 
     greens = plt.get_cmap("Greens")
 
@@ -126,20 +131,20 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], title: 
 
     fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
     bars = ax.bar(x=x, height=data[3], width=widths, color=colors, edgecolor="black", linewidth=.5)
+    plt.axhline(avg, linestyle="dashed", linewidth=1.5, color="black")
+    plt.text(x=0, y=avg, s=f"Avg {_y_format(avg)}", ha="right", va="bottom")
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")
+    # ax.set_yticks()
     ax.set_xticks(x)
     ax.set_xticklabels(data[5], rotation=45, ha="right")
     # TODO: ax.set_ytickslabels mit formattierten etas
     # ax.bar_labels(bars, padding=3)
     for i, val in enumerate(data[3]):
-        ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
-    # ax.legend()
+        # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
+        ax.text(x=i, y=val, s=_y_format(data[3][i]), ha="center", va="bottom")
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
-
-    # for i, entry in enumerate(data):
-    #     ax.text(x=i, y=entry[3], s=entry[4], ha="center", va="center")
 
     if path is None:
         plt.show()
@@ -147,8 +152,8 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str, str]], title: 
         plt.savefig(path)
 
 
-def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str, str]],
-                         transfer_data: List[Tuple[int, int, int, float, str, str]],
+def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str]],
+                         transfer_data: List[Tuple[int, int, int, float, str]],
                          port_name_base: str, port_name_target: str, path: str) -> None:
     assert len(base_data) == len(transfer_data)
     title = f"Transfer effect on MAE\nBase: {port_name_base} -> Target: {port_name_target}"
@@ -161,17 +166,23 @@ def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str, str]],
     transfer_avg = sum(transfer_data[3]) / len(transfer_data[3])
 
     fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
-    base_bars = ax.bar(x - width/2, base_data[3], width, color="blue", label="Base Training")
-    transfer_bars = ax.bar(x + width/2, transfer_data[3], width, color="orange", label="Transfer Training")
+    # bars
+    ax.bar(x - width/2, base_data[3], width, color="blue", label="Base Training")
+    ax.bar(x + width/2, transfer_data[3], width, color="orange", label="Transfer Training")
+    # average h-lines
     plt.axhline(base_avg, linestyle="dashed", linewidth=1.5, color="blue")
+    plt.text(x=-1, y=base_avg, s=f"Avg base {_y_format(base_avg)}", ha="left", va="bottom")
     plt.axhline(transfer_avg, linestyle="dashed", linewidth=1.5, color="orange")
+    plt.text(x=-1, y=transfer_avg, s=f"Avg transfer {_y_format(transfer_avg)}", ha="left", va="bottom")
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")
     ax.set_xticks(x)
-    ax.set_xticklabels(base_data[5], rotation=45, ha="right")
+    ax.set_xticklabels(base_data[4], rotation=45, ha="right")
     for i in range(len(base_data[3])):
-        ax.text(x=i - width/2, y=base_data[3][i], s=base_data[4][i], ha="center", va="bottom")
-        ax.text(x=i + width/2, y=transfer_data[3][i], s=transfer_data[4][i], ha="center", va="bottom")
+        # ax.text(x=i - width/2, y=base_data[3][i], s=base_data[4][i], ha="center", va="bottom")
+        # ax.text(x=i + width/2, y=transfer_data[3][i], s=transfer_data[4][i], ha="center", va="bottom")
+        ax.text(x=i - width / 2, y=base_data[3][i], s=_y_format(base_data[3][i]), ha="center", va="bottom")
+        ax.text(x=i + width / 2, y=transfer_data[3][i], s=_y_format(transfer_data[3][i]), ha="center", va="bottom")
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     ax.legend()
     fig.tight_layout()

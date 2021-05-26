@@ -9,10 +9,9 @@ from typing import List, Tuple
 from tqdm import tqdm
 
 from port import Port, PortManager
-from util import npy_file_len, encode_dataset_config_file, decode_dataset_config_file, as_datetime
+from util import npy_file_len, encode_dataset_config_file, decode_dataset_config_file, as_datetime, as_str
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
-
 # torch.set_printoptions(precision=10)
 
 
@@ -251,7 +250,10 @@ def main(args) -> None:
         port = pm.find_port(args.port_name)
         data_dir = os.path.join(args.data_dir, "routes", port.name)
         batch_size = int(args.batch_size)
-        dataset = RoutesDirectoryDataset(data_dir, batch_size=batch_size, start=0, training_type="base")
+        start_datetime = datetime.now()
+        start_time = as_str(start_datetime)
+        dataset = RoutesDirectoryDataset(data_dir, batch_size=batch_size, start=0, training_type="base",
+                                         start_time=start_time)
         dataset.save_config()
         end_train = int(.8 * len(dataset))
         if not (len(dataset) - end_train) % 2 == 0 and end_train < len(dataset):

@@ -127,16 +127,16 @@ class TransferManager:
             self.transfers = {}
         self.save()
 
-    def transfer(self, port_name: str, skip_transferred: bool = True) -> None:
-        port = self.pm.find_port(port_name)
-        if port is None:
-            print(f"No port found for port name '{port_name}'")
+    def transfer(self, source_port_name: str, skip_transferred: bool = True) -> None:
+        source_port = self.pm.find_port(source_port_name)
+        if source_port is None:
+            print(f"No port found for port name '{source_port_name}'")
             return
-        if port.name in self.transfer_defs:
-            transfer_defs = self.transfer_defs[port.name]
+        if source_port.name in self.transfer_defs:
+            transfer_defs = self.transfer_defs[source_port.name]
         else:
-            raise ValueError(f"No transfer definition found for port '{port.name}'. Make sure config contains transfer "
-                             f"definition for '{port.name}' and has a base-training model")
+            raise ValueError(f"No transfer definition found for port '{source_port.name}'. Make sure config contains "
+                             f"transfer definition for '{source_port.name}' and has a base-training model")
 
         # transfer base model to each port specified in transfer definition
         for transfer_def in transfer_defs:
@@ -192,13 +192,14 @@ class TransferManager:
             optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),
                                           lr=transfer_def.learning_rate)
 
-            num_epochs = 30
+            num_epochs = 10
             loss_history = ([], [])
             elapsed_time_history = []
             criterion: torch.nn.MSELoss = torch.nn.MSELoss()
             min_val_idx = 0
 
-            print(f".:'`!`':. TRANSFERRING PORT {transfer_def.base_port_name} TO {transfer_def.target_port_name} .:'`!`':.")
+            print(f".:'`!`':. TRANSFERRING PORT {transfer_def.base_port_name} TO {transfer_def.target_port_name} .:'`!`"
+                  f"':.")
             print(f"- - Epochs {num_epochs} </> Training examples {len(train_loader)} </> "
                   f"Learning rate {transfer_def.learning_rate} - -")
             print(f"- - Weight decay {0} Window width {window_width} </> Batch size {batch_size} - -")
@@ -236,7 +237,7 @@ class TransferManager:
                                          num_train_examples=len(train_loader), loss_history=loss_history,
                                          elapsed_time_history=elapsed_time_history, optimizer=optimizer,
                                          is_optimum=min_val_idx == epoch, base_port_name=transfer_def.base_port_name)
-                print(f">>>> Avg losses - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
+                print(f">>>> Avg losses (MSE) - Train: {avg_train_loss} Validation: {avg_validation_loss} <<<<\n")
 
             # conclude transfer
             conclude_training(loss_history=loss_history, data_dir=transfer_def.target_output_data_dir,
@@ -290,26 +291,37 @@ class TransferManager:
         return transfer_defs
 
 
-# entry point for transferring models
-def transfer(config_path: str, port_name: str, routes_dir: str, output_dir: str) -> None:
+def get_tm(config_path: str, routes_dir: str, output_dir: str) -> 'TransferManager':
     tm_state_path = os.path.join(script_dir, "TransferManager.tar")
     if os.path.exists(tm_state_path):
-        tm = TransferManager.load(tm_state_path)
+        return TransferManager.load(tm_state_path)
     else:
-        tm = TransferManager(config_path, routes_dir, output_dir)
-    tm.transfer(port_name=port_name)
+        return TransferManager(config_path, routes_dir, output_dir)
+
+
+def transfer(config_path: str, port_name: str, routes_dir: str, output_dir: str, skip_transferred: bool) -> None:
+    tm = get_tm(config_path, routes_dir, output_dir)
+    tm.transfer(source_port_name=port_name, skip_transferred=skip_transferred)
+
+
+def transfer_all(config_path: str, routes_dir: str, output_dir: str, skip_transferred: bool) -> None:
+    tm = get_tm(config_path, routes_dir, output_dir)
+    for port_name in tm.transfers.keys():
+        tm.transfer(source_port_name=port_name, skip_transferred=skip_transferred)
 
 
 def main(args) -> None:
     if args.command == "transfer":
-        transfer(args.config_path, args.port_name, args.routes_dir, args.output_dir)
+        transfer_all(args.config_path, args.routes_dir, args.output_dir, args.skip_transferred)
+    elif args.command == "transfer_port":
+        transfer(args.config_path, args.port_name, args.routes_dir, args.output_dir, args.skip_transferred)
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["transfer"])
+    parser.add_argument("command", choices=["transfer", "transfer_port"])
     parser.add_argument("--port_name", type=str, default="all", help="Port to transfer from")
     parser.add_argument("--config_path", type=str, default=os.path.join(script_dir, "transfer-config.json"),
                         help="Path to file for transfer definition generation")
@@ -317,5 +329,8 @@ if __name__ == "__main__":
                         help="Path to routes-data directory without port")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory without port")
+    parser.add_argument("--skip_transferred", dest="skip_transferred", action="store_true")
+    parser.add_argument("--no_skip_transferred", dest="skip_transferred", action="store_false")
+    parser.set_defaults(skip_transferred=True)
     main(parser.parse_args())
 

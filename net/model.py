@@ -23,14 +23,10 @@ def conv1d_same_padding(input, weight, bias, stride, dilation, groups):
     kernel = weight.size(2)
     dilation = dilation[0]
     stride = stride[0]
-    # print(f"kernel: {kernel} dilation: {dilation} stride: {stride}")
     size = input.size(2)    # number of rows (= channels)
-    # padding = ((size - 1) * (stride - 1) + dilation * (kernel - 1)) // 2
     padding = (((size - 1) * stride) - size + (dilation * (kernel - 1)) + 1)  # // 2
-    # print(f"padding left and right: {padding}")
     if padding % 2 != 0:
         input = F.pad(input, [0, 1])
-        # print(f"input padded beforehand: {input.size()}")
 
     return F.conv1d(input=input, weight=weight, bias=bias, stride=stride,
                     padding=padding // 2, dilation=dilation, groups=groups)
@@ -62,7 +58,6 @@ class InceptionTimeModel(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.bottleneck_channels = bottleneck_channels
-        # self.kernel_sizes = kernel_sizes # These are fixed
         self.use_residual = use_residual
         self.num_dense_blocks = num_dense_blocks
         self.dense_in_channels = dense_in_channels
@@ -78,15 +73,12 @@ class InceptionTimeModel(nn.Module):
 
         use_residuals = self._use_residuals(num_inception_blocks)
 
-        # Inception Time blocks
+        # InceptionTime blocks
         self.inception_blocks = nn.Sequential(*[
             InceptionBlock(in_channels=inception_channels[i], out_channels=inception_channels[i + 1],
                            use_residual=use_residuals[i], bottleneck_channels=expanded_bottleneck_channels[i])
             for i in range(num_inception_blocks)
         ])
-
-        # linear layer transforming to desired dense blocks input dimensionality
-        # self.linear_to_dense = nn.Linear(in_features=inception_channels[-1], out_features=dense_channels[0])
 
         # dense net for port specific training and to funnel inputs
         self.dense_blocks = nn.Sequential(*[
@@ -95,7 +87,6 @@ class InceptionTimeModel(nn.Module):
         ])
 
         # last layer folding to target value
-        # print(f"dense_channels[-1]: {dense_channels[-1]}")
         self.target_layer = nn.Linear(dense_channels[-1], self.output_dim)
 
     @staticmethod
@@ -173,22 +164,14 @@ class InceptionBlock(nn.Module):
         kernel_sizes = [10, 20, 40]
 
         # in- and out-channels for convolution layers
-        # channels = [bottleneck_channels if self.use_bottleneck else in_channels] + [out_channels] * 3
         channels = [bottleneck_channels if self.use_bottleneck else in_channels] + [out_channels // 4] * 3
         if out_channels % 4 != 0:   # add desired output channels, preferably to longer term extractor
             for i in range(out_channels % 4):
                 channels[-(i + 1)] += 1
-        # print(f"inception conv channels: {channels}")
 
         if self.use_bottleneck:
             self.bottleneck_layer = Conv1dSamePadding(in_channels=in_channels, out_channels=bottleneck_channels,
                                                       kernel_size=1, stride=stride, bias=False)
-
-        # self.convolution_layers = nn.Sequential(*[
-        #     Conv1dSamePadding(in_channels=channels[i], out_channels=channels[i + 1],
-        #                       kernel_size=kernel_sizes[i], stride=stride, bias=False)
-        #     for i in range(len(kernel_sizes))
-        # ])
 
         self.conv1D_10 = Conv1dSamePadding(in_channels=channels[0], out_channels=channels[1],
                                            kernel_size=kernel_sizes[0], stride=stride, bias=False)
@@ -215,21 +198,18 @@ class InceptionBlock(nn.Module):
             ])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # print(f"inception tensor size: {x.size()}")
         inp_x = x
         if self.use_bottleneck:
             x = self.bottleneck_layer(x)    # bottleneck applied on input
-        # x = self.convolution_layers(x)      # convolution layers with kernels' sizes of {10, 20, 40]
+        # convolution layers with kernels' sizes of {10, 20, 40]
         x_10 = self.conv1D_10(x)
         x_20 = self.conv1D_20(x)
         x_40 = self.conv1D_40(x)
         # x_mean = torch.mean(inp_x)
         x_inv = self.invariant_layer(x)
         x = torch.cat((x_10, x_20, x_40, x_inv), dim=1)     # concat channel dimension
-        # print(f"inception tensor size after concatenating 10, 20, 40: {x.size()}")
         if self.use_residual:
             x = x + self.residual(inp_x)    # residual on original input
-            # print(f"inception tensor after residual {x.size()}")
         return x
 
 
@@ -237,13 +217,9 @@ class DenseBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
 
-        # self.activation = nn.ReLU()
         self.activation = nn.SELU()
-        # self.batchNorm1d = nn.BatchNorm1d(in_channels)
         self.linear = nn.Linear(in_features=in_channels, out_features=out_channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # print(f"Dense block tensor: {x.size()}")
         x = self.activation(x)
-        # x = self.batchNorm1d(x)
         return self.linear(x)
