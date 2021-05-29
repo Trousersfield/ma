@@ -9,7 +9,7 @@ from logger import Logger
 from output_collector import OutputCollector
 from training import TrainingIteration
 from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name,\
-    decode_loss_file, decode_loss_plot, decode_checkpoint_file, decode_model_file, encode_dataset_config_file
+    decode_model_file, encode_dataset_config_file
 
 from datetime import datetime
 from math import radians, cos, sin, asin, sqrt, degrees
@@ -170,7 +170,7 @@ class PortManager:
         return df_outside_circle, arrival_times
 
     def load_trainings(self, port: Union[str, Port], output_dir: str, routes_dir: str,
-                       training_type: str) -> List[TrainingIteration]:
+                       training_type: str) -> Dict[str, List[TrainingIteration]]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
         if not os.path.exists(routes_dir):
@@ -191,21 +191,23 @@ class PortManager:
         plot_paths = oc.collect_plot(port.name, file_type=training_type, group=True)
         eval_paths = oc.collect_eval(port.name, file_type=training_type, group=True)
 
-        trainings = []
+        trainings = {}
         start_times = model_paths.keys()
         for start in sorted(start_times):
-            _, _, _, end, _ = decode_model_file(model_paths[start])
-            dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start, training_type))
-            ti = TrainingIteration(start_time=start, end_time=end,
+            # dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start,
+            # training_type))
+            ti = TrainingIteration(start_time=start,
                                    data_path=data_paths[start] if start in data_paths else None,
                                    log_path=log_paths[start] if start in log_paths else None,
                                    model_path=model_paths[start] if start in model_paths else None,
                                    plot_paths=plot_paths[start] if start in plot_paths else None,
                                    debug_path=debug_paths[start] if start in debug_paths else None,
-                                   eval_paths=eval_paths[start] if start in eval_paths else None,
-                                   dataset_config_path=dataset_config_path)
+                                   eval_paths=eval_paths[start] if start in eval_paths else None)
 
-            trainings.append(ti)
+            if start in trainings:
+                trainings[start].append(ti)
+            else:
+                trainings[start] = [ti]
         return trainings
 
 

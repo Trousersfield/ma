@@ -14,7 +14,8 @@ from logger import Logger
 from net.model import InceptionTimeModel
 from plotter import plot_series
 from port import Port, PortManager
-from util import debug_data, encode_model_file, encode_loss_file, encode_loss_plot, as_str, num_total_parameters,\
+from util import debug_data, encode_model_file, encode_history_file, encode_loss_history_plot, as_str, \
+    num_total_parameters, \
     num_total_trainable_parameters, decode_model_file, find_latest_checkpoint_file_path, as_datetime,\
     verify_output_dir, encode_dataset_config_file, decode_dataset_config_file, as_duration, encode_meta_file,\
     encode_checkpoint_file, decode_checkpoint_file
@@ -276,7 +277,7 @@ def conclude_training(loss_history: Tuple[List[float], List[float]], data_dir: s
 
 def save_intermediate(data_dir: str, elapsed_time_history: List[float], loss_history: Tuple[List[float], List[float]],
                       port: Port, start_time: str, training_type: str) -> None:
-    loss_history_path = os.path.join(data_dir, encode_loss_file(port.name, start_time, file_type=training_type))
+    loss_history_path = os.path.join(data_dir, encode_history_file(port.name, start_time, file_type=training_type))
     meta_data_path = os.path.join(data_dir, encode_meta_file(port.name, start_time, file_type=training_type))
     np.save(loss_history_path, loss_history)
     np.save(meta_data_path, elapsed_time_history)
@@ -284,15 +285,14 @@ def save_intermediate(data_dir: str, elapsed_time_history: List[float], loss_his
 
 def plot_training(loss_history: Tuple[List[float], List[float]], plot_dir: str, plot_title: str, port: Port,
                   start_time: str, training_type: str):
-    plot_linear_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type))
-    plot_log_path = os.path.join(plot_dir, encode_loss_plot(port.name, start_time, file_type=training_type,
-                                                            scale="log"))
+    plot_linear_path = os.path.join(plot_dir, encode_loss_history_plot(training_type, port.name, start_time))
+    # plot_log_path = os.path.join(plot_dir, encode_loss_history_plot(training_type, port.name, start_time))
     plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
                 legend_labels=["Training", "Validation"],
                 path=plot_linear_path)
-    plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
-                legend_labels=["Training", "Validation"], y_scale="log",
-                path=plot_log_path)
+    # plot_series(series=loss_history, title=plot_title, x_label="Epoch", y_label="Loss",
+    #             legend_labels=["Training", "Validation"], y_scale="log",
+    #             path=plot_log_path)
 
 
 def train_loop(criterion, device, model, optimizer, loader, debug=False, debug_logger=None) -> Tuple[float, float]:

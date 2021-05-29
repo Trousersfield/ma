@@ -1,34 +1,8 @@
-[
-    {
-        "base_port": "ESBJERG",
-        "target_ports": ["ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "ROSTOCK",
-        "target_ports": ["ESBJERG", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "KIEL",
-        "target_ports": ["ESBJERG", "ROSTOCK", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "SKAGEN",
-        "target_ports": ["ESBJERG", "ROSTOCK", "KIEL", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "TRELLEBORG",
-        "target_ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "THYBORON", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "THYBORON",
-        "target_ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "HIRTSHALS", "HVIDESANDE"]
-    },
-    {
-        "base_port": "HIRTSHALS",
-        "target_ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HVIDESANDE"]
-    },
-    {
-        "base_port": "HVIDESANDE",
-        "target_ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS"]
-    }
-]
+{
+    "ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE", "AALBORG", "GOTEBORG", "COPENHAGEN", "GRENAA"],
+    "configs": [
+        {
+            "id": 0
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "ports": ["ESBJERG", "ROSTOCK", "KIEL", "SKAGEN", "TRELLEBORG", "THYBORON", "HIRTSHALS", "HVIDESANDE", "AALBORG", "GOTEBORG", "COPENHAGEN", "GRENAA"],
+    "configs": [
+        {
+            "uid": 0,
+            "desc": "Re-Training on full target port's dataset",
+            "nth_subset": 1,
+            "train_layers": ["dense"]
+        },
+        {
+            "uid": 1,
+            "desc": "Re-Training on subset of target port's dataset",
+            "nth_subset": 10,
+            "train_layers": ["dense"]
+        },
+        {
+            "uid": 2,
+            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "nth_subset": 1,
+            "train_layers": ["dense"]
+        },
+        {
+            "uid": 3,
+            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "nth_subset": 1,
+            "train_layers": ["batch_normalization_3", "dense"]
+        },
+        {
+            "uid": 4,
+            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "nth_subset": 1,
+            "train_layers": ["batch_normalization_2","batch_normalization_3", "dense"]
+        },
+        {
+            "uid": 5,
+            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "nth_subset": 1,
+            "train_layers": ["conv1d_15" ,"batch_normalization_2","batch_normalization_3", "dense"]
+        }
+    ]
+}

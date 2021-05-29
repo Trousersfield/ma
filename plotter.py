@@ -17,8 +17,8 @@ series_colors = ["b", "r", "g"]
 cm = 1/2.54  # centimeters in inches
 
 
-def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float], List[float]]], x_label: str, y_label: str,
-                title: str = None, legend_labels: Union[str, List[str]] = None, x_ticks: float = None,
+def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float], List[float]]], x_label: str,
+                y_label: str, title: str = None, legend_labels: Union[str, List[str]] = None, x_ticks: float = None,
                 y_ticks: float = None, x_scale: str = None, y_scale: str = None, path: str = None) -> None:
     """
     :param series:
@@ -96,8 +96,8 @@ def plot_ports_by_mae(mae: List[float], ports: List[str], title: str, path: str 
     ax.set_xticklabels(ports, rotation=45, ha="center")
     for i, val in enumerate(mae):
         # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
-        ax.text(x=i, y=val, s=_y_format(val), ha="center", va="bottom")
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
+        ax.text(x=i, y=val, s=val, ha="center", va="bottom")
+    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     # ax.legend()
 
     if path is None:
@@ -110,7 +110,7 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
     """
     Generate plot with groups of maes
     :param data: Result from 'util.mae_by_duration': List of Tuples
-        [(group_start, group_end, num_data, mae, mas_as_str, group_description), ...]
+        [(group_start, group_end, num_data, mae, group_description), ...]
     :param title: Plot title
     :param path: Output path for plot
     :return: None
@@ -132,18 +132,15 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
     fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
     bars = ax.bar(x=x, height=data[3], width=widths, color=colors, edgecolor="black", linewidth=.5)
     plt.axhline(avg, linestyle="dashed", linewidth=1.5, color="black")
-    plt.text(x=0, y=avg, s=f"Avg {_y_format(avg)}", ha="right", va="bottom")
+    plt.text(x=0, y=avg, s=f"Avg {_y_minutes(avg)}", ha="right", va="bottom")
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")
-    # ax.set_yticks()
     ax.set_xticks(x)
-    ax.set_xticklabels(data[5], rotation=45, ha="right")
-    # TODO: ax.set_ytickslabels mit formattierten etas
-    # ax.bar_labels(bars, padding=3)
+    ax.set_xticklabels(data[4], rotation=45, ha="right")
     for i, val in enumerate(data[3]):
-        # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
-        ax.text(x=i, y=val, s=_y_format(data[3][i]), ha="center", va="bottom")
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
+        # ax.text(x=i, y=val, s=data[3][i], ha="center", va="bottom")
+        ax.text(x=i, y=val, s=_y_minutes(data[3][i]), ha="center", va="bottom")
+    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
 
     if path is None:
@@ -171,19 +168,17 @@ def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str]],
     ax.bar(x + width/2, transfer_data[3], width, color="orange", label="Transfer Training")
     # average h-lines
     plt.axhline(base_avg, linestyle="dashed", linewidth=1.5, color="blue")
-    plt.text(x=-1, y=base_avg, s=f"Avg base {_y_format(base_avg)}", ha="left", va="bottom")
+    plt.text(x=-1, y=base_avg, s=f"Avg base {_y_minutes(base_avg)}", ha="left", va="bottom")
     plt.axhline(transfer_avg, linestyle="dashed", linewidth=1.5, color="orange")
-    plt.text(x=-1, y=transfer_avg, s=f"Avg transfer {_y_format(transfer_avg)}", ha="left", va="bottom")
+    plt.text(x=-1, y=transfer_avg, s=f"Avg transfer {_y_minutes(transfer_avg)}", ha="left", va="bottom")
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")
     ax.set_xticks(x)
     ax.set_xticklabels(base_data[4], rotation=45, ha="right")
     for i in range(len(base_data[3])):
-        # ax.text(x=i - width/2, y=base_data[3][i], s=base_data[4][i], ha="center", va="bottom")
-        # ax.text(x=i + width/2, y=transfer_data[3][i], s=transfer_data[4][i], ha="center", va="bottom")
-        ax.text(x=i - width / 2, y=base_data[3][i], s=_y_format(base_data[3][i]), ha="center", va="bottom")
-        ax.text(x=i + width / 2, y=transfer_data[3][i], s=_y_format(transfer_data[3][i]), ha="center", va="bottom")
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
+        ax.text(x=i - width / 2, y=base_data[3][i], s=_y_minutes(base_data[3][i]), ha="center", va="bottom")
+        ax.text(x=i + width / 2, y=transfer_data[3][i], s=_y_minutes(transfer_data[3][i]), ha="center", va="bottom")
+    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     ax.legend()
     fig.tight_layout()
 
@@ -245,16 +240,16 @@ def plot_transfer_effects(transfer_port_names: List[str],
     ax.set_ylabel("MAE - ETA in minutes")
     ax.set_xticks(x)
     for i in range(len(avg_mae_base)):
-        ax.text(x=i - width, y=avg_mae_base[i], s=_y_format(avg_mae_base[i]), ha="center", va="bottom")
-        ax.text(x=i + width, y=avg_mae_transfer[i], s=_y_format(avg_mae_transfer[i]), ha="center", va="bottom")
+        ax.text(x=i - width, y=avg_mae_base[i], s=_y_minutes(avg_mae_base[i]), ha="center", va="bottom")
+        ax.text(x=i + width, y=avg_mae_transfer[i], s=_y_minutes(avg_mae_transfer[i]), ha="center", va="bottom")
 
     # plot table for min an max data values
     def compute_table_col(min_b: Tuple[float, str], max_b: Tuple[float, str], min_t: Tuple[float, str],
                           max_t: Tuple[float, str]) -> List[str]:
-        min_b_cell = f"{min_b[1]} {_y_format(min_b[0])}"
-        max_b_cell = f"{max_b[1]} {_y_format(max_b[0])}"
-        min_t_cell = f"{min_t[1]} {_y_format(min_t[0])}"
-        max_t_cell = f"{max_t[1]} {_y_format(max_t[0])}"
+        min_b_cell = f"{min_b[1]} {min_b[0]}"
+        max_b_cell = f"{max_b[1]} {max_b[0]}"
+        min_t_cell = f"{min_t[1]} {min_t[0]}"
+        max_t_cell = f"{max_t[1]} {max_t[0]}"
         return [min_b_cell, max_b_cell, min_t_cell, max_t_cell]
 
     cell_text = [compute_table_col((min_mae_base[i], min_mae_base_port_names[i]),
@@ -271,16 +266,14 @@ def plot_transfer_effects(transfer_port_names: List[str],
     plt.subplots_adjust(left=0.2, bottom=0.2)
 
     # format y-labels
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
+    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
 
     plt.savefig(path)
 
 
-def _y_format(val, pos = None) -> str:
-    data_range = data_ranges["label"]["max"] / 60
-    result = int(val * data_range)
-    return str(result)
+def _y_minutes(val, pos = None) -> str:
+    return str(int(val))
 
 
 def plot_port_visits(mae_data: Dict[str, float]) -> None:

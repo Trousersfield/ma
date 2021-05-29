@@ -2,7 +2,7 @@ import os
 
 from typing import Dict, List, Union
 
-from util import decode_loss_file, decode_debug_file, decode_log_file, decode_model_file, decode_loss_plot
+from util import decode_history_file, decode_debug_file, decode_log_file, decode_keras_model, decode_loss_history_plot
 
 
 class OutputCollector:
@@ -18,7 +18,7 @@ class OutputCollector:
     def collect_data(self, port_file_name: str, file_type: str, full_path: bool = True,
                      group: bool = False) -> Union[List[str], Dict[str, str]]:
         self._check_file_type("data", file_type)
-        file_type = f"loss-{file_type}"
+        file_type = f"history_{file_type}"
         out_data = os.path.join(self.out_data, port_file_name)
         if not os.path.exists(out_data):
             return {} if group else []
@@ -27,7 +27,7 @@ class OutputCollector:
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_data)):
             result = os.path.join(out_data, file) if full_path else file
             if group:
-                _, _, start = decode_loss_file(file)
+                _, _, _, start = decode_history_file(file)
                 groups[start] = result
             else:
                 data_files.append(result)
@@ -72,26 +72,25 @@ class OutputCollector:
     def collect_model(self, port_file_name: str, file_type: str, full_path: bool = True,
                       group: bool = False) -> Union[List[str], Dict[str, str]]:
         self._check_file_type("model", file_type)
-        file_type = f"model-{file_type}"
         out_model = os.path.join(self.out_model, port_file_name)
         if not os.path.exists(out_model):
             return {} if group else []
         model_files = []
         groups = {}
-        for file in filter(lambda f: f.endswith(".pt") and f.startswith(file_type), os.listdir(out_model)):
+        for file in filter(lambda f: f.endswith(".h5") and f.startswith(file_type), os.listdir(out_model)):
             result = os.path.join(out_model, file) if full_path else file
             if group:
-                model_type, _, start, _, _ = decode_model_file(file)
+                _, _, start, _ = decode_keras_model(file)
                 groups[start] = result
             else:
                 model_files.append(result)
         return groups if group else model_files
 
-    def collect_plot(self, port_file_name: str, file_type: str, full_path: bool = True,
+    def collect_plot(self, plot_file_name: str, file_type: str, full_path: bool = True,
                      group: bool = False) -> Union[List[str], Dict[str, List[str]]]:
         self._check_file_type("plot", file_type)
-        file_type = f"loss-{file_type}"
-        out_plot = os.path.join(self.out_plot, port_file_name)
+        file_type = f"history_{file_type}"
+        out_plot = os.path.join(self.out_plot, plot_file_name)
         if not os.path.exists(out_plot):
             return {} if group else []
         plot_files = []
@@ -99,7 +98,7 @@ class OutputCollector:
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_plot)):
             result = os.path.join(out_plot, file) if full_path else file
             if group:
-                _, _, start, _ = decode_loss_plot(file)
+                _, _, start, _ = decode_loss_history_plot(file)
                 if start in groups:
                     groups[start].append(result)
                 else:
@@ -120,7 +119,7 @@ class OutputCollector:
         for file in filter(lambda f: f.startswith(file_type), os.listdir(out_eval)):
             result = os.path.join(out_eval, file) if full_path else file
             if group:
-                _, _, start, _ = decode_loss_plot(file)
+                _, _, start, _ = decode_loss_history_plot(file)
                 if start in groups:
                     groups[start].append(result)
                 else:
