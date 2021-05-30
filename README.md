@@ -10,7 +10,7 @@ A machine learning model trains the estimation of arrival times (ETA) in shippin
     2. Handling NaN, undefined, One-Hot-Encoding
     3. Automatic label generation
 2. Model training from scratch for ports
-    1. Architecture [InceptionTime](https://arxiv.org/abs/1909.04939) + Dense
+    1. Architecture <a href="https://arxiv.org/abs/1909.04939" target="_blank">InceptionTime</a> + Dense
     2. One model for each port (base-model)
 3. Transfer of models to each other port
     1. Re-Train certain layers
