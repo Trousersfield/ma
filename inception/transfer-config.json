@@ -3,39 +3,52 @@
     "configs": [
         {
             "uid": 0,
-            "desc": "Re-Training on full target port's dataset",
+            "desc": "Re-Training on target port's full dataset with 1 trainable layer: dense",
             "nth_subset": 1,
-            "train_layers": ["dense"]
+            "train_layers": ["dense"],
+            "tune": false
         },
         {
             "uid": 1,
-            "desc": "Re-Training on subset of target port's dataset",
-            "nth_subset": 10,
-            "train_layers": ["dense"]
+            "desc": "Re-Training on target port's full dataset with 1 trainable layer: dense",
+            "nth_subset": 1,
+            "train_layers": ["dense"],
+            "tune": true
         },
         {
             "uid": 2,
-            "desc": "Re-Training on full target port's dataset with frozen layers",
-            "nth_subset": 1,
-            "train_layers": ["dense"]
+            "desc": "Re-Training on subset dataset of target port's",
+            "nth_subset": 10,
+            "train_layers": ["dense"],
+            "tune": true
         },
         {
             "uid": 3,
-            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "desc": "Re-Training on target port's full dataset with frozen layers",
             "nth_subset": 1,
-            "train_layers": ["batch_normalization_3", "dense"]
+            "train_layers": ["conv1d_15", "dense"],
+            "tune": true
         },
         {
             "uid": 4,
-            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "desc": "Re-Training on target port's full dataset with frozen layers",
             "nth_subset": 1,
-            "train_layers": ["batch_normalization_2","batch_normalization_3", "dense"]
+            "train_layers": ["conv1d_14","conv1d_15", "dense"],
+            "tune": true
         },
         {
             "uid": 5,
-            "desc": "Re-Training on full target port's dataset with frozen layers",
+            "desc": "Re-Training on target port's full dataset with frozen layers",
             "nth_subset": 1,
-            "train_layers": ["conv1d_15" ,"batch_normalization_2","batch_normalization_3", "dense"]
+            "train_layers": ["conv1d_13" ,"conv1d_13","conv1d_15", "dense"],
+            "tune": true
+        },
+        {
+            "uid": 6,
+            "desc": "Re-Training on target port's full dataset with frozen layers",
+            "nth_subset": 1,
+            "train_layers": ["conv1d_12", "conv1d_13" ,"conv1d_13","conv1d_15", "dense"],
+            "tune": true
         }
     ]
 }

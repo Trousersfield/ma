@@ -1,40 +1,36 @@
 import argparse
+import gc
+import itertools
 import numpy as np
 import os
 import torch
 
 from datetime import datetime
-from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Union
 
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
 from tensorflow.keras.models import load_model
+from tensorflow.keras import backend as K
+from tensorflow.python.keras.utils.layer_utils import count_params
 
-from dataset import RoutesDirectoryDataset
-from logger import Logger
-# from net.model import InceptionTimeModel
-# from net.trainer import train_loop, validate_loop, make_train_step, make_training_checkpoint, conclude_training
 from inception.eval import Evaluator
-from inception.trainer import load_data
-from inception.model import inception_time
+from inception.trainer import load_data, plot_history, plot_predictions
 from port import Port, PortManager
-from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file, verify_output_dir,\
-    encode_model_file, num_total_trainable_parameters, num_total_parameters, encode_dataset_config_file, read_json,\
-    encode_keras_model, decode_keras_model, encode_history_file
+from util import verify_output_dir, read_json, encode_keras_model, decode_keras_model, encode_history_file
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class TransferConfig:
-    def __init__(self, uid: int, desc: str, nth_subset: int, train_layers: List[str]) -> None:
-        self.uid = uid,
-        self.desc = desc,
-        self.nth_subset = nth_subset,
+    def __init__(self, uid: int, desc: str, nth_subset: int, train_layers: List[str], tune: bool) -> None:
+        self.uid = uid
+        self.desc = desc
+        self.nth_subset = nth_subset
         self.train_layers = train_layers
+        self.tune = tune
 
 
 class TransferDefinition:
@@ -85,7 +81,8 @@ class TransferResult:
 
 
 class TransferManager:
-    def __init__(self, config_path: str, routes_dir: str, output_dir: str, transfers: Dict[str, List[str]] = None):
+    def __init__(self, config_path: str, routes_dir: str, output_dir: str,
+                 transfers: Dict[str, List[Tuple[str, int]]] = None):
         self.path = os.path.join(script_dir, "TransferManager.tar")
         self.config_path = config_path
         self.routes_dir = routes_dir
@@ -119,56 +116,73 @@ class TransferManager:
         )
         return tm
 
-    def _is_transferred(self, base_port_name: str, target_port_name: str) -> bool:
-        return base_port_name in self.transfers and target_port_name in self.transfers[base_port_name]
+    def _is_transferred(self, target_port: str, source_port: str, config_uid: int) -> bool:
+        if target_port in self.transfers:
+            return len([t for t in self.transfers[target_port] if t[0] == source_port and t[1] == config_uid]) == 1
+        return False
 
-    def reset(self, base_port: Union[str, Port] = None, target_port: Union[str, Port] = None) -> None:
-        if base_port is not None:
-            if isinstance(base_port, str):
-                orig_name = base_port
-                base_port = self.pm.find_port(base_port)
-                if base_port is None:
-                    raise ValueError(f"Unable to associate port with port name '{orig_name}'")
-            if target_port is not None:
-                if isinstance(target_port, str):
-                    orig_name = target_port
-                    target_port = self.pm.find_port(target_port)
-                    if target_port is None:
-                        raise ValueError(f"Unable to associate port with port name '{orig_name}'")
-                self.transfers[base_port.name].remove(target_port.name)
+    def set_transfer(self, target_port: str, source_port: str, config_uid: int) -> None:
+        if target_port in self.transfers:
+            self.transfers[target_port].append((source_port, config_uid))
+        else:
+            self.transfers[target_port] = [(source_port, config_uid)]
+        self.save()
+
+    def reset_transfer(self, target_port: str = None, source_port: str = None, config_uid: int = None) -> None:
+        if target_port is not None:
+            if source_port is not None:
+                if config_uid is not None:
+                    indices = [i for i, t in enumerate(self.transfers) if t[0] == source_port and t[1] == config_uid]
+                else:
+                    indices = [i for i, t in enumerate(self.transfers) if t[0] == source_port]
+                [self.transfers[target_port].pop(i) for i in indices]
             else:
-                del self.transfers[base_port.name]
+                self.transfers[target_port] = []
         else:
             self.transfers = {}
         self.save()
 
     # def transfer(self, source_port_name: str) -> None:
-    def transfer(self, target_port: Port, evaluator: Evaluator) -> None:
+    def transfer(self, target_port: Port, evaluator: Evaluator, config_uids: List[int] = None) -> None:
         """
         Transfer models to target port
         :param target_port: port for which to train transfer-model
         :param evaluator: evaluator instance to store results
+        :param config_uids: specify config_uids to transfer. If none, transfer all
         :return: None
         """
         if target_port.name not in self.transfer_defs:
             print(f"No transfer definition found for target port '{target_port.name}'")
             return
+        # transfer definitions for specified target port
         tds = self.transfer_defs[target_port.name]
         output_dir = os.path.join(script_dir, os.pardir, "output")
         training_type = "transfer"
-        print(f"Transferring models to target port '{target_port.name}'")
-        print(f"Loading data...")
+        print(f"TRANSFERRING MODELS TO TARGET PORT '{target_port.name}'")
+        if config_uids is not None:
+            print(f"Transferring configs -> {config_uids} <-")
         window_width = 50
-        num_epochs = 25
-        lr = 0.01
+        num_epochs = 20
+        train_lr = 0.01
+        fine_tune_lr = 1e-5
         batch_size = 1024
+
+        # skip transferred
+        for td in tds:
+            for config in self.transfer_configs:
+                if self._is_transferred(target_port.name, td.base_port_name, config.uid):
+                    print(f"Already transferred ({config.uid}): {td.base_port_name} -> {target_port.name}. Skipping")
+                    return
+        print(f"Loading data ...")
         X_ts, y_ts = load_data(target_port, window_width)
-        X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_ts, y_ts, test_size=0.2,
-                                                                                random_state=42, shuffle=False)
+        # X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_ts, y_ts, test_size=0.2,
+        #                                                                         random_state=42, shuffle=False)
+        # train_optimizer = Adam(learning_rate=train_lr)
+        # fine_tune_optimizer = Adam(learning_rate=fine_tune_lr)
 
         for td in tds:
             print(f".:'`!`':. TRANSFERRING PORT {td.base_port_name} TO {td.target_port_name} .:'`!`':.")
-            print(f"- - Epochs {num_epochs} </> Training shape {X_train_orig.shape} </> Learning rate {lr} - -")
+            print(f"- - Epochs {num_epochs} </>  </> Learning rate {train_lr} - -")
             print(f"- - Window width {window_width} </> Batch size {batch_size} - -")
             # print(f"- - Number of model's parameters {num_total_trainable_parameters(model)} device {device} - -")
             base_port = self.pm.find_port(td.base_port_name)
@@ -180,10 +194,21 @@ class TransferManager:
 
             # apply transfer config
             for config in self.transfer_configs:
+                if config_uids is not None and config.uid not in config_uids:
+                    continue
                 print(f"\n.:'':. APPLYING CONFIG {config.uid} ::'':.")
+                print(f"-> -> {config.desc} <- <-")
+                print(f"-> -> nth_subset: {config.nth_subset} <- <-")
+                print(f"-> -> trainable layers: {config.train_layers} <- <-")
                 _, _, start_time, _, _ = decode_keras_model(os.path.split(td.base_model_path)[1])
                 model_file_name = encode_keras_model(td.target_port_name, start_time, td.base_port_name, config.uid)
                 file_path = os.path.join(output_dir, "model", td.target_port_name, model_file_name)
+
+                X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_ts, y_ts, test_size=0.2,
+                                                                                        random_state=42, shuffle=False)
+                print(f"Training shape {X_train_orig.shape}")
+                train_optimizer = Adam(learning_rate=train_lr)
+                fine_tune_optimizer = Adam(learning_rate=fine_tune_lr)
 
                 checkpoint = ModelCheckpoint(file_path, monitor='val_mae', mode='min', verbose=2, save_best_only=True)
                 early = EarlyStopping(monitor="val_mae", mode="min", patience=10, verbose=2)
@@ -197,6 +222,10 @@ class TransferManager:
 
                 # load base model
                 model = load_model(td.base_model_path)
+                # if config.uid == 0:
+                #     print(model.summary())
+                # else:
+                #     print(model.summary())
                 # del model
 
                 X_train = X_train_orig
@@ -205,22 +234,54 @@ class TransferManager:
                 y_test = y_test_orig
 
                 # apply transfer configuration
-                if config.uid == 1:
-                    # method 1: cut data
-                    X_train = X_train_orig[0::10]
-                model.trainable = False
-                for layer in config.train_layers:
-                    l = model.get_layer(layer).output
-                    l.trainable = True
+                if config.nth_subset > 1:
+                    if X_train.shape[0] < config.nth_subset:
+                        print(f"Unable to apply nth-subset. Not enough data")
+                    X_train = X_train_orig[0::config.nth_subset]
+                    X_test = X_test_orig[0::config.nth_subset]
+                    y_train = y_train_orig[0::config.nth_subset]
+                    y_test = y_test_orig[0::config.nth_subset]
+                    print(f"Orig shape: {X_train_orig.shape} {config.nth_subset} th-subset shape: {X_train.shape}")
+                    print(f"Orig shape: {X_test_orig.shape} {config.nth_subset} th-subset shape: {X_test.shape}")
+                    print(f"Orig shape: {y_train_orig.shape} {config.nth_subset} th-subset shape: {y_train.shape}")
+                    print(f"Orig shape: {y_test_orig.shape} {config.nth_subset} th-subset shape: {y_test.shape}")
+                modified = False
+                # freeze certain layers
+                for layer in model.layers:
+                    if layer.name not in config.train_layers:
+                        modified = True
+                        layer.trainable = False
+                if modified:
+                    # re-compile
+                    model.compile(optimizer=train_optimizer, loss="mse", metrics=["mae"])
+                # trainable_count = int(np.sum([K.count_params(p) for p in set(model.trainable_weights)]))
+                # non_trainable_count = int(np.sum([K.count_params(p) for p in set(model.non_trainable_weights)]))
+                trainable_count = count_params(model.trainable_weights)
+                non_trainable_count = count_params(model.non_trainable_weights)
+                print(f"Total params: {trainable_count + non_trainable_count}")
+                print(f"Trainable params: {trainable_count}")
+                print(f"Non trainable params: {non_trainable_count}")
 
                 # transfer model
                 result = model.fit(X_train, y_train, epochs=num_epochs, batch_size=batch_size, verbose=1,
                                    validation_data=(X_test, y_test), callbacks=callbacks_list)
-                print(f"history:\n{result.history.keys()}")
-                train_loss = result.history["loss"]
                 train_mae = result.history["mae"]
-                val_loss = result.history["val_loss"]
                 val_mae = result.history["val_mae"]
+
+                if config.tune:
+                    print(f"Tuning transferred model")
+                    # apply fine-tuning: unfreeze all but batch-normalization layers!
+                    for layer in model.layers:
+                        if not layer.name.startswith("batch_normalization"):
+                            layer.trainable = True
+                    model.compile(optimizer=fine_tune_optimizer, loss="mse", metrics=["mae"])
+                    print(f"model for fine tuning")
+                    print(model.summary())
+                    result = model.fit(X_train, y_train, epochs=10, batch_size=batch_size, verbose=1,
+                                       validation_data=(X_test, y_test), callbacks=callbacks_list)
+
+                tune_train_mae = result.history["mae"] if config.tune else None
+                tune_val_mae = result.history["val_mae"] if config.tune else None
                 model.load_weights(file_path)
 
                 baseline = mean_absolute_error(y_ts, np.full_like(y_ts, np.mean(y_ts)))
@@ -232,24 +293,24 @@ class TransferManager:
                 y_pred = model.predict(X_test)
                 print(f"types - y_pred: {type(y_pred)} y_test: {type(y_test)}")
                 grouped_mae = evaluator.group_mae(y_test, y_pred)
-                evaluator.set_mae(port, start_time, grouped_mae)
+                evaluator.set_mae(target_port, start_time, grouped_mae, base_port, config.uid)
 
                 # save history
-                history_file_name = encode_history_file(training_type, port.name, start_time, config.uid)
-                history_path = os.path.join(output_dir, "data", port.name, history_file_name)
+                history_file_name = encode_history_file(training_type, target_port.name, start_time, config.uid)
+                history_path = os.path.join(output_dir, "data", target_port.name, history_file_name)
                 np.save(history_path, result.history)
 
                 # plot history
                 plot_dir = os.path.join(output_dir, "plot")
-                plot_history(train_mae, val_mae, plot_dir, port.name, start_time, training_type)
-                evaluator.plot_grouped_mae(port, training_type, start_time)
-                plot_predictions(y_pred, y_test, plot_dir, port.name, start_time, training_type)
-
-            # if transfer_def.base_port_name in self.transfers:
-            #     self.transfers[transfer_def.base_port_name].append(transfer_def.target_port_name)
-            # else:
-            #     self.transfers[transfer_def.base_port_name] = [transfer_def.target_port_name]
-            # self.save()
+                plot_history(train_mae, val_mae, plot_dir, target_port.name, start_time, training_type,
+                             td.base_port_name, config.uid, tune_train_mae, tune_val_mae)
+                evaluator.plot_grouped_mae(target_port, training_type, start_time, config.uid)
+                plot_predictions(y_pred, y_test, plot_dir, target_port.name, start_time, training_type,
+                                 td.base_port_name, config.uid)
+                self.set_transfer(target_port.name, td.base_port_name, config.uid)
+                del X_train_orig, X_test_orig, y_train_orig, y_test_orig, model, X_train, y_train, X_test, y_test
+        del X_ts, y_ts
+        gc.collect()
 
     def _generate_transfers(self) -> Dict[str, List[TransferDefinition]]:
         """
@@ -260,50 +321,56 @@ class TransferManager:
         config = read_json(self.config_path)
         transfer_defs = {}
 
-        def _permute(ports: List[str]) -> List[Tuple[str, str]]:
-            return [(ports[i], ports[j]) for i in range(len(ports)) for j in range(i+1, len(ports))]
-        permutations = _permute(config["ports"])
-        print(f"permutations:\n{permutations}")
+        # def _permute(ports: List[str]) -> List[Tuple[str, str]]:
+        #     return [(ports[i], ports[j]) for i in range(len(ports)) for j in range(len(ports))]
+        # permutations = _permute(config["ports"])
+        ports = list(config["ports"])
+        permutations = list(itertools.permutations(ports, r=2))
 
-        for pair in _permute(config["ports"]):
-            base_port = self.pm.find_port(pair[0])
+        # for pair in _permute(config["ports"]):
+        for pair in permutations:
+            base_port, target_port = self.pm.find_port(pair[0]), self.pm.find_port(pair[1])
+            if target_port is None:
+                raise ValueError(f"No port found: Unable to transfer from base-port with name '{base_port.name}'")
+            if target_port is None:
+                raise ValueError(f"No port found: Unable to transfer to target-port with name '{pair[1]}'")
+
             trainings = self.pm.load_trainings(base_port, self.output_dir, self.routes_dir, training_type="base")
-
             if len(trainings.keys()) < 1:
-                print(f"No base-training found for port '{base_port.name}'")
+                print(f"No base-training found for port '{base_port.name}'. Skipping")
                 continue
-            print(f"Port {base_port.name} has {len(trainings)} base-trainings. Using latest")
-            training = list(trainings.values())[-1]
-            for target_port_name in pair[1]:
-                target_port = self.pm.find_port(target_port_name)
-                if target_port is None:
-                    raise ValueError(f"Unable to transfer from port '{base_port.name}'. "
-                                     f"No port for '{target_port_name}' found")
-                verify_output_dir(self.output_dir, target_port.name)
-                td = TransferDefinition(base_port_name=base_port.name,
-                                        base_model_path=training.model_path,
-                                        target_port_name=target_port.name,
-                                        target_routes_dir=os.path.join(self.routes_dir, target_port.name),
-                                        target_model_dir=os.path.join(self.output_dir, "model", target_port.name),
-                                        target_output_data_dir=os.path.join(self.output_dir, "data", target_port.name),
-                                        target_plot_dir=os.path.join(self.output_dir, "plot", target_port.name),
-                                        target_log_dir=os.path.join(self.output_dir, "log", target_port.name))
-                if base_port.name in transfer_defs:
-                    transfer_defs[target_port.name].append(td)
-                else:
-                    transfer_defs[target_port.name] = [td]
+
+            training = list(trainings.values())[-1][0]
+            # print(f"Pair {base_port.name} ({len(trainings)} base-trains) -> {target_port.name}. "
+            #       f"Using latest at '{training.start_time}'")
+            verify_output_dir(self.output_dir, target_port.name)
+            td = TransferDefinition(base_port_name=base_port.name,
+                                    base_model_path=training.model_path,
+                                    target_port_name=target_port.name,
+                                    target_routes_dir=os.path.join(self.routes_dir, target_port.name),
+                                    target_model_dir=os.path.join(self.output_dir, "model", target_port.name),
+                                    target_output_data_dir=os.path.join(self.output_dir, "data", target_port.name),
+                                    target_plot_dir=os.path.join(self.output_dir, "plot", target_port.name),
+                                    target_log_dir=os.path.join(self.output_dir, "log", target_port.name))
+            # print(f"keys: {transfer_defs.keys()}")
+            name = target_port.name
+            # print(f"check: {target_port.name in transfer_defs} vs. {name in transfer_defs}")
+            if name in transfer_defs:
+                transfer_defs[target_port.name].append(td)
+            else:
+                transfer_defs[target_port.name] = [td]
         return transfer_defs
 
     def _generate_configs(self) -> List[TransferConfig]:
         config = read_json(self.config_path)
-        transfer_configs = []
-        for conf in config["configs"]:
-            c = TransferConfig(uid=conf["uid"],
-                               desc=conf["desc"],
-                               nth_subset=conf["nth_subset"],
-                               train_layers=conf["train_layers"])
-            transfer_configs.append(c)
-        return transfer_configs
+
+        def _make_config(uid: str, desc: str, nth_subset: str, train_layers: List[str], tune: bool) -> TransferConfig:
+            uid = int(uid)
+            nth_subset = int(nth_subset)
+            return TransferConfig(uid, desc, nth_subset, train_layers, tune)
+        configs = [_make_config(c["uid"], c["desc"], c["nth_subset"], c["train_layers"], c["tune"])
+                   for c in config["configs"]]
+        return configs
 
 
 def get_tm(config_path: str, routes_dir: str, output_dir: str) -> 'TransferManager':
@@ -311,41 +378,37 @@ def get_tm(config_path: str, routes_dir: str, output_dir: str) -> 'TransferManag
     if os.path.exists(tm_state_path):
         return TransferManager.load(tm_state_path)
     else:
-        return TransferManager(config_path, routes_dir, output_dir)
+        tm = TransferManager(config_path, routes_dir, output_dir)
+        tm.save()
+        return tm
 
 
-def transfer(config_path: str, port_name: str, routes_dir: str, output_dir: str, skip_transferred: bool) -> None:
+def transfer_all(config_path: str, routes_dir: str, output_dir: str, config_uids: List[int] = None) -> None:
     tm = get_tm(config_path, routes_dir, output_dir)
-    tm.transfer(source_port_name=port_name, skip_transferred=skip_transferred)
-
-
-def transfer_all(config_path: str, routes_dir: str, output_dir: str, skip_transferred: bool) -> None:
-    tm = get_tm(config_path, routes_dir, output_dir)
-    for port_name in tm.transfers.keys():
-        tm.transfer(source_port_name=port_name, skip_transferred=skip_transferred)
+    e = Evaluator.load(os.path.join(output_dir, "eval", "evaluator.tar"))
+    for target_port in tm.transfer_defs.keys():
+        tm.transfer(tm.pm.find_port(target_port), e)
 
 
 def main(args) -> None:
     if args.command == "transfer":
-        transfer_all(args.config_path, args.routes_dir, args.output_dir, args.skip_transferred)
-    elif args.command == "transfer_port":
-        transfer(args.config_path, args.port_name, args.routes_dir, args.output_dir, args.skip_transferred)
+        transfer_all(args.config_path, args.routes_dir, args.output_dir, args.config_uids)
     else:
         raise ValueError(f"Unknown command '{args.command}'")
 
 
+def parse_list_arg(arg) -> List[int]:
+    return list(map(int, arg.split(",")))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess data.")
-    parser.add_argument("command", choices=["transfer", "transfer_port"])
-    parser.add_argument("--port_name", type=str, default="all", help="Port to transfer from")
+    parser.add_argument("command", choices=["transfer"])
     parser.add_argument("--config_path", type=str, default=os.path.join(script_dir, "transfer-config.json"),
                         help="Path to file for transfer definition generation")
     parser.add_argument("--routes_dir", type=str, default=os.path.join(script_dir, os.pardir, "data", "routes"),
                         help="Path to routes-data directory without port")
     parser.add_argument("--output_dir", type=str, default=os.path.join(script_dir, os.pardir, "output"),
                         help="Path to output directory without port")
-    parser.add_argument("--skip_transferred", dest="skip_transferred", action="store_true")
-    parser.add_argument("--no_skip_transferred", dest="skip_transferred", action="store_false")
-    parser.set_defaults(skip_transferred=True)
+    parser.add_argument("--config_uids", type=parse_list_arg)
     main(parser.parse_args())
-

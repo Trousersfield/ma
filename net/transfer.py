@@ -11,7 +11,7 @@ from logger import Logger
 from net.model import InceptionTimeModel
 from net.trainer import train_loop, validate_loop, make_train_step, make_training_checkpoint, conclude_training
 from port import Port, PortManager
-from util import as_datetime, as_str, decode_model_file, encode_transfer_result_file, verify_output_dir,\
+from util import as_datetime, as_str, decode_model_file, verify_output_dir,\
     encode_model_file, num_total_trainable_parameters, num_total_parameters, encode_dataset_config_file, read_json
 
 script_dir = os.path.abspath(os.path.dirname(__file__))

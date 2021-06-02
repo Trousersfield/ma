@@ -243,26 +243,35 @@ def decode_dataset_config_file(file_name: str) -> Tuple[str, str]:
     return result[0], result[1]
 
 
-def decode_debug_file(file_name: str) -> Tuple[str, str, str]:
+def decode_debug_file(file_name: str) -> Tuple[str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2]
+    file_type, config_uid = _make_file_type(result[1])
+    return result[0], file_type, result[2], config_uid
 
 
-def decode_log_file(file_name: str) -> Tuple[str, str, str]:
+def decode_log_file(file_name: str) -> Tuple[str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2]
+    file_type, config_uid = _make_file_type(result[1])
+    return result[0], file_type, result[2], config_uid
 
 
-def encode_loss_history_plot(file_type: str, port_name: str, time: str) -> str:
+def encode_loss_history_plot(file_type: str, port_name: str, time: str, source_port_name: str = None,
+                             config_uid: int = None) -> str:
+    if config_uid is not None:
+        file_type = f"{file_type}-{config_uid}"
+    if source_port_name is not None:
+        port_name = f"{port_name}-{source_port_name}"
     return f"history_{file_type}_{port_name}_{time}.png"
 
 
-def decode_loss_history_plot(file_name: str) -> Tuple[str, str, str, str]:
+def decode_loss_history_plot(file_name: str) -> Tuple[str, str, str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2], result[3]
+    file_type, config_uid = _make_file_type(result[1])
+    base_port_name, source_port_name = _extract_ports(result[2])
+    return result[0], file_type, base_port_name, result[3], source_port_name, config_uid
 
 
 # def encode_loss_file(port: str, time: str, file_type: str) -> str:
@@ -284,12 +293,7 @@ def encode_history_file(file_type: str, port: str, time: str, config_uid: int = 
 def decode_history_file(file_name: str) -> Tuple[str, str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    file_type = result[1]
-    config_uid = -1
-    if "-" in file_type:
-        t = file_type.split("-")
-        file_type = t[0]
-        config_uid = int(t[1])
+    file_type, config_uid = _make_file_type(result[1])
     return result[0], file_type, result[2], result[3], config_uid
 
 
@@ -321,18 +325,13 @@ def decode_model_file(file_name: str, times_as_datetime: bool = False) -> Tuple[
     """
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    port_name = result[1]
-    base_port_name = ""
-    if "-" in port_name:  # transferred model: two ports are encoded
-        port_names = port_name.split("-")
-        port_name = port_names[0]
-        base_port_name = port_names[1]
+    port_name, source_port_name = _extract_ports(result[1])
     start_time = result[2]
     end_time = result[3]
     if times_as_datetime:
         start_time = as_datetime(start_time)
         end_time = as_datetime(end_time)
-    return result[0], port_name, start_time, end_time, base_port_name
+    return result[0], port_name, start_time, end_time, source_port_name
 
 
 def encode_keras_model(port_name: str, start_time: str, base_port_name: str = None, config_uid: int = None) -> str:
@@ -352,19 +351,9 @@ def decode_keras_model(file_name: str) -> Tuple[str, str, str, str, int]:
     """
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    model_type = result[0]
-    config_uid = -1
-    if "-" in model_type:  # transferred model: type includes transfer config_uid
-        t = model_type.split("-")
-        model_type = t[0]
-        config_uid = int(t[1])
-    port_name = result[1]
-    base_port_name = ""
-    if "-" in port_name:  # transferred model: base and target port are encoded
-        port_names = port_name.split("-")
-        port_name = port_names[0]
-        base_port_name = port_names[1]
-    return model_type, port_name, result[2], base_port_name, config_uid
+    model_type, config_uid = _make_file_type(result[0])
+    port_name, source_port_name = _extract_ports(result[1])
+    return model_type, port_name, result[2], source_port_name, config_uid
 
 
 def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, file_type: str,
@@ -381,16 +370,6 @@ def decode_checkpoint_file(file_name: str, times_as_datetime: bool = False) -> T
     return decode_model_file(file_name, times_as_datetime)
 
 
-def encode_transfer_result_file(start_time: str) -> str:
-    return f"transfer-result_{start_time}"
-
-
-def decode_transfer_result_file(file_name: str) -> Tuple[str, str, str]:
-    file_no_ext = os.path.splitext(file_name)[0]
-    result = file_no_ext.split("_")
-    return result[0], result[1]
-
-
 def encode_grouped_mae_plot(file_type: str, start_time: str, config_uid: int = None) -> str:
     if config_uid is not None:
         file_type = f"{file_type}-{config_uid}"
@@ -400,12 +379,7 @@ def encode_grouped_mae_plot(file_type: str, start_time: str, config_uid: int = N
 def decode_grouped_mae_plot(file_name: str) -> Tuple[str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    file_type = result[1]
-    config_uid = -1
-    if "-" in file_type:
-        t = file_type.split("-")
-        file_type = t[0]
-        config_uid = t[1]
+    file_type, config_uid = _make_file_type(result[1])
     return result[0], file_type, result[2], config_uid
 
 
@@ -417,14 +391,39 @@ def num_total_trainable_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def encode_x_y_plot(file_type: str, port_name: str, start_time: str) -> str:
+def encode_x_y_plot(file_type: str, port_name: str, start_time: str, source_port_name: str = None,
+                    config_uid: int = None) -> str:
+    if config_uid is not None:
+        file_type = f"{file_type}-{config_uid}"
+    if source_port_name is not None:
+        port_name = f"{port_name}-{source_port_name}"
     return f"x-y_{file_type}_{port_name}_{start_time}.png"
 
 
-def decode_x_y_plot(file_name: str) -> Tuple[str, str, str, str]:
+def decode_x_y_plot(file_name: str) -> Tuple[str, str, str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
-    return result[0], result[1], result[2], result[3]
+    file_type, config_uid = _make_file_type(result[1])
+    port_name, source_port_name = _extract_ports(result[2])
+    return result[0], file_type, port_name, result[3], source_port_name, config_uid
+
+
+def _make_file_type(enc_file_type: str) -> Tuple[str, int]:
+    config_uid = -1
+    if "-" in enc_file_type:
+        t = enc_file_type.split("-")
+        enc_file_type = t[0]
+        config_uid = t[1]
+    return enc_file_type, config_uid
+
+
+def _extract_ports(enc_ports: str) -> Tuple[str, Union[str, None]]:
+    source_port_name = None
+    if "-" in enc_ports:
+        t = enc_ports.split("-")
+        enc_ports = t[0]
+        source_port_name = t[1]
+    return enc_ports, source_port_name
 
 
 def find_latest_checkpoint_file_path(checkpoint_dir: str, checkpoint_type: str = "base") -> Tuple[str, str]:

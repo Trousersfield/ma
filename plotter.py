@@ -19,7 +19,8 @@ cm = 1/2.54  # centimeters in inches
 
 def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float], List[float]]], x_label: str,
                 y_label: str, title: str = None, legend_labels: Union[str, List[str]] = None, x_ticks: float = None,
-                y_ticks: float = None, x_scale: str = None, y_scale: str = None, path: str = None) -> None:
+                y_ticks: float = None, x_scale: str = None, y_scale: str = None, path: str = None,
+                x_vline: int = None, x_vline_label: str = None, mark_min: List[int] = [-1]) -> None:
     """
     :param series:
         One or more series to plot. Each list must contain x-values and optional y-values. If no y-values are given,
@@ -42,6 +43,8 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         Custom scale for y-axis
     :param path:
         Path for saving the plot
+    :param x_vline:
+        x-pos for vertical line
     :return: None
     """
     scales = ["linear", "log", "symlog", "logit"]
@@ -61,15 +64,38 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
     if y_scale is not None:
         ax.set_yscale(y_scale) if y_scale in scales else print(f"Unable to apply scaling '{y_scale}' to y-axis")
 
+    def _mark_min(_series) -> None:
+        y = min(_series)
+        x = [pos for pos, x in enumerate(_series) if x == y][0]
+        ax.plot(x, y, "o--")
+        ax.text(x=y, y=y, s=str(int(y)), ha="center", va="bottom")
+
+    ymax = 0.
     if num_series == 1 and type(series[0]) == float:
         ax.plot(series)
+        ymax = max(series)
+        if len(mark_min) > 0 and mark_min[0] != -1:
+            _mark_min(series)
     else:
         for i in range(num_series):
             curr_series = series[i]
             if type(curr_series[0]) == list and type(curr_series[1] == list):
                 ax.plot(curr_series[0], curr_series[1])
-            else:
+                max_curr = max(curr_series[0])
+                if max(curr_series[1]) > max_curr:
+                    max_curr = max(curr_series[1])
+                if ymax < max_curr:
+                    ymax = max_curr
+                if i in mark_min:
+                    _mark_min(curr_series)
+            elif type(curr_series) == list:
                 ax.plot(curr_series)
+                if ymax < max(curr_series):
+                    ymax = max(curr_series)
+                if i in mark_min:
+                    _mark_min(curr_series)
+    if x_vline is not None:
+        plt.vlines(x_vline, ymin=0, ymax=ymax, linestyle="dashed", linewidth=1.5, color="green", label=x_vline_label)
 
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -86,10 +112,11 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
 
 def plot_ports_by_mae(mae: List[float], ports: List[str], title: str, path: str = None) -> None:
     assert len(mae) == len(ports)
-    fix, ax = plt.subplots(figsize=(30*cm, 15*cm))
+    fix, ax = plt.subplots(figsize=(30*cm, 20*cm))
     x = np.arange(len(mae))
+    width = .35
 
-    bar = ax.bar(x, mae)
+    bars = ax.bar(x, mae, width)
     ax.set_title(title)
     ax.set_ylabel("MAE in minutes")
     ax.set_xticks(x)

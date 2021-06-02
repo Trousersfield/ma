@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+from tqdm import tqdm
 from typing import List
 
 from inception.eval import Evaluator
@@ -17,7 +18,7 @@ from inception.model import inception_time
 from plotter import plot_series
 from port import Port, PortManager
 from util import as_str, encode_keras_model, encode_loss_history_plot, encode_history_file, encode_x_y_plot, \
-    SECONDS_PER_YEAR
+    SECONDS_PER_YEAR, read_json, verify_output_dir
 
 # FILES = glob.glob("/content/drive/MyDrive/ma/data/routes/SKAGEN/data_*.npy")[:]
 script_dir = os.path.abspath(os.path.dirname(__file__))
@@ -44,13 +45,17 @@ def route_to_ts(f, window_len, max_len=250):
 
 def load_data(port: Port, window_len: int):
     data_path = os.path.join(script_dir, os.pardir, "data", "routes", port.name, "data_*.npy")
-    files = glob.glob(data_path)[:]
+    # files_old = glob.glob(data_path)[:]
+    files = glob.glob(data_path)
     X_ts_list = []
     y_ts_list = []
 
-    for f in files:
-        if np.load(f).shape[0] < window_len:
+    for f in tqdm(files, desc="Loading files"):
+        # if np.load(f).shape[0] < window_len:
+        file_len = np.load(f, mmap_mode="r", allow_pickle=True).shape[0]
+        if file_len < (window_len + 2):
             continue
+        # print(f"f len: {file_len} window len: {window_len}")
         X_ts_tmp, y_ts_tmp = route_to_ts(f, window_len)
         X_ts_list.append(X_ts_tmp)
         y_ts_list.append(y_ts_tmp.reshape(-1, 1))
@@ -74,7 +79,12 @@ def train(output_dir: str, port_name: str = None) -> None:
             raise ValueError(f"Unable to associate port with port name '{port_name}'")
         train_port(port, e)
     else:
-        for port in pm.ports.values():
+        # train ports required for transfer
+        config = read_json(os.path.join(script_dir, "transfer-config.json"))
+        ports = [pm.find_port(port_name) for port_name in config["ports"]]
+        if None in ports:
+            raise ValueError(f"Found type None in list of ports to train: {ports}")
+        for port in ports:
             train_port(port, e)
 
 
@@ -82,9 +92,10 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     start_datetime = datetime.now()
     start_time = as_str(start_datetime)
     output_dir = os.path.join(script_dir, os.pardir, "output")
+    verify_output_dir(output_dir, port.name)
     training_type = "base"
 
-    print(f"Started training for port '{port.name}")
+    print(f"\nStarted training for port '{port.name}'")
     print(f"Loading data...")
     window_len = 50
     X_ts, y_ts = load_data(port, window_len)
@@ -110,7 +121,7 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     model.compile(optimizer=optimizer, loss="mse", metrics=["mae"])
 
     # train model
-    result = model.fit(X_train, y_train, epochs=25, batch_size=1024, verbose=1, validation_data=(X_test, y_test),
+    result = model.fit(X_train, y_train, epochs=50, batch_size=1024, verbose=1, validation_data=(X_test, y_test),
                        callbacks=callbacks_list)
     print(f"history:\n{result.history.keys()}")
     train_loss = result.history["loss"]
@@ -125,9 +136,9 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     print(f"naive baseline: {baseline}")
 
     # set evaluation
+    print(f"Setting evaluation results...")
     evaluator.set_mae(port, start_time, val_mae)
     y_pred = model.predict(X_test)
-    print(f"types - y_pred: {type(y_pred)} y_test: {type(y_test)}")
     grouped_mae = evaluator.group_mae(y_test, y_pred)
     evaluator.set_mae(port, start_time, grouped_mae)
 
@@ -147,17 +158,23 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
 
 
 def plot_history(train_history: List[float], val_history: List[float], plot_dir: str, port_name: str, start_time: str,
-                 training_type: str) -> None:
-    path = os.path.join(plot_dir, port_name, encode_loss_history_plot(training_type, port_name, start_time))
+                 training_type: str, source_port_name: str = None, config_uid: int = None,
+                 tune_train_history: List[float] = None, tune_val_history: List[float] = None) -> None:
+    path = os.path.join(plot_dir, port_name,
+                        encode_loss_history_plot(training_type, port_name, start_time, source_port_name, config_uid))
     title = f"Training loss ({training_type})"
-    history = (train_history, val_history)
+    if tune_train_history is not None and tune_val_history is not None:
+        history = (train_history + tune_train_history, val_history + tune_val_history)
+    else:
+        history = (train_history, val_history)
     plot_series(series=history, title=title, x_label="Epoch", y_label="Loss", legend_labels=["Training", "Validation"],
-                path=path)
+                path=path, x_vline=len(train_history), x_vline_label="Start fine tuning", mark_min=[1])
 
 
 def plot_predictions(y_true: np.ndarray, y_pred: np.ndarray, plot_dir: str, port_name: str, start_time: str,
-                     training_type: str) -> None:
-    path = os.path.join(plot_dir, port_name, encode_x_y_plot(training_type, port_name, start_time))
+                     training_type: str, base_port_name: str = None, config_uid: int = None) -> None:
+    path = os.path.join(plot_dir, port_name,
+                        encode_x_y_plot(training_type, port_name, start_time, base_port_name, config_uid))
     title = f"Labels and Predictions Port {port_name} ({training_type})"
     plot_series(series=(list(y_true), list(y_pred)), title=title, x_label="Training Example",
                 y_label="Target Variable: ETA in Minutes", legend_labels=["Label", "Prediction"], path=path)

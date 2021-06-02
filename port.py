@@ -8,7 +8,7 @@ import pandas as pd
 from logger import Logger
 from output_collector import OutputCollector
 from training import TrainingIteration
-from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name,\
+from util import as_float, as_str, encode_pm_file, decode_pm_file, is_empty, get_destination_file_name, \
     decode_model_file, encode_dataset_config_file
 
 from datetime import datetime
@@ -24,21 +24,22 @@ class Port:
 
     def __init__(self, name: str, latitude: float, longitude: float, radius: float) -> None:
         self.name = name
-        self.latitude = latitude    # degrees
+        self.latitude = latitude  # degrees
         self.longitude = longitude  # degrees
-        self.radius = radius        # km
+        self.radius = radius  # km
         # approximate maximum lat and long distances from center point of the maximum square within radius r
-        self.r_lat = self._km_to_lat(radius)   # r in degrees for lat
+        self.r_lat = self._km_to_lat(radius)  # r in degrees for lat
         self.r_long = self._km_to_long(radius, self.latitude)  # r in degrees for long
-        hypotenuse = haversine(self.latitude+self.r_lat, self.longitude, self.latitude, self.longitude+self.r_long) # km
-        self.inner_square_lat_radius = self._km_to_lat(hypotenuse/2)
-        self.inner_square_long_radius = self._km_to_long(hypotenuse/2, self.latitude)
+        hypotenuse = haversine(self.latitude + self.r_lat, self.longitude, self.latitude,
+                               self.longitude + self.r_long)  # km
+        self.inner_square_lat_radius = self._km_to_lat(hypotenuse / 2)
+        self.inner_square_long_radius = self._km_to_long(hypotenuse / 2, self.latitude)
 
     def _km_to_lat(self, km: float) -> float:
-        return 1/(self.KM_TO_LAT_FACTOR*km) if km > 0 else 0
+        return 1 / (self.KM_TO_LAT_FACTOR * km) if km > 0 else 0
 
     def _km_to_long(self, km: float, latitude: float) -> float:
-        return 1/(self.KM_TO_LONG_FACTOR*km*cos(radians(latitude))) if km > 0 else 0
+        return 1 / (self.KM_TO_LONG_FACTOR * km * cos(radians(latitude))) if km > 0 else 0
 
 
 class PortManager:
@@ -127,13 +128,11 @@ class PortManager:
                       f"before adding alias.")
 
     def find_port(self, name: str) -> Port:
-        # print("Searching match for name {}".format(name))
         name_upper = name.upper()
         if name_upper in self.ports:
             return self.ports[name_upper]
         if (name_upper in self.alias) and (self.alias[name_upper] in self.ports):
             return self.ports[self.alias[name_upper]]
-        # print("No match found!")
 
     @staticmethod
     def identify_arrival_times(port: Port, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -149,11 +148,6 @@ class PortManager:
 
         df_outside_square.append(df_inside_square.loc[~long_mask])
         df_inside_square = df_inside_square.loc[long_mask]
-
-        # print("lat interval [{}; {}] ".format(str(port.latitude - port.inner_square_lat_radius),
-        #                                      str(port.latitude + port.inner_square_lat_radius)))
-        # print("long interval [{}; {}] ".format(str(port.longitude - port.inner_square_long_radius),
-        #                                       str(port.longitude + port.inner_square_long_radius)))
 
         # accurate separation outside of inner square but within port's radius
         radius_mask = df_outside_square.apply(radius_filter, args=(port,), axis=1)
@@ -194,20 +188,28 @@ class PortManager:
         trainings = {}
         start_times = model_paths.keys()
         for start in sorted(start_times):
-            # dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start,
-            # training_type))
-            ti = TrainingIteration(start_time=start,
-                                   data_path=data_paths[start] if start in data_paths else None,
-                                   log_path=log_paths[start] if start in log_paths else None,
-                                   model_path=model_paths[start] if start in model_paths else None,
-                                   plot_paths=plot_paths[start] if start in plot_paths else None,
-                                   debug_path=debug_paths[start] if start in debug_paths else None,
-                                   eval_paths=eval_paths[start] if start in eval_paths else None)
+            for config_uid in model_paths[start].keys():
+                # dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start,
+                # training_type))
+                ti = TrainingIteration(start_time=start,
+                                       config_uid=config_uid,
+                                       data_path=data_paths[start][config_uid] if start in data_paths and config_uid
+                                                                                  in data_paths[start] else None,
+                                       log_path=log_paths[start][config_uid] if start in log_paths and config_uid
+                                                                                in log_paths[start] else None,
+                                       model_path=model_paths[start][config_uid] if start in model_paths and config_uid
+                                                                                    in model_paths[start] else None,
+                                       plot_paths=plot_paths[start][config_uid] if start in plot_paths and config_uid
+                                                                                   in plot_paths[start] else None,
+                                       debug_path=debug_paths[start][config_uid] if start in debug_paths and config_uid
+                                                                                    in debug_paths[start] else None,
+                                       eval_paths=eval_paths[start][config_uid] if start in eval_paths and config_uid
+                                                                                   in eval_paths[start] else None)
 
-            if start in trainings:
-                trainings[start].append(ti)
-            else:
-                trainings[start] = [ti]
+                if start in trainings:
+                    trainings[start].append(ti)
+                else:
+                    trainings[start] = [ti]
         return trainings
 
 
@@ -256,9 +258,9 @@ def get_minimum_time(df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
         len_df_1 = len(min_df_1.index)
         len_df_2 = len(min_df_2.index)
         if len_df_1 > 1:
-            min_df_1 = min_df_1.drop(min_df_1.index[[1, len_df_1-1]])
+            min_df_1 = min_df_1.drop(min_df_1.index[[1, len_df_1 - 1]])
         if len_df_2 > 1:
-            min_df_1 = min_df_2.drop(min_df_2.index[[1, len_df_2-1]])
+            min_df_1 = min_df_2.drop(min_df_2.index[[1, len_df_2 - 1]])
 
         # assign minimum of both DataFrames to result
         if len_df_1 > 0:
