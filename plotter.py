@@ -68,7 +68,7 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         y = min(_series)
         x = [pos for pos, x in enumerate(_series) if x == y][0]
         ax.plot(x, y, "o--")
-        ax.text(x=y, y=y, s=str(int(y)), ha="center", va="bottom")
+        ax.text(x=x, y=y, s=f"min = {int(y)}", ha="center", va="bottom")
 
     ymax = 0.
     if num_series == 1 and type(series[0]) == float:
@@ -108,22 +108,23 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         plt.show()
     else:
         plt.savefig(path)
+    plt.cla()
 
 
-def plot_ports_by_mae(mae: List[float], ports: List[str], title: str, path: str = None) -> None:
-    assert len(mae) == len(ports)
+def plot_ports_by_mae(data: List[Tuple[str, float]], title: str, path: str = None) -> None:
+    data = list(map(list, zip(*data)))
     fix, ax = plt.subplots(figsize=(30*cm, 20*cm))
-    x = np.arange(len(mae))
+    x = np.arange(len(data[1]))
     width = .35
 
-    bars = ax.bar(x, mae, width)
+    bars = ax.bar(x, data[1], width)
     ax.set_title(title)
     ax.set_ylabel("MAE in minutes")
     ax.set_xticks(x)
-    ax.set_xticklabels(ports, rotation=45, ha="center")
-    for i, val in enumerate(mae):
+    ax.set_xticklabels(data[0], rotation=45, ha="center")
+    for i, val in enumerate(data[1]):
         # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
-        ax.text(x=i, y=val, s=val, ha="center", va="bottom")
+        ax.text(x=i, y=val, s=_y_minutes(val), ha="center", va="bottom")
     # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     # ax.legend()
 
@@ -131,6 +132,7 @@ def plot_ports_by_mae(mae: List[float], ports: List[str], title: str, path: str 
         plt.show()
     else:
         plt.savefig(path)
+    plt.cla()
 
 
 def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, path: str = None) -> None:
@@ -165,7 +167,6 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
     ax.set_xticks(x)
     ax.set_xticklabels(data[4], rotation=45, ha="right")
     for i, val in enumerate(data[3]):
-        # ax.text(x=i, y=val, s=data[3][i], ha="center", va="bottom")
         ax.text(x=i, y=val, s=_y_minutes(data[3][i]), ha="center", va="bottom")
     # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
@@ -174,17 +175,49 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
         plt.show()
     else:
         plt.savefig(path)
+    plt.cla()
 
 
-def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str]],
-                         transfer_data: List[Tuple[int, int, int, float, str]],
-                         port_name_base: str, port_name_target: str, path: str) -> None:
+def plot_transfer_effect(base_data: Tuple[str, float], transfer_data: List[Tuple[str, float]], path: str,
+                         by: str) -> None:
+    title = f"Transfer effect by {by} for port {base_data[0]}"
+    # base_data = list(map(list, zip(*base_data)))
+    transfer_data = list(map(list, zip(*transfer_data)))
+    # print(f"transfer data:\n{transfer_data}")
+    data = [[base_data[0]], [base_data[1]]]
+    data = np.hstack((data, transfer_data))
+    # print(f"data:\n{data}")
+    x = np.arange(len(data[1]))
+    width = .35
+    avg = sum(transfer_data[1]) / len(transfer_data[1])
+    # print(f"type: {type(transfer_data[1][0])}")
+    # print(f"avg: {avg}")
+
+    fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
+    bars = ax.bar(x=x, height=data[1], width=width, color="blue")
+    plt.axhline(avg, linestyle="dashed", linewidth=1.5, color="black")
+    bars[0].set_color("red")
+    ax.set_title(title)
+    ax.set_ylabel("MAE - ETA in minutes")
+    ax.set_xticks(x)
+    ax.set_xticklabels(data[0], rotation=45, ha="right")
+    for i, val in enumerate(data[1]):
+        ax.text(x=i, y=val, s=_y_minutes(val), ha="center", va="bottom")
+    fig.tight_layout()
+
+    plt.savefig(path)
+    plt.cla()
+
+
+def plot_grouped_transfer_effect(base_data: List[Tuple[int, int, int, float, str]],
+                                 transfer_data: List[Tuple[int, int, int, float, str]],
+                                 port_name_base: str, port_name_target: str, path: str) -> None:
     assert len(base_data) == len(transfer_data)
     title = f"Transfer effect on MAE\nBase: {port_name_base} -> Target: {port_name_target}"
     base_data = list(map(list, zip(*base_data)))
     transfer_data = list(map(list, zip(*transfer_data)))
     x = np.arange(len(base_data[0]))
-    width = 0.35
+    width = .35
 
     base_avg = sum(base_data[3]) / len(base_data[3])
     transfer_avg = sum(transfer_data[3]) / len(transfer_data[3])
@@ -210,6 +243,7 @@ def plot_transfer_effect(base_data: List[Tuple[int, int, int, float, str]],
     fig.tight_layout()
 
     plt.savefig(path)
+    plt.cla()
 
 
 def plot_transfer_effects(transfer_port_names: List[str],
@@ -255,17 +289,18 @@ def plot_transfer_effects(transfer_port_names: List[str],
     # bars
     diffs = [compute_diff(avg_mae_transfer[i], avg_mae_base[i]) for i in range(len(avg_mae_transfer))]
     diffs = list(map(list, zip(*diffs)))
-    base_bars = ax.bar(x - width/2, avg_mae_base, color="gray")
-    base_bars_diff = ax.bar(x - width/2, diffs[0], yerr=yerr_base, bottom=avg_mae_base, color="red")
-    transfer_bars = ax.bar(x + width/2, avg_mae_base, color="blue")
-    transfer_bars_diff = ax.bar(x + width/2, diffs[1], yerr=yerr_transfer, bottom=avg_mae_base, color="green")
+    base_bars = ax.bar(x - width/2, avg_mae_base, width=width, color="gray")
+    base_bars_diff = ax.bar(x - width/2, diffs[0], width=width, yerr=yerr_base, bottom=avg_mae_base, color="red")
+    transfer_bars = ax.bar(x + width/2, avg_mae_base, width=width, color="blue")
+    transfer_bars_diff = ax.bar(x + width/2, diffs[1], width=width, yerr=yerr_transfer, bottom=avg_mae_base,
+                                color="green")
 
     # h-lines
     # plt.hlines(y=0., xmin=0., xmax=0., linestyles="dashed")
 
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")
-    ax.set_xticks(x)
+    ax.set_xticks([])
     for i in range(len(avg_mae_base)):
         ax.text(x=i - width, y=avg_mae_base[i], s=_y_minutes(avg_mae_base[i]), ha="center", va="bottom")
         ax.text(x=i + width, y=avg_mae_transfer[i], s=_y_minutes(avg_mae_transfer[i]), ha="center", va="bottom")
@@ -290,16 +325,19 @@ def plot_transfer_effects(transfer_port_names: List[str],
     rows = ["Min source", "Max source", "Min transfer", "Max transfer"]
     colors = ["gray", "gray", "gray", "gray"]
     plt.table(cellText=cell_text, rowLabels=rows, rowColours=colors, colLabels=transfer_port_names, loc="bottom")
-    plt.subplots_adjust(left=0.2, bottom=0.2)
+    plt.subplots_adjust(left=0.3, bottom=0.3)
 
     # format y-labels
     # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
 
     plt.savefig(path)
+    plt.cla()
 
 
 def _y_minutes(val, pos = None) -> str:
+    if isinstance(val, str):
+        val = float(val)
     return str(int(val))
 
 
@@ -312,7 +350,7 @@ def plot_port_visits(mae_data: Dict[str, float]) -> None:
 
     mae = [mae_data[port.upper()] if port in mae_data else 0 for port in ports]
     x = np.arange(len(ports))
-    fig, ax = plt.subplots(fizsize=(30*cm, 15*cm))
+    fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
     bars = ax.bar(x, visits)
     ax.plot(x, mae, color="red")
     ax.set_title("MAE compared to number of unique visits per port")
@@ -320,6 +358,48 @@ def plot_port_visits(mae_data: Dict[str, float]) -> None:
     ax.set_xticklabels(ports, rotation=45, ha="right")
     for i, n in enumerate(visits):
         ax.text(x=i, y=n, s=n, ha="center", va="center")
+    plt.cla()
+
+
+def plot_mae_heatmap(data: List[List[float]], ports: List[str], config_uid: int, path: str) -> None:
+    assert len(data) == len(data[0]) == len(ports)
+
+    fig, ax = plt.subplots(figsize=(30*cm, 25*cm))
+    im = ax.imshow(data, cmap="viridis")
+    n = np.arange(len(data))
+
+    if not isinstance(data, (list, np.ndarray)):
+        data = im.get_array()
+    threshold = (im.norm(data.max()) * 3.) / 5.
+
+    ax.set_xticks(n)
+    ax.set_yticks(n)
+    ax.set_xticklabels(ports, rotation=45, ha="right")
+    rev_ports = ports
+    rev_ports.reverse()
+    ax.set_yticklabels(ports)
+
+    # color-bar
+    cbar = ax.figure.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel("MAE in Minutes", rotation=-90, va="bottom")
+
+    text_colors = ["black", "white"]
+    for i in range(len(data[0])):
+        for j in range (len(data)):
+            ax.text(j, i, _y_minutes(data[i][j]), ha="center", va="center", size="large",
+                    color=text_colors[int(im.norm(data[i][j]) < threshold)])
+
+    # no spines within grid
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_xticks(n+1-.5, minor=True)
+    ax.set_yticks(n+1-.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle="-", linewidth=2)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    ax.set_title(f"Transfer results for configuration {config_uid}\n Source port X -> Target port Y")
+    fig.tight_layout()
+    plt.savefig(path)
 
 
 def main(args) -> None:

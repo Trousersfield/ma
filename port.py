@@ -164,7 +164,7 @@ class PortManager:
         return df_outside_circle, arrival_times
 
     def load_trainings(self, port: Union[str, Port], output_dir: str, routes_dir: str,
-                       training_type: str) -> Dict[str, List[TrainingIteration]]:
+                       training_type: str, filter_config_uid: int = None) -> Dict[str, TrainingIteration]:
         if not os.path.exists(output_dir):
             raise ValueError(f"No such directory: {output_dir}")
         if not os.path.exists(routes_dir):
@@ -186,30 +186,26 @@ class PortManager:
         eval_paths = oc.collect_eval(port.name, file_type=training_type, group=True)
 
         trainings = {}
-        start_times = model_paths.keys()
-        for start in sorted(start_times):
-            for config_uid in model_paths[start].keys():
-                # dataset_config_path = os.path.join(routes_dir, port.name, encode_dataset_config_file(start,
-                # training_type))
-                ti = TrainingIteration(start_time=start,
-                                       config_uid=config_uid,
-                                       data_path=data_paths[start][config_uid] if start in data_paths and config_uid
-                                                                                  in data_paths[start] else None,
-                                       log_path=log_paths[start][config_uid] if start in log_paths and config_uid
-                                                                                in log_paths[start] else None,
-                                       model_path=model_paths[start][config_uid] if start in model_paths and config_uid
-                                                                                    in model_paths[start] else None,
-                                       plot_paths=plot_paths[start][config_uid] if start in plot_paths and config_uid
-                                                                                   in plot_paths[start] else None,
-                                       debug_path=debug_paths[start][config_uid] if start in debug_paths and config_uid
-                                                                                    in debug_paths[start] else None,
-                                       eval_paths=eval_paths[start][config_uid] if start in eval_paths and config_uid
-                                                                                   in eval_paths[start] else None)
+        for oc_key in model_paths.keys():
+            start, source_port, config_uid = oc.decode_key(oc_key)
+            config_uid = int(config_uid)
+            if filter_config_uid is not None and filter_config_uid != config_uid:
+                continue
+            ti = TrainingIteration(start_time=start,
+                                   source_port=source_port,
+                                   config_uid=config_uid,
+                                   model_path=model_paths[oc_key],
+                                   data_paths=data_paths[oc_key] if oc_key in data_paths else None,
+                                   log_paths=log_paths[oc_key] if oc_key in log_paths else None,
+                                   plot_paths=plot_paths[oc_key] if oc_key in plot_paths else None,
+                                   debug_paths=debug_paths[oc_key] if oc_key in debug_paths else None,
+                                   eval_paths=eval_paths[oc_key] if oc_key in eval_paths else None)
 
-                if start in trainings:
-                    trainings[start].append(ti)
-                else:
-                    trainings[start] = [ti]
+            if oc_key in trainings:
+                raise ValueError(f"Duplicate key '{oc_key}' detected!")
+                # trainings[oc_key].append(ti)
+            else:
+                trainings[oc_key] = ti
         return trainings
 
 

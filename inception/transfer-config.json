@@ -40,14 +40,28 @@
             "uid": 5,
             "desc": "Re-Training on target port's full dataset with frozen layers",
             "nth_subset": 1,
-            "train_layers": ["conv1d_13" ,"conv1d_13","conv1d_15", "dense"],
+            "train_layers": ["conv1d_13" ,"conv1d_14","conv1d_15", "dense"],
             "tune": true
         },
         {
             "uid": 6,
             "desc": "Re-Training on target port's full dataset with frozen layers",
             "nth_subset": 1,
-            "train_layers": ["conv1d_12", "conv1d_13" ,"conv1d_13","conv1d_15", "dense"],
+            "train_layers": ["conv1d_12", "conv1d_13" ,"conv1d_14","conv1d_15", "dense"],
+            "tune": true
+        },
+        {
+            "uid": 7,
+            "desc": "10-th subset training of uid 5",
+            "nth_subset": 10,
+            "train_layers": ["conv1d_13" ,"conv1d_14","conv1d_15", "dense"],
+            "tune": true
+        },
+        {
+            "uid": 8,
+            "desc": "20-th subset training of uid 5",
+            "nth_subset": 20,
+            "train_layers": ["conv1d_13" ,"conv1d_14","conv1d_15", "dense"],
             "tune": true
         }
     ]

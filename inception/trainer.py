@@ -1,8 +1,10 @@
 import argparse
+import gc
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 import glob
+import tensorflow as tf
 
 from datetime import datetime
 from sklearn.metrics import mean_absolute_error
@@ -104,7 +106,7 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     print(f"Train shape - X:{X_train.shape} y:{y_train.shape} Test shape - X:{X_test.shape} y:{y_test.shape}")
 
     model = inception_time(input_shape=(window_len, 37))
-    # print(model.summary())
+    print(model.summary())
 
     model_file_name = encode_keras_model(port.name, start_time)
     # file_path = "/content/drive/MyDrive/ma/output/model/SKAGEN/inception_time.h5"
@@ -137,7 +139,8 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
 
     # set evaluation
     print(f"Setting evaluation results...")
-    evaluator.set_mae(port, start_time, val_mae)
+    # mae = sum(val_mae) / len(val_mae)
+    evaluator.set_mae(port, start_time, min(val_mae))
     y_pred = model.predict(X_test)
     grouped_mae = evaluator.group_mae(y_test, y_pred)
     evaluator.set_mae(port, start_time, grouped_mae)
@@ -150,9 +153,12 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     # plot history
     plot_dir = os.path.join(output_dir, "plot")
     plot_history(train_mae, val_mae, plot_dir, port.name, start_time, training_type)
-    evaluator.plot_grouped_mae(port, training_type, start_time)
+    evaluator.plot_grouped_mae(port, start_time)
     plot_predictions(y_pred, y_test, plot_dir, port.name, start_time, training_type)
 
+    del X_ts, y_ts, X_train, X_test, y_train, y_test
+    tf.keras.backend.clear_session()
+    gc.collect()
     # plt.plot(y_test)
     # plt.plot(model.predict(X_test))
 
@@ -167,8 +173,9 @@ def plot_history(train_history: List[float], val_history: List[float], plot_dir:
         history = (train_history + tune_train_history, val_history + tune_val_history)
     else:
         history = (train_history, val_history)
+    x_vline = len(train_history) - 1 if tune_train_history is not None and len(tune_train_history) > 0 else None
     plot_series(series=history, title=title, x_label="Epoch", y_label="Loss", legend_labels=["Training", "Validation"],
-                path=path, x_vline=len(train_history), x_vline_label="Start fine tuning", mark_min=[1])
+                path=path, x_vline=x_vline, x_vline_label="Start fine tuning", mark_min=[1])
 
 
 def plot_predictions(y_true: np.ndarray, y_pred: np.ndarray, plot_dir: str, port_name: str, start_time: str,

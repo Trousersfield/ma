@@ -284,17 +284,21 @@ def decode_loss_history_plot(file_name: str) -> Tuple[str, str, str, str, str, i
 #     return result[0], result[1], result[2]
 
 
-def encode_history_file(file_type: str, port: str, time: str, config_uid: int = None) -> str:
+def encode_history_file(file_type: str, port_name: str, time: str, source_port_name: str = None,
+                        config_uid: int = None) -> str:
     if config_uid is not None:
         file_type = f"{file_type}-{config_uid}"
-    return f"history_{file_type}_{port}_{time}.npy"
+    if source_port_name is not None:
+        port_name = f"{port_name}-{source_port_name}"
+    return f"history_{file_type}_{port_name}_{time}.npy"
 
 
-def decode_history_file(file_name: str) -> Tuple[str, str, str, str, int]:
+def decode_history_file(file_name: str) -> Tuple[str, str, str, str, str, int]:
     file_no_ext = os.path.splitext(file_name)[0]
     result = file_no_ext.split("_")
     file_type, config_uid = _make_file_type(result[1])
-    return result[0], file_type, result[2], result[3], config_uid
+    base_port_name, source_port_name = _extract_ports(result[2])
+    return result[0], file_type, base_port_name, result[3], source_port_name, config_uid
 
 
 def encode_meta_file(file_type: str, port: str, time: str) -> str:
@@ -471,3 +475,17 @@ def read_json(path: str) -> json:
             return result
     else:
         raise ValueError(f"Unable to read .json file from {path}")
+
+
+def validate_params(port=None, config_uid: int = None) -> str:
+    if port is not None:
+        if not isinstance(port, str):
+            port = port.name
+        if config_uid is None:
+            raise ValueError(f"Missing required parameter 'config_uid' for corresponding source_port '{port}'")
+        return "transfer"
+    if config_uid is not None:
+        if port is None:
+            raise ValueError(f"Missing required parameter 'source_port' for corresponding config_uid '{config_uid}'")
+        return "transfer"
+    return "base"
