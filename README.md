@@ -16,3 +16,9 @@ A machine learning model trains the estimation of arrival times (ETA) in shippin
     1. Re-Train certain layers
     2. Iterate with different layers and less data
 4. Evaluation (MAE, plots)
+
+### Preview:
+#### MAE of Ports
+- Base-Traning on diagonal
+- Transfer from Port X to Port Y
+
