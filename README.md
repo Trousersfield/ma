@@ -20,5 +20,5 @@ A machine learning model trains the estimation of arrival times (ETA) in shippin
 ### Preview:
 #### MAE of Ports
 - Base-Traning on diagonal
-- Transfer from Port X to Port Y
-
+- Transfer from Port X to Port Y  
+![transfer-matrix_7](/preview/transfer-matrix_7.png)
