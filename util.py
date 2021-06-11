@@ -274,16 +274,6 @@ def decode_loss_history_plot(file_name: str) -> Tuple[str, str, str, str, str, i
     return result[0], file_type, base_port_name, result[3], source_port_name, config_uid
 
 
-# def encode_loss_file(port: str, time: str, file_type: str) -> str:
-#     return f"loss-{file_type}_{port}_{time}.npy"
-#
-#
-# def decode_loss_file(file_name: str) -> Tuple[str, str, str]:
-#     file_no_ext = os.path.splitext(file_name)[0]
-#     result = file_no_ext.split("_")
-#     return result[0], result[1], result[2]
-
-
 def encode_history_file(file_type: str, port_name: str, time: str, source_port_name: str = None,
                         config_uid: int = None) -> str:
     if config_uid is not None:
@@ -362,8 +352,6 @@ def decode_keras_model(file_name: str) -> Tuple[str, str, str, str, int]:
 
 def encode_checkpoint_file(port_name: str, start_time: str, end_time: str, file_type: str,
                            is_checkpoint: bool = False, base_port_name: str = None) -> str:
-    # checkpoint_type = "checkpoint" if is_checkpoint else "model"
-    # return f"{checkpoint_type}-{file_type}_{port_name}_{start_time}_{end_time}.tar"
     file_name = encode_model_file(port_name, start_time, end_time, file_type, is_checkpoint, base_port_name)
     file_name_no_ext = os.path.splitext(file_name)[0]
     return f"{file_name_no_ext}.tar"

@@ -29,7 +29,6 @@ class RouteCombiner:
         self.id_re = r'\d+'
 
     def fit(self) -> None:
-        # print(f"Fitting data combiner on directory {self.data_dir}")
         for idx, data_file in enumerate(os.listdir(self.data_dir)):
             if data_file.startswith("u_data"):
                 f_mmsi, f_source_date = self.mmsi_and_date_from_u_file(data_file)
@@ -39,8 +38,6 @@ class RouteCombiner:
                                      f"'{f_mmsi}' and date '{f_source_date}'")
                 self.files.update({f_key: UnlabeledDataFile(os.path.join(self.data_dir, data_file), min_time=0.,
                                                             max_time=0.)})
-        # print(f"Done! Files:\n{self.files}")
-        # print(f"Loading mapping from file {self.csv_map_path}")
         self.source_map = self.read_csv_map()
 
     def unfit(self, file_key: str) -> None:
@@ -62,12 +59,9 @@ class RouteCombiner:
 
     def match(self, mmsi: str, source_date: str, new_data: pd.DataFrame) -> pd.DataFrame:
         if is_empty(new_data):
-            # print(f"Unable to match data: 'new_data' is empty")
             return new_data
-        # print(f"valid mappings:\n{self.source_map}")
 
         matches = self.get_keys_and_matches(mmsi, source_date)
-        # print(f"input\n{new_data}")
         result = pd.DataFrame
         for f_key, match in matches:
             match_data = pd.read_pickle(match.path)
@@ -76,7 +70,6 @@ class RouteCombiner:
                 continue
 
             min_time = new_data.iloc[0]["time"]
-            # max_time = new_data.iloc[-1]["# Timestamp"]
             match_min_time = match_data.iloc[0]["time"]
             if match_min_time <= min_time:  # unlabeled data is older than current data
                 result = pd.concat([match_data, new_data])
@@ -85,9 +78,7 @@ class RouteCombiner:
                              f"result data length: {len(result.index)}")
             else:  # unlabeled data is newer than current data
                 logger.write(f"Detected match where unlabeled data is newer than current data! Not combining!")
-                # result = pd.concat([new_data, match_data])
             self.remove_u_file(f_key)
-        # print(f"output:\n{result}")
         return result
 
     def date_from_source_csv(self, file_name: str) -> str:

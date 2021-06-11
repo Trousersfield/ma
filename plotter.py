@@ -9,7 +9,6 @@ from matplotlib import ticker
 from typing import Dict, List, Tuple, Union
 
 from port import Port, PortManager
-from util import data_ranges
 
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,6 +44,10 @@ def plot_series(series: Union[List[float], List[List[float]], Tuple[List[float],
         Path for saving the plot
     :param x_vline:
         x-pos for vertical line
+    :param x_vline_label:
+        label for vertical line
+    :param mark_min:
+        specify indices of series that should mark their minimum y-value
     :return: None
     """
     scales = ["linear", "log", "symlog", "logit"]
@@ -123,10 +126,7 @@ def plot_ports_by_mae(data: List[Tuple[str, float]], title: str, path: str = Non
     ax.set_xticks(x)
     ax.set_xticklabels(data[0], rotation=45, ha="center")
     for i, val in enumerate(data[1]):
-        # ax.text(x=i, y=val, s=data[4][i], ha="center", va="bottom")
         ax.text(x=i, y=val, s=_y_minutes(val), ha="center", va="bottom")
-    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
-    # ax.legend()
 
     if path is None:
         plt.show()
@@ -168,7 +168,6 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
     ax.set_xticklabels(data[4], rotation=45, ha="right")
     for i, val in enumerate(data[3]):
         ax.text(x=i, y=val, s=_y_minutes(data[3][i]), ha="center", va="bottom")
-    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     fig.tight_layout()
 
     if path is None:
@@ -181,17 +180,12 @@ def plot_grouped_maes(data: List[Tuple[int, int, int, float, str]], title: str, 
 def plot_transfer_effect(base_data: Tuple[str, float], transfer_data: List[Tuple[str, float]], path: str,
                          by: str) -> None:
     title = f"Transfer effect by {by} for port {base_data[0]}"
-    # base_data = list(map(list, zip(*base_data)))
     transfer_data = list(map(list, zip(*transfer_data)))
-    # print(f"transfer data:\n{transfer_data}")
     data = [[base_data[0]], [base_data[1]]]
     data = np.hstack((data, transfer_data))
-    # print(f"data:\n{data}")
     x = np.arange(len(data[1]))
     width = .35
     avg = sum(transfer_data[1]) / len(transfer_data[1])
-    # print(f"type: {type(transfer_data[1][0])}")
-    # print(f"avg: {avg}")
 
     fig, ax = plt.subplots(figsize=(30*cm, 15*cm))
     bars = ax.bar(x=x, height=data[1], width=width, color="blue")
@@ -238,7 +232,6 @@ def plot_grouped_transfer_effect(base_data: List[Tuple[int, int, int, float, str
     for i in range(len(base_data[3])):
         ax.text(x=i - width / 2, y=base_data[3][i], s=_y_minutes(base_data[3][i]), ha="center", va="bottom")
         ax.text(x=i + width / 2, y=transfer_data[3][i], s=_y_minutes(transfer_data[3][i]), ha="center", va="bottom")
-    # ax.yaxis.set_major_formatter(ticker.FuncFormatter(_y_format))
     ax.legend()
     fig.tight_layout()
 
@@ -294,9 +287,6 @@ def plot_transfer_effects(transfer_port_names: List[str],
     transfer_bars = ax.bar(x + width/2, avg_mae_base, width=width, color="blue")
     transfer_bars_diff = ax.bar(x + width/2, diffs[1], width=width, yerr=yerr_transfer, bottom=avg_mae_base,
                                 color="green")
-
-    # h-lines
-    # plt.hlines(y=0., xmin=0., xmax=0., linestyles="dashed")
 
     ax.set_title(title)
     ax.set_ylabel("MAE - ETA in minutes")

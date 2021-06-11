@@ -54,7 +54,7 @@ def inception_time(input_shape=(None, None)) -> Sequential:
 
         max_pool_1 = MaxPool1D(pool_size=3, strides=stride, padding='same')(input_tensor)
 
-        conv_6 = Conv1D(filters=nb_filters, kernel_size=1,padding='same', activation=activation,
+        conv_6 = Conv1D(filters=nb_filters, kernel_size=1, padding='same', activation=activation,
                         use_bias=False)(max_pool_1)
 
         conv_list.append(conv_6)

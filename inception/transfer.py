@@ -374,9 +374,7 @@ class TransferManager:
                                     target_output_data_dir=os.path.join(self.output_dir, "data", target_port.name),
                                     target_plot_dir=os.path.join(self.output_dir, "plot", target_port.name),
                                     target_log_dir=os.path.join(self.output_dir, "log", target_port.name))
-            # print(f"keys: {transfer_defs.keys()}")
             name = target_port.name
-            # print(f"check: {target_port.name in transfer_defs} vs. {name in transfer_defs}")
             if name in transfer_defs:
                 transfer_defs[target_port.name].append(td)
             else:

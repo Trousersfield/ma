@@ -3,9 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-import re
-# import random
-# import matplotlib.pyplot as plt
 
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
@@ -47,9 +44,6 @@ def init_scaler(source_df: pd.DataFrame, target_columns: List[str]) -> MinMaxSca
     # use min and max from source data if no definition is available. definitions see above: data_ranges
     source_min_df = source_df.min().to_frame().T
     source_max_df = source_df.max().to_frame().T
-    # print(f"columns:\n{target_columns}")
-    # print(f"min df:\n{source_min_df}")
-    # print(f"max df:\n{source_max_df}")
     target_min_df = pd.DataFrame(index=np.arange(0, 1), columns=target_columns)
     target_max_df = pd.DataFrame(index=np.arange(0, 1), columns=target_columns)
 
@@ -85,11 +79,6 @@ def init_scaler(source_df: pd.DataFrame, target_columns: List[str]) -> MinMaxSca
     scaler = MinMaxScaler(feature_range=(0, 1), copy=False)
     scaler.fit(min_max_data)
     return scaler
-
-
-# def normalize(data: np.ndarray, scaler: MinMaxScaler, columns: List[str]) -> np.ndarray:
-#     normalized_data = scaler.transform(data)
-#     return normalized_data
 
 
 def normalize(data: pd.DataFrame, scaler: MinMaxScaler, columns: List[str]) -> pd.DataFrame:
@@ -131,12 +120,9 @@ def one_hot_encode(series: pd.Series, ais_col_name: str) -> Tuple[pd.DataFrame, 
                     found = True
                 i += 1
             if not found or s_cat.lower() == "other":
-                # print(f"One hot encoding: Unable to map value '{s_cat}' to known category from '{ais_col_name}'")
                 series = series.replace(s_cat, f"Other {ais_col_name}")
 
-        # print(f"unique values after mapping:\n{series.unique()}")
         desired_categories = categorical_values[ais_col_name] + [f"Other {ais_col_name}", f"Default {ais_col_name}"]
-        # print(f"desired categories:\n{desired_categories}")
 
         series = series.values.reshape(-1, 1)  # shape as column
         encoder = OneHotEncoder(sparse=False, categories=[desired_categories])
@@ -144,7 +130,6 @@ def one_hot_encode(series: pd.Series, ais_col_name: str) -> Tuple[pd.DataFrame, 
         data_ohe = encoder.transform(series)
         df_ohe = pd.DataFrame(data_ohe, columns=[desired_categories[i] for i in range(len(desired_categories))])
         return df_ohe, encoder
-        # return data_ohe, desired_categories, encoder
 
     else:
         raise ValueError(f"Error while one hot encoding: Cannot find column {ais_col_name} "
@@ -244,46 +229,29 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
 
         dest_df = dest_df.drop(columns=["Destination"])
         dest_df = format_timestamp_col(dest_df, data_source)
-        # print(f"dest_df:\n{dest_df}")
 
         # extract data-points that are sent while sitting in port to compute label
         x_df, arrival_times_df = pm.identify_arrival_times(port, dest_df)
 
         # skip port if all ships are hanging out in port area only
         if is_empty(x_df):
-            # print(f"Data for port {port.name} only within port area. {len(x_df.index)} data,"
-            #      f"{len(arrival_times_df.index)} labels")
             logger.write(f"No data for port {port.name} outside of port area. "
                          f"{x_df.index} number of data-points, {arrival_times_df.index} number of labels")
             continue
 
         # init route combiner on existing unlabeled data for current port
-        # rc = RouteCombiner(data_dir=os.path.join(output_dir, "unlabeled", port.name),
-        #                    csv_map_path=os.path.join(output_dir, "raw", "dma", "csv_to_route.json"))
         rc = RouteCombiner(data_dir=os.path.join(output_dir, "unlabeled", port.name),
                            csv_map_path=os.path.join(output_dir, "dma", "combinations.json"))
         rc.fit()
 
         # handle categorical data
-        # ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"), "Ship type")
         ship_types_df, ship_type_encoder = one_hot_encode(x_df.pop("Ship type"), "Ship type")
         nav_states_df, nav_status_encoder = one_hot_encode(x_df.pop("Navigational status"), "Navigational Status")
-        # df_cargo_types, cargo_types_encoder = one_hot_encode(x_df.pop("Cargo type"))
-        # print(f"ohe ship_types:\n{ship_types_df}")
-        # print(f"ohe nav_states:\n{nav_states_df}")
 
         arrival_times_df = arrival_times_df.drop(columns=["Ship type", "Navigational status"])
 
-        # print(f"x_df: {x_df.shape} ship_types_df: {ship_types_df.shape}")
-        # unite source df with one hot encoded data
         x_df = pd.concat([x_df.reset_index(drop=True), ship_types_df.reset_index(drop=True),
                           nav_states_df.reset_index(drop=True)], axis=1)
-        # print(f"concatenated x_df:\n{x_df}")
-
-        # mmsi_col = x_df["MMSI"]
-        # Add MMSI identification to categorical features
-        # x_ship_types["MMSI"], x_nav_states["MMSI"], x_cargo_types["MMSI"] = mmsi_col, mmsi_col, mmsi_col
-        # ship_types_df["MMSI"], nav_states_df["MMSI"] = mmsi_col, mmsi_col
 
         mmsis = x_df["MMSI"].unique()
 
@@ -291,7 +259,6 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
             # TODO: Handle ships that head to the same port more than once within the dataset
             ship_df = x_df.loc[x_df["MMSI"] == mmsi]
             arrival_time_df = arrival_times_df.loc[arrival_times_df["MMSI"] == mmsi]
-            # print("arrival_time_df for mmsi: \n", arrival_time_df)
             arrival_time = -1
             if not is_empty(arrival_time_df):
                 arrival_time = arrival_time_df.iloc[0]["time"]
@@ -299,47 +266,33 @@ def generate_dataset(file_path: str, output_dir: str, data_source: str, pm: Port
                 # drop rows sent after ship left the port
                 ship_df = ship_df[ship_df["time"] <= arrival_time]
 
-            # print(f"ship_df length before 'is_empty': {len(ship_df.index)}")
             if is_empty(ship_df):
                 continue
 
-            # print("arrival time for mmsi {}: {}".format(mmsi, arrival_time))
             ship_df = ship_df.drop(columns=["MMSI"])
-            # print("data: \n", ship_df)
 
             _, file_name = os.path.split(file_path)
             file_date = rc.date_from_source_csv(file_name)
 
             if arrival_time == -1:
-                # print(f"No label found for MMSI {mmsi}. Saving as unlabeled.")
                 if rc.has_match(str(mmsi), file_date):
                     ship_df = rc.match(str(mmsi), file_date, ship_df)
                 f_path = os.path.join(output_dir, "unlabeled", port.name, obj_file("data_unlabeled", mmsi, file_date))
-                # print(f"ship_df:\n{ship_df}")
-                # print(f"path for pickle: {f_path}")
                 ship_df.to_pickle(f_path)
                 continue
 
-            # print(f"ship_df before matching (MMSI {mmsi})\n{ship_df}")
             if rc.has_match(str(mmsi), file_date):
                 ship_df = rc.match(str(mmsi), file_date, ship_df)
-            # print(f"ship_df after matching:\n{ship_df}")
 
             ship_df, labeler = generate_label(ship_df, arrival_time)
-            # print("df with added label: \n", ship_df)
             cols_to_normalize = ship_df.columns.tolist()
 
             if scaler is None:
                 scaler = init_scaler(x_df, cols_to_normalize)
                 joblib.dump(scaler, os.path.join(output_dir, "encode", "normalizer.pkl"))
 
-            # data = ship_df.to_numpy()
-            # print(f"Shape after all: {data.shape}")
-            # print(f"Data:\n{data[0]}")
 
-            # data_normalized = normalize(data, scaler, columns) if data.shape[0] > 0 else data
             ship_df_normalized = normalize(ship_df, scaler, cols_to_normalize)
-            # print(f"normalized data:\n{data_normalized}")
             data_normalized = ship_df_normalized.to_numpy()
 
             routes_dir = os.path.join(output_dir, "routes", port.name)

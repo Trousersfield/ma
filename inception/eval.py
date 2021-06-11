@@ -58,7 +58,6 @@ class Evaluator:
         }, self.path)
 
     def reset(self, options: List[str] = None):
-        # print(f"before\n{self.mae_base}\n{self.mae_base_groups}\n{self.mae_transfer}\n{self.mae_transfer_groups}")
         if options is not None:
             if "transfer" in options:
                 self.mae_transfer = {}
@@ -68,7 +67,6 @@ class Evaluator:
             self.mae_base_groups = {}
             self.mae_transfer = {}
             self.mae_transfer_groups = {}
-        # print(f"after\n{self.mae_base}\n{self.mae_base_groups}\n{self.mae_transfer}\n{self.mae_transfer_groups}")
         self.save()
 
     @staticmethod
@@ -165,9 +163,6 @@ class Evaluator:
                    config_uid: bool = None, save: bool = True) -> None:
         if source_port is not None:
             transfer_key = self._encode_transfer_key(source_port.name, port.name, start_time, config_uid)
-            # print(f"transfer key: {transfer_key}")
-            # print(f"transfer keys: {self.mae_transfer.keys()}")
-            # print(f"transfer group keys: {self.mae_transfer_groups.keys()}")
             if grouped:
                 if transfer_key in self.mae_transfer_groups:
                     del self.mae_transfer_groups[transfer_key]
@@ -194,10 +189,6 @@ class Evaluator:
                     print(f"No base result found for port '{port.name}' and start time '{start_time}'")
         if save:
             self.save()
-        # print(f"base keys: {self.mae_base.keys()}")
-        # print(f"base group keys: {self.mae_base_groups.keys()}")
-        # print(f"transfer keys: {self.mae_transfer.keys()}")
-        # print(f"transfer group keys: {self.mae_transfer_groups.keys()}")
 
     def get_groups(self, port: Port, start_time: str, source_port: Port = None,
                    config_uid: int = None) -> List[Tuple[int, int, int, float, str]]:
@@ -237,11 +228,6 @@ class Evaluator:
             print(f"No {training_type}-training and config_uid {config_uid} found for port '{port.name}'")
             return
 
-        # if start_time is None:
-        #     start_time = list(trainings.values())[-1].start_time
-        #     print(f"trainings:\n{list(trainings.values())}")
-        #     print(f"No start_time given, plotting latest {training_type}-training at {start_time}")
-
         if training_type == "transfer":
             ti = [t for t in trainings.values() if t.source_port == source_port.name]
         else:
@@ -252,16 +238,6 @@ class Evaluator:
                   f"config {config_uid}. Using latest")
         ti = ti[-1]
 
-        # source_port_name = source_port.name if source_port else None
-        # oc_key = oc.encode_key(start_time, source_port_name, config_uid)
-        # if oc_key in trainings:
-        #     ti = trainings[oc_key]
-        #     mae_groups = self.get_groups(port, start_time, source_port, config_uid)
-        #     _plot(self.eval_dir, ti, mae_groups, config_uid)
-        # else:
-        #     raise ValueError(f"No {training_type}-training found: Port {port.name} "
-        #                      f"start_time {start_time} config_uid {config_uid}")
-
         if training_type == "base":
             base_key = self._encode_base_key(port.name, ti.start_time)
             mae_groups = self.mae_base_groups[base_key]
@@ -270,14 +246,6 @@ class Evaluator:
             transfer_key = self._encode_transfer_key(source_port.name, port.name, ti.start_time, config_uid)
             mae_groups = self.mae_transfer_groups[transfer_key]
             _plot(self.eval_dir, ti, mae_groups, config_uid)
-            # for training in trainings:
-            #     model_file_name = os.path.split(training.model_path)[1]
-            #     _, _, _, source_port_name, model_c_uid = decode_keras_model(model_file_name)
-            #     if config_uid is None or config_uid == model_c_uid:
-            #         transfer_key = self._encode_transfer_key(source_port_name, port.name, training.start_time,
-            #                                                  model_c_uid)
-            #         mae_groups = self.mae_transfer_groups[transfer_key]
-            #         _plot(training, model_c_uid)
 
     def plot_ports_by_mae(self, config_uid: int = None) -> None:
         training_type = "base" if config_uid is None else "transfer"
@@ -295,7 +263,6 @@ class Evaluator:
                         tmp[target_port].append(mae)
                     else:
                         tmp[target_port] = [mae]
-            # results = [(c_uid, [(sum(v) / len(v), k) for k, v in item.items()]) for c_uid, item in tmp.items()]
             result = [(k, sum(v) / len(v)) for (k, v) in tmp.items()]
         else:
             raise ValueError(f"Unknown training-type '{training_type}'")

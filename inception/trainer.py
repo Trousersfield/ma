@@ -22,13 +22,7 @@ from port import Port, PortManager
 from util import as_str, encode_keras_model, encode_loss_history_plot, encode_history_file, encode_x_y_plot, \
     SECONDS_PER_YEAR, read_json, verify_output_dir
 
-# FILES = glob.glob("/content/drive/MyDrive/ma/data/routes/SKAGEN/data_*.npy")[:]
 script_dir = os.path.abspath(os.path.dirname(__file__))
-
-
-def explore():
-    # print(pd.DataFrame(np.load(FILES[0])))
-    return
 
 
 def route_to_ts(f, window_len, max_len=250):
@@ -47,7 +41,6 @@ def route_to_ts(f, window_len, max_len=250):
 
 def load_data(port: Port, window_len: int):
     data_path = os.path.join(script_dir, os.pardir, "data", "routes", port.name, "data_*.npy")
-    # files_old = glob.glob(data_path)[:]
     files = glob.glob(data_path)
     X_ts_list = []
     y_ts_list = []
@@ -57,7 +50,6 @@ def load_data(port: Port, window_len: int):
         file_len = np.load(f, mmap_mode="r", allow_pickle=True).shape[0]
         if file_len < (window_len + 2):
             continue
-        # print(f"f len: {file_len} window len: {window_len}")
         X_ts_tmp, y_ts_tmp = route_to_ts(f, window_len)
         X_ts_list.append(X_ts_tmp)
         y_ts_list.append(y_ts_tmp.reshape(-1, 1))
@@ -109,7 +101,6 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     print(model.summary())
 
     model_file_name = encode_keras_model(port.name, start_time)
-    # file_path = "/content/drive/MyDrive/ma/output/model/SKAGEN/inception_time.h5"
     file_path = os.path.join(output_dir, "model", port.name, model_file_name)
 
     checkpoint = ModelCheckpoint(file_path, monitor='val_mae', mode='min', verbose=2, save_best_only=True)
@@ -131,9 +122,6 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     val_loss = result.history["val_loss"]
     val_mae = result.history["val_mae"]
     model.load_weights(file_path)
-    # plt.plot(y_ts)
-    # plt.plot(model.predict(X_ts))
-
     baseline = mean_absolute_error(y_ts, np.full_like(y_ts, np.mean(y_ts)))
     print(f"naive baseline: {baseline}")
 
@@ -159,8 +147,6 @@ def train_port(port: Port, evaluator: Evaluator) -> None:
     del X_ts, y_ts, X_train, X_test, y_train, y_test
     tf.keras.backend.clear_session()
     gc.collect()
-    # plt.plot(y_test)
-    # plt.plot(model.predict(X_test))
 
 
 def plot_history(train_history: List[float], val_history: List[float], plot_dir: str, port_name: str, start_time: str,
